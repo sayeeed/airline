@@ -416,25 +416,25 @@ object AirlineGrades {
     60 -> "Fledgling",
     80 -> "Small Airline",
     100 -> "Minor Airline",
-    120 -> "Established Airline",
-    140 -> "Networked Airline",
-    160 -> "Major Airline",
-    180 -> "Leading Airline",
-    200 -> "Skybound",
-    225 -> "Truly Ascending",
-    250 -> "High Flyer",
-    275 -> "Stratospheric",
-    300 -> "Sub-Orbital",
-    333 -> "Colossal",
-    366 -> "Titanic",
-    400 -> "Epic",
-    450 -> "Ultimate",
-    500 -> "Legendary",
-    600 -> "Mythic",
-    700 -> "Celestial",
-    800 -> "Empyrean",
-    1000 -> "Transcendent",
-    1200 -> "Apex Rat"
+    125 -> "Established Airline",
+    150 -> "Networked Airline",
+    175 -> "Major Airline",
+    200 -> "Leading Airline",
+    240 -> "Skybound",
+    280 -> "Truly Ascending",
+    320 -> "High Flyer",
+    360 -> "Stratospheric",
+    400 -> "Sub-Orbital",
+    500 -> "Colossal",
+    600 -> "Titanic",
+    700 -> "Epic",
+    800 -> "Ultimate",
+    1000 -> "Legendary",
+    1200 -> "Mythic",
+    1400 -> "Celestial",
+    1600 -> "Empyrean",
+    1800 -> "Transcendent",
+    2000 -> "Apex Rat"
   )
 
   def findGrade(reputation: Double): AirlineGrade = {
@@ -498,17 +498,17 @@ object AirlineGradeStockPrice {
 object AirlineGradeElites {
   val grades = List(
     100 -> "Deformed Plastic",
-    400 -> "Plywood",
-    1600 -> "Iron",
-    3900 -> "Stainless Steel",
-    7800 -> "Aluminum",
-    12400 -> "Nickel",
+    450 -> "Plywood",
+    1650 -> "Iron",
+    4400 -> "Stainless Steel",
+    8000 -> "Aluminum",
+    12800 -> "Nickel",
     17400 -> "Silver",
-    22700 -> "Gold",
-    28300 -> "Palladium",
+    22000 -> "Gold",
+    28000 -> "Palladium",
     34000 -> "Rhenium",
-    40800 -> "Painite",
-    47900 -> "Rat Fur"
+    40000 -> "Painite",
+    46000 -> "Rat Fur"
   )
 
   def findGrade(pax: Double): AirlineGrade = {
@@ -528,18 +528,18 @@ object AirlineGradeElites {
 
 object AirlineGradeTourists {
   val grades = List(
-    900 -> "Unknown",
+    1000 -> "Unknown",
     4000 -> "Discount Disaster",
-    14000 -> "Leisure Loser",
-    35000 -> "Semi Bargain Bin",
-    70000 -> "Package Deal Pal",
-    112000 -> "Resort Runner",
-    157000 -> "Bargain Bin Bonanza",
-    204000 -> "Deal Seeker Favorite",
-    255000 -> "Detours Delight",
-    306000 -> "Cheapo Champion",
-    367000 -> "Budget Behemoth",
-    431000 -> "Penny Pinchers' Paradise"
+    15000 -> "Leisure Loser",
+    42000 -> "Semi Bargain Bin",
+    84000 -> "Package Deal Pal",
+    134000 -> "Resort Runner",
+    188000 -> "Bargain Bin Bonanza",
+    250000 -> "Deal Seeker Favorite",
+    320000 -> "Detours Delight",
+    390000 -> "Cheapo Champion",
+    460000 -> "Budget Behemoth",
+    540000 -> "Penny Pinchers' Paradise"
   )
 
   def findGrade(pax: Double): AirlineGrade = {
