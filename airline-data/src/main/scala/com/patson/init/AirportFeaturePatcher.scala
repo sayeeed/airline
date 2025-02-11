@@ -1023,8 +1023,10 @@ object AirportFeaturePatcher extends App {
       "SFB" -> 0,
       "USA" -> 0,
       "PGD" -> 0,
+      "OGD" -> 0,
       "LIH" -> 0,
       "OGG" -> 0,
+      "CAK" -> 0,
       "ORH" -> 0,
       "SIG" -> 0,
       //canada
@@ -1039,10 +1041,12 @@ object AirportFeaturePatcher extends App {
       "ANR" -> 0,
       "BVA" -> 0,
       "HHN" -> 0,
+      "LBC" -> 0,
+      "FKB" -> 0,
+      "NRN" -> 0,
       "BRE" -> 0,
       "DTM" -> 0,
       "FMM" -> 0,
-      "FAO" -> 0,
       "REU" -> 0,
       "GRO" -> 0,
       "LIN" -> 0,
@@ -1053,6 +1057,8 @@ object AirportFeaturePatcher extends App {
       "TRF" -> 0,
       "WMI" -> 0,
       "CAT" -> 0,
+      "AGH" -> 0,
+      "ORK" -> 0,
       //GB
       "BHD" -> 0,
       //iceland
@@ -1063,11 +1069,15 @@ object AirportFeaturePatcher extends App {
       "SHA" -> 0,
       "ZUH" -> 0,
       "LXA" -> 0,
+      "FUO" -> 0,
       //japan
       "ITM" -> 0,
       "UKB" -> 0,
       "IBR" -> 0,
       "OKD" -> 0,
+      //korea
+      "GMP" -> 0,
+      "USN" -> 0,
       //argentina
       "AEP" -> 0,
       //brazil
@@ -1156,7 +1166,6 @@ object AirportFeaturePatcher extends App {
 
     val list: mutable.ListBuffer[String] = collection.mutable.ListBuffer(baseList:_*)
 
-    list -= "HND"
     list -= "CGO" //China
     list -= "OSS" //Uzbekistan
     list += "FRU"
@@ -1214,16 +1223,17 @@ object AirportFeaturePatcher extends App {
       "BOM", //India
       "RUH", //Saudi
       "AUH", //UAE
-      "AYT", //Turkey
       "CPT", //South Africa
       "GIG", //Brazil
       "GRU",
       "NRT", //Japan
+      "HND",
       "KIX",
       "SVO", //Russia
       "LED",
       "FCO", //Italy
       "MXP",
+      "GOH", //Greenland / DK
       "MAD", //Spain
       "BCN",
       "FRA", //Germany
