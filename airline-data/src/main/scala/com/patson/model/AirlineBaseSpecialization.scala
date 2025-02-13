@@ -83,6 +83,11 @@ object AirlineBaseSpecialization extends Enumeration {
 
   abstract class FlightTypeSpecialization extends Specialization {
     override val getType = BaseSpecializationType.FLIGHT_TYPE
+    /**
+     * Reduce base flight staff cost by 75%
+     * Reduce flight frequency cost by 40%
+     * Reduce flight capacity cost by 20%
+     */
 
     val staffModifier : FlightCategory.Value => Double
   }

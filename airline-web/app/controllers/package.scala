@@ -162,7 +162,7 @@ package object controllers {
       val toAirport = AirportCache.getAirport(toAirportId, true).get
       val airline = AirlineCache.getAirline(airlineId).get
       val distance = Util.calculateDistance(fromAirport.latitude, fromAirport.longitude, toAirport.latitude, toAirport.longitude).toInt
-      val flightType = Computation.getFlightType(fromAirport, toAirport, distance)
+//      val flightType = Computation.getFlightCategory(fromAirport, toAirport)
       val airplaneAssignments = json.\("airplanes").as[Map[Airplane, Int]](AirplaneAssignmentsRead)
 
       val modelId = json.\("model").as[Int]
@@ -184,7 +184,7 @@ package object controllers {
         rawQuality = 0
       }
 
-      val link = Link(fromAirport, toAirport, airline, price, distance, capacity = LinkClassValues.getInstance(), rawQuality, duration, frequency = 0, flightType) //compute frequency and capacity after validating the assigned airplanes
+      val link = Link(fromAirport, toAirport, airline, price, distance, capacity = LinkClassValues.getInstance(), rawQuality, duration, frequency = 0) //compute frequency and capacity after validating the assigned airplanes
       link.setAssignedAirplanes(airplaneAssignments.toList.map {
         case(airplane, frequency) => (airplane, LinkAssignment(frequency, frequency * flightMinutesRequiredPerFlight))
       }.toMap)
@@ -209,7 +209,7 @@ package object controllers {
       "airlineName" -> JsString(link.airline.name),
       "price" -> Json.toJson(link.price),
       "distance" -> JsNumber(link.distance),
-      "flightType" -> JsString(FlightType.label(link.flightType)),
+//      "flightType" -> JsString(FlightCategory.label(link.flightType)),
       "capacity" -> Json.toJson(link.capacity),
       "rawQuality" -> JsNumber(link.rawQuality),
       "computedQuality" -> JsNumber(link.computedQuality()),

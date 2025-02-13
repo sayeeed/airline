@@ -43,9 +43,8 @@ class LinkApplication @Inject()(cc: ControllerComponents) extends AbstractContro
       val airline = AirlineCache.getAirline(airlineId).get
       val distance = Util.calculateDistance(fromAirport.latitude, fromAirport.longitude, toAirport.latitude, toAirport.longitude).toInt
       val rawQuality = json.\("quality").as[Int]
-      val flightType = Computation.getFlightType(fromAirport, toAirport, distance)
-      
-      val link = Link(fromAirport, toAirport, airline, LinkClassValues.getInstance(price), distance, LinkClassValues.getInstance(capacity), rawQuality, distance.toInt * 60 / 800, 1, flightType)
+
+      val link = Link(fromAirport, toAirport, airline, LinkClassValues.getInstance(price), distance, LinkClassValues.getInstance(capacity), rawQuality, distance.toInt * 60 / 800, 1)
       (json \ "id").asOpt[Int].foreach { link.id = _ } 
       JsSuccess(link)
     }
@@ -516,7 +515,7 @@ class LinkApplication @Inject()(cc: ControllerComponents) extends AbstractContro
     Ok(Json.obj(
       "extraOvertimeCompensation" -> extraOvertimeCompensation,
       "staffBreakdown" -> staffBreakdown,
-      "flightType" -> FlightType.label(Computation.getFlightType(incomingLink.from, incomingLink.to, incomingLink.distance, incomingRelationship))
+      "flightType" -> FlightCategory.label(Computation.getFlightCategory(incomingLink.from, incomingLink.to))
     ))
   }
 
@@ -660,7 +659,7 @@ class LinkApplication @Inject()(cc: ControllerComponents) extends AbstractContro
         val relationshipTo = CountrySource.getCountryMutualRelationship(toAirport.countryCode, fromAirport.countryCode)
         val affinity = Computation.calculateAffinityValue(fromAirport.zone, toAirport.zone, relationship)
         val distance = Util.calculateDistance(fromAirport.latitude, fromAirport.longitude, toAirport.latitude, toAirport.longitude).toInt
-        val flightType = Computation.getFlightType(fromAirport, toAirport, distance, relationship)
+        val flightCategory = Computation.getFlightCategory(fromAirport, toAirport)
 
         val rejectionReason = getRejectionReason(request.user, fromAirport, toAirport, existingLink)
 
@@ -677,7 +676,7 @@ class LinkApplication @Inject()(cc: ControllerComponents) extends AbstractContro
         val ownedAirplanesByModel = AirplaneSource.loadAirplanesByOwner(airlineId).groupBy(_.model)
         val availableModels = modelsWithinRangeAndRelationship ++ ownedAirplanesByModel.keys.filter(_.range >= distance)
 
-        val availableModelsAndCustoms = if (FlightType.getCategory(flightType) == FlightCategory.INTERNATIONAL && fromAirport.isDomesticAirport() || FlightType.getCategory(flightType) == FlightCategory.INTERNATIONAL && toAirport.isDomesticAirport()) {
+        val availableModelsAndCustoms = if (flightCategory == FlightCategory.INTERNATIONAL && fromAirport.isDomesticAirport() || flightCategory == FlightCategory.INTERNATIONAL && toAirport.isDomesticAirport()) {
           import Model.Category._
           availableModels.filter(_.capacity <= 115)
         } else {
@@ -732,10 +731,10 @@ class LinkApplication @Inject()(cc: ControllerComponents) extends AbstractContro
         val suggestedPrice: Map[String, LinkClassValues] = paxTypes.map { paxType =>
           val multiplier = PassengerType.priceAdjust(paxType)
           (PassengerType.label(paxType) -> LinkClassValues.getInstance(
-            (Pricing.computeStandardPrice(distance, flightType, ECONOMY) * multiplier).toInt,
-            (Pricing.computeStandardPrice(distance, flightType, BUSINESS) * multiplier).toInt,
-            (Pricing.computeStandardPrice(distance, flightType, FIRST) * multiplier).toInt,
-            (Pricing.computeStandardPrice(distance, flightType, DISCOUNT_ECONOMY) * multiplier).toInt
+            (Pricing.computeStandardPrice(distance, flightCategory, ECONOMY) * multiplier).toInt,
+            (Pricing.computeStandardPrice(distance, flightCategory, BUSINESS) * multiplier).toInt,
+            (Pricing.computeStandardPrice(distance, flightCategory, FIRST) * multiplier).toInt,
+            (Pricing.computeStandardPrice(distance, flightCategory, DISCOUNT_ECONOMY) * multiplier).toInt
           ))
         }.toMap
 //        val suggestedPrice: scala.collection.mutable.Map[String, LinkClassValues] = scala.collection.mutable.Map(
@@ -813,7 +812,7 @@ class LinkApplication @Inject()(cc: ControllerComponents) extends AbstractContro
 
         val estimatedDifficulty : Option[Double] =
           if (existingLink.isEmpty) {
-            val mockedLink = Link(fromAirport, toAirport, airline, LinkClassValues.getInstance(), distance, LinkClassValues.getInstance(), 0, 0, frequency = 1, flightType, flightNumber)
+            val mockedLink = Link(fromAirport, toAirport, airline, LinkClassValues.getInstance(), distance, LinkClassValues.getInstance(), 0, 0, frequency = 1, flightNumber)
             val mockedAirplane = Airplane(Model.fromId(0), airline, 0, 0, 0, 0, 0)
             mockedLink.setAssignedAirplanes(Map(mockedAirplane -> LinkAssignment(1, 0)))
             Some(NegotiationUtil.getLinkNegotiationInfo(airline, mockedLink, None).finalRequirementValue)
@@ -841,7 +840,7 @@ class LinkApplication @Inject()(cc: ControllerComponents) extends AbstractContro
           "mutualRelationship" -> relationship,
           "affinity" -> Computation.constructAffinityText(fromAirport.zone, toAirport.zone, fromAirport.countryCode, toAirport.countryCode,  relationship, affinity),
           "distance" -> distance,
-          "flightType" -> FlightType.label(flightType),
+          "flightType" -> FlightCategory.label(flightCategory),
           "suggestedPrice" -> suggestedPrice,
           "economySpaceMultiplier" -> ECONOMY.spaceMultiplier,
           "businessSpaceMultiplier" -> BUSINESS.spaceMultiplier,
@@ -950,9 +949,9 @@ class LinkApplication @Inject()(cc: ControllerComponents) extends AbstractContro
           case Some(base) => base
         }
 
-        val flightType = Computation.getFlightType(fromAirport, toAirport)
+        val flightCategory = Computation.getFlightCategory(fromAirport, toAirport)
 
-        if (!toAirport.isGateway() && toAirport.size <= 2 && FlightType.getCategory(flightType) == FlightCategory.INTERNATIONAL ) {
+        if (!toAirport.isGateway() && toAirport.size <= 2 && flightCategory == FlightCategory.INTERNATIONAL ) {
           val currentTitle = CountryAirlineTitle.getTitle(toAirport.countryCode, airline)
           val requiredTitle = Title.PRIVILEGED_AIRLINE
           val ok = currentTitle.title.id <= requiredTitle.id //smaller value means higher title
@@ -960,7 +959,7 @@ class LinkApplication @Inject()(cc: ControllerComponents) extends AbstractContro
             return Some("Destination airport is too small to serve international destinations.", REQUIRES_CUSTOMS)
           }
         }
-        if (!fromAirport.isGateway() && fromAirport.size <= 2 && FlightType.getCategory(flightType) == FlightCategory.INTERNATIONAL) {
+        if (!fromAirport.isGateway() && fromAirport.size <= 2 && flightCategory == FlightCategory.INTERNATIONAL) {
           val currentTitle = CountryAirlineTitle.getTitle(toAirport.countryCode, airline)
           val requiredTitle = Title.PRIVILEGED_AIRLINE
           val ok = currentTitle.title.id <= requiredTitle.id //smaller value means higher title

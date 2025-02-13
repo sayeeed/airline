@@ -370,7 +370,6 @@ object Meta {
       "quality INTEGER, " +
       "duration INTEGER, " +
       "frequency INTEGER," +
-      "flight_type TINYINT," +
       "flight_number INTEGER," +
       "airplane_model SMALLINT," +
       "from_country CHAR(2)," +
@@ -435,7 +434,6 @@ object Meta {
       "frequency SMALLINT, " +
       "duration SMALLINT, " +
       "transport_type TINYINT, " +
-      "flight_type TINYINT, " +
       "flight_number SMALLINT, " +
       "airplane_model SMALLINT, " +
       "raw_quality SMALLINT, " +

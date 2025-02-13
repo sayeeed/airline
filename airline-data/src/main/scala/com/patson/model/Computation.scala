@@ -104,38 +104,22 @@ object Computation {
     distanceCache.getOrElseUpdate(key, Util.calculateDistance(fromAirport.latitude, fromAirport.longitude, toAirport.latitude, toAirport.longitude).toInt)
   }
 
-  def getFlightType(fromAirport : Airport, toAirport : Airport) : FlightType.Value = {
-    val relationship = CountrySource.getCountryMutualRelationship(fromAirport.countryCode, toAirport.countryCode)
-    getFlightType(fromAirport, toAirport, calculateDistance(fromAirport, toAirport), relationship)
-  }
-
-  //not passing relationship in getRouteRejection()
-  def getFlightType(fromAirport : Airport, toAirport : Airport, distance : Int, relationship : Int = 0) = {
-    import FlightType._
-    //hard-coding some home markets into the computation function to allow for independent relation values
-    //https://en.wikipedia.org/wiki/European_Common_Aviation_Area
-    val ECAA = List("AL", "AM", "AT", "BA", "BE", "BG", "CH", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GE", "GR", "HR", "HU", "IE", "IS", "IT", "LT", "LU", "LV", "MD", "ME", "MK", "MT", "NL", "NO", "PL", "PT", "RO", "RS", "SI", "SK", "ES", "SE", "UA", "XK")
+  // is used independent of individual links, so must be globally accessible
+  def getFlightCategory(fromAirport : Airport, toAirport : Airport): FlightCategory.Value = {
+    //hard-coding home markets into the computation function to allow for independent "relation" values
+    val ECAA = List("AL", "AM", "AT", "BA", "BE", "BG", "CH", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GE", "GR", "HR", "HU", "IE", "IS", "IT", "LT", "LU", "LV", "MD", "ME", "MK", "MT", "NL", "NO", "PL", "PT", "RO", "RS", "SI", "SK", "ES", "SE", "UA", "XK") //https://en.wikipedia.org/wiki/European_Common_Aviation_Area
     val USA = List("US", "PR", "VI", "GU", "AS", "MP", "MH", "PW", "FM") //US & COFA Pacific
-    if (fromAirport.countryCode == toAirport.countryCode || relationship == 5 || ECAA.contains(fromAirport.countryCode) && ECAA.contains(toAirport.countryCode) || USA.contains(fromAirport.countryCode) && USA.contains(toAirport.countryCode)){
-      if (distance <= 1000) {
-        SHORT_HAUL_DOMESTIC
-      } else if (distance <= 3000) {
-        MEDIUM_HAUL_DOMESTIC
-      } else if (distance <= 9000) {
-        LONG_HAUL_DOMESTIC
-      } else {
-        ULTRA_LONG_HAUL_DOMESTIC
-      }
+    val GB = List("GB", "TC", "KY", "VG", "BM")
+    val ANZAC = List("AU", "NZ", "CK", "NU")
+    if (fromAirport.countryCode == toAirport.countryCode ||
+      ECAA.contains(fromAirport.countryCode) && ECAA.contains(toAirport.countryCode) ||
+      USA.contains(fromAirport.countryCode) && USA.contains(toAirport.countryCode) ||
+      GB.contains(fromAirport.countryCode) && GB.contains(toAirport.countryCode) ||
+      ANZAC.contains(fromAirport.countryCode) && ANZAC.contains(toAirport.countryCode)
+    ){
+      FlightCategory.DOMESTIC
     } else {
-      if (distance <= 1000) {
-        SHORT_HAUL_INTERNATIONAL
-      } else if (distance <= 3000) {
-        MEDIUM_HAUL_INTERNATIONAL
-      } else if (distance <= 9000) {
-        LONG_HAUL_INTERNATIONAL
-      } else {
-        ULTRA_LONG_HAUL_INTERCONTINENTAL
-      }
+      FlightCategory.INTERNATIONAL
     }
   }
 
@@ -164,7 +148,12 @@ def calculateAffinityValue(fromZone : String, toZone : String, relationship : In
     }
 
   val affinitySet = affinityToSet(fromZone : String, toZone : String, relationship : Int)
-  affinityCountX2(affinitySet) + affinitySet.length + relationshipModifier
+  val baseAffinity = affinitySet.length + relationshipModifier
+  if (baseAffinity <= 1 && affinityCountX2(affinitySet) > 0) {
+    affinitySet.length + affinityCountX2(affinitySet) + 1 //ensure x2 affinities always hit strong
+  } else {
+    baseAffinity + affinityCountX2(affinitySet)
+  }
 }
 
 def affinityToSet(fromZone : String, toZone : String, relationship : Int) = {

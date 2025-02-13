@@ -6,7 +6,6 @@ import com.patson.model.Scheduling.{TimeSlot, TimeSlotStatus}
 import com.patson.model.{Link, _}
 import com.patson.util.{AirlineCache, AirportCache, ChampionUtil}
 import controllers.AuthenticationObject.AuthenticatedAirline
-import controllers.NegotiationUtil.FlightTypeGroup
 import controllers.WeatherUtil.{Coordinates, Weather}
 import play.api.data.Form
 import play.api.data.Forms.{mapping, number}
@@ -559,7 +558,7 @@ class Application @Inject()(cc: ControllerComponents, val configuration: play.ap
     (1 to 15).map { scale =>
       var perScaleResult = Json.obj("scale" -> scale)
       var maxFrequencyJson = Json.obj()
-      FlightTypeGroup.values.foreach { group =>
+      FlightCategory.values.foreach { group =>
         maxFrequencyJson = maxFrequencyJson + (group.toString -> JsNumber(NegotiationUtil.getMaxFrequencyByGroup(scale, group)))
       }
 
@@ -571,12 +570,7 @@ class Application @Inject()(cc: ControllerComponents, val configuration: play.ap
       scaleProgressionResult = scaleProgressionResult.append(perScaleResult)
     }
 
-    var groupInfoJson = Json.obj()
-    FlightType.values.toList.groupBy(NegotiationUtil.getFlightTypeGroup(_)).foreach {
-      case (group, flightTypes) => groupInfoJson = groupInfoJson + (group.toString -> JsString(flightTypes.map(FlightType.label(_)).mkString(", ")))
-    }
-    var result = Json.obj("scaleProgression" -> scaleProgressionResult, "groupInfo" -> groupInfoJson)
-
+    var result = Json.obj("scaleProgression" -> scaleProgressionResult)
 
     Ok(result)
   }

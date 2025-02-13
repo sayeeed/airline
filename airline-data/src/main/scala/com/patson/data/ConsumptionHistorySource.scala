@@ -338,7 +338,8 @@ object ConsumptionHistorySource {
     LinkSource.loadFlightLinkById(linkId) match {
       case Some(link) => 
         val connection = Meta.getConnection()
-        val standardPrice = Pricing.computeStandardPriceForAllClass(link.distance, link.flightType)
+        val flightCategory = Computation.getFlightCategory(link.from, link.to)
+        val standardPrice = Pricing.computeStandardPriceForAllClass(link.distance, flightCategory)
         try {
           val preparedStatement = connection.prepareStatement("SELECT * FROM " + PASSENGER_HISTORY_TABLE + " WHERE link = ? ")
     

@@ -6,7 +6,6 @@ import java.util.{ArrayList, Collections}
 import java.util.concurrent.atomic.AtomicInteger
 import com.patson.data.{AirlineSource, AirportSource, AllianceSource, CountrySource, CycleSource, LinkSource}
 import com.patson.model.AirlineBaseSpecialization.BrandSpecialization
-import com.patson.model.FlightType.Value
 import com.patson.model._
 import FlightPreferenceType._
 
@@ -318,7 +317,7 @@ object PassengerSimulation {
       return Some(DISTANCE)
     }
 
-    val routeAffordableCost = Pricing.computeStandardPrice(routeDisplacement, Computation.getFlightType(fromAirport, toAirport, routeDisplacement), preferredLinkClass) * ROUTE_COST_TOLERANCE_FACTOR
+    val routeAffordableCost = Pricing.computeStandardPrice(routeDisplacement, Computation.getFlightCategory(fromAirport, toAirport), preferredLinkClass) * ROUTE_COST_TOLERANCE_FACTOR
     if (route.totalCost > routeAffordableCost) {
       //println(s"rejected affordable: $routeAffordableCost, cost : , ${route.totalCost}  $route" )
       return Some(TOTAL_COST)

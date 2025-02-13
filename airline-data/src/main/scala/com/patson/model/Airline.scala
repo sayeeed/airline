@@ -325,7 +325,6 @@ object Airline {
     airlineWithJustId
   }
   val MAX_SERVICE_QUALITY : Double = 100
-  val MAX_MAINTENANCE_QUALITY : Double = 100
 
   def resetAirline(airlineId : Int, newBalance : Long, resetExtendedInfo : Boolean = false) : Option[Airline] = {
     AirlineSource.loadAirlineById(airlineId, true) match {

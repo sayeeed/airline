@@ -15,9 +15,9 @@ import scala.util.Random
 import com.patson.DemandGenerator
 import com.patson.data._
 import com.patson.data.airplane._
+import com.typesafe.config.ConfigFactory
 
 import scala.collection.mutable.ArrayBuffer
-
 import java.awt.Color
 import java.util.concurrent.ThreadLocalRandom
 import scala.collection.mutable
@@ -62,7 +62,11 @@ object AirlineGenerator extends App {
       val baseAirport = topAirports(i)
       val user = User(userName = baseAirport.iata, email = "bot", Calendar.getInstance, Calendar.getInstance, UserStatus.ACTIVE, level = 0, None, List.empty)
       UserSource.saveUser(user)
-      Authentication.createUserSecret(baseAirport.iata, Random.nextInt(5000).toString)
+      val configFactory = ConfigFactory.load()
+      val devMode = if (configFactory.hasPath("dev")) configFactory.getBoolean("dev") else false
+      val password = if (devMode) "12345" else Random.nextInt(5000).toString
+
+      Authentication.createUserSecret(baseAirport.iata, password)
       
       val newAirline = Airline("Rats Global " + baseAirport.iata, isGenerated = true)
       newAirline.setBalance(1000000000)
@@ -242,11 +246,10 @@ object AirlineGenerator extends App {
                 remainingFrequency -= frequencyForThis
               }
               
-              val flightType = Computation.getFlightType(fromAirport, toAirport, distance, relationship)
-              val price = Pricing.computeStandardPriceForAllClass((distance * 1.05).toInt, flightType) //markup prices 5%
+              val price = Pricing.computeStandardPriceForAllClass((distance * 1.05).toInt, Computation.getFlightCategory(fromAirport, toAirport) ) //markup prices 5%
               
               val duration = Computation.calculateDuration(model, distance)
-              val newLink = Link(fromAirport, toAirport, airline, price, distance, capacity, rawQuality, duration = duration, frequency = frequency, flightType = flightType)
+              val newLink = Link(fromAirport, toAirport, airline, price, distance, capacity, rawQuality, duration = duration, frequency = frequency)
               
               newLink.setAssignedAirplanes(assignedAirplanes.toMap)
               newLinks += newLink

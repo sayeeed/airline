@@ -296,7 +296,6 @@ class AllianceApplication @Inject()(cc: ControllerComponents) extends AbstractCo
         "toLatitude" -> JsNumber(link.to.latitude),
         "toLongitude" -> JsNumber(link.to.longitude),
         "capacity" -> Json.toJson(link.capacity),
-        "flightType" -> JsString(link.flightType.toString()),
         "flightCode" -> JsString(LinkUtil.getFlightCode(link.airline, link.flightNumber))))
         result = result.append(linkJson) 
       }

@@ -207,8 +207,7 @@ object AirportSimulation {
             flightLinks.foreach { linkConsideration =>
               val link = linkConsideration.link
               val preferredLinkClass = passengerGroup.preference.preferredLinkClass
-              val standardPrice = Pricing.computeStandardPrice(link.distance, link.flightType, preferredLinkClass)
-
+              val standardPrice = Pricing.computeStandardPrice(link, preferredLinkClass)
 
               val satisfaction = Computation.computePassengerSatisfaction(linkConsideration.cost, standardPrice)
 

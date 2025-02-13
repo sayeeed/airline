@@ -92,7 +92,7 @@ object DestinationSource {
   def deleteAllDestinations() = {
     val connection = Meta.getConnection()
     try {  
-      var queryString = "DELETE FROM " + DESTINATIONS_TABLE
+      val queryString = "DELETE FROM " + DESTINATIONS_TABLE
       
       val preparedStatement = connection.prepareStatement(queryString)
       

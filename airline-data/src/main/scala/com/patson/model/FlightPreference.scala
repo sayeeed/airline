@@ -135,13 +135,10 @@ abstract class FlightPreference(homeAirport : Airport) {
       case PassengerType.TRAVELER => 0.75
       case _ => 0.5
     }
-    val qualityDelta = link.computedQuality - homeAirport.expectedQuality(link.flightType, preferredLinkClass)
+    val qualityDelta = link.computedQuality - homeAirport.expectedQuality(link.distance, preferredLinkClass)
 
-    val GOOD_QUALITY_DELTA = paxType match {
-      case PassengerType.TOURIST => 10
-      case PassengerType.ELITE => 30
-      case _ => 20
-    }
+    val GOOD_QUALITY_DELTA =  20
+
     val priceAdjust =
       if (qualityDelta < 0) {
         1 - qualityDelta.toDouble / Link.MAX_QUALITY * 1
@@ -274,7 +271,7 @@ object FlightPreferenceType extends Enumeration {
   type Preference = Value
 
   protected case class Val(title: String, description: String, priority: Int) extends super.Val
-  implicit def valueToFlightPreferenceTypeVal(x: Value) = x.asInstanceOf[Val]
+  implicit def valueToFlightPreferenceTypeVal(x: Value): Val = x.asInstanceOf[Val]
 
   val DEAL = Val("Deal Seeker", "", 1)
   val BRAND = Val("Brand Sensitive", "", 2)
