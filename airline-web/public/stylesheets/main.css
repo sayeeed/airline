@@ -1396,15 +1396,25 @@ button:disabled {
     cursor: pointer;
 }
 
-#baseSpecializationModal .specialization.active, #baseSpecializationModal .specialization.available:hover {
+#baseSpecializationModal .specialization.active {
     box-shadow: var(--table-header-selected-shadow);
     background: var(--table-header-selected-background);
     color: var(--table-header-selected-color);
     text-shadow: var(--table-header-selected-text-shadow);
 }
+#baseSpecializationModal .specialization.available:hover {
+    box-shadow: 0px 0px 7px 10px rgb(48 205 255 / 20%);
+}
+#baseSpecializationModal .specialization.unavailable, #baseSpecializationModal .specialization.unavailable .dot {
+    cursor: not-allowed !important;
+}
 
-#baseSpecializationModal .specialization.unavailable {
-    cursor: not-allowed;
+.grid-specialization {
+    display: grid;
+    grid-gap: 1.25rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    width: 100%;
+    margin: 10px 0 20px;
 }
 
 

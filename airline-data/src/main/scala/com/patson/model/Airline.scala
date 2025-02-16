@@ -1,7 +1,6 @@
 package com.patson.model
 
 import com.patson.data._
-import com.patson.model.AirlineBaseSpecialization.{DelegateSpecialization, Specialization}
 
 import java.util.{Calendar, Date}
 import scala.collection.mutable.ListBuffer
@@ -180,7 +179,7 @@ case class Airline(name: String, isGenerated : Boolean = false, var id : Int = 0
   val DELEGATE_PER_LEVEL = 3
   lazy val delegateCount = BASE_DELEGATE_COUNT +
     airlineGrade.level * DELEGATE_PER_LEVEL +
-    AirlineSource.loadAirlineBasesByAirline(id).flatMap(_.specializations).filter(_.isInstanceOf[DelegateSpecialization]).map(_.asInstanceOf[DelegateSpecialization].delegateBoost).sum +
+    AirlineSource.loadAirlineBasesByAirline(id).flatMap(_.specializations).count(_.getType == BaseSpecializationType.DELEGATE) +
     delegateBoosts.map(_.amount).sum
   lazy val delegateBoosts = AirlineSource.loadAirlineModifierByAirlineId(id).filter(_.modifierType == AirlineModifierType.DELEGATE_BOOST).map(_.asInstanceOf[DelegateBoostAirlineModifier])
 }

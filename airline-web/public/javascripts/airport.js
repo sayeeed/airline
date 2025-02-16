@@ -167,11 +167,11 @@ function updateAirportDetails(airport, cityImageUrl, airportImageUrl) {
                     const airportBaseDetailsHeadingELM = document.getElementById('airportBaseDetailsHeading')
                     airportBaseDetailsHeadingELM.innerText = `${activeAirline.name} ${baseType}`
                     airportBaseDetailsHeadingELM.appendChild(smallTextUnderLine)
-                    if (specializationList) {
-                        const specializationListELM = document.createElement('span');
-                        specializationListELM.innerHTML = specializationList;
-                        airportBaseDetailsHeadingELM.appendChild(specializationList);
-                    }
+//                    if (specializationList) {
+//                        const specializationListELM = document.createElement('span');
+//                        specializationListELM.innerHTML = specializationList;
+//                        airportBaseDetailsHeadingELM.appendChild(specializationList);
+//                    }
 
 	    			if (airportBase.delegatesRequired == 0) {
 	    			    $('#airportDetailsBaseDelegatesRequired').text('None')
@@ -1444,19 +1444,19 @@ function showSpecializationModal() {
     var $container = $('#baseSpecializationModal .container')
     $container.empty()
     $.ajax({
-		type: 'GET',
-		url: "airlines/" + activeAirline.id + "/bases/" + activeAirportId + "/specialization-info",
-	    contentType: 'application/json; charset=utf-8',
-	    dataType: 'json',
-	    success: function(info) {
+        type: 'GET',
+        url: "airlines/" + activeAirline.id + "/bases/" + activeAirportId + "/specialization-info",
+        contentType: 'application/json; charset=utf-8',
+        dataType: 'json',
+        success: function(info) {
             $.each(info.specializations, function(index, specializationsByScale) {
-                var $scaleDiv = $('<div class="section"></div>').appendTo($container)
-                $scaleDiv.append($('<h4>Hub Scale Requirement ' + specializationsByScale.scaleRequirement + '</h4>'))
-                var $flexDiv = $('<div style="display: flex; flex-wrap: wrap;"></div>').appendTo($scaleDiv)
+                $container.append($('<h4 class="m-0">Base Level ' + specializationsByScale.scaleRequirement + '</h4>'))
+                $container.append($('<p><i>Choose any two</i></p>'))
+                var $flexDiv = $('<div class="grid-specialization"></div>').appendTo($container)
                 $.each(specializationsByScale.specializations, function(index, specialization) {
-                    var $specializationDiv = $('<div class="section specialization" style="min-width: 200px; flex:1;"></div>').appendTo($flexDiv)
+                    var $specializationDiv = $('<div class="section specialization" style="min-width: 260px; flex:1;"></div>').appendTo($flexDiv)
                     $specializationDiv.data('id', specialization.id)
-                    $specializationDiv.append($('<h4>' + specialization.label + '</h4>'))
+                    $specializationDiv.append($('<h4 class="m-0">' + specialization.label + '</h4>'))
                     var $descriptionList = $('<ul></ul>').appendTo($specializationDiv)
                     $.each(specialization.descriptions, function(index, description) {
                         $descriptionList.append($('<li class="dot">' + description + '</li>'))
@@ -1466,8 +1466,15 @@ function showSpecializationModal() {
                         $specializationDiv.addClass('available')
                         if (!specialization.free) {
                             $specializationDiv.on('click', function() {
-                                $(this).siblings().removeClass('active')
-                                $(this).toggleClass('active')
+                                var $activeSpecializations = $flexDiv.find('.specialization.active')
+                                if ($(this).hasClass('active')) {
+                                    $(this).removeClass('active')
+                                } else {
+                                    if ($activeSpecializations.length >= 2) {
+                                        $($activeSpecializations[0]).removeClass('active')
+                                    }
+                                    $(this).addClass('active')
+                                }
                             })
                         } else {
                             $specializationDiv.attr('title', 'Free at scale ' + specializationsByScale.scaleRequirement)
@@ -1484,6 +1491,7 @@ function showSpecializationModal() {
             })
 
             if (info.cooldown > 0) {
+                $('#baseSpecializationModal .warning').text("Next change can be made in " + info.cooldown + " week(s).")
                 disableButton($('#baseSpecializationModal .confirm'), info.cooldown + " more week(s) before another change")
             } else {
                 enableButton($('#baseSpecializationModal .confirm'))
@@ -1492,13 +1500,12 @@ function showSpecializationModal() {
             $('#baseSpecializationModal').data("defaultCooldown", info.defaultCooldown)
 
             $('#baseSpecializationModal').fadeIn(500)
-	    },
+        },
         error: function(jqXHR, textStatus, errorThrown) {
-	            console.log(JSON.stringify(jqXHR));
-	            console.log("AJAX error: " + textStatus + ' : ' + errorThrown);
-	    }
-	});
-
+            console.log(JSON.stringify(jqXHR));
+            console.log("AJAX error: " + textStatus + ' : ' + errorThrown);
+        }
+    });
 }
 
 function confirmSpecializations() {

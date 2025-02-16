@@ -97,15 +97,15 @@ case class Link(from : Airport, to : Airport, airline: Airline, price : LinkClas
   }
 
   lazy val getFutureOfficeStaffRequired : Int = {
-    getOfficeStaffRequired(from, to, futureFrequency(), futureCapacity())
+    getOfficeStaffRequired(from, to, futureFrequency(), futureCapacity(), rawQuality, getAssignedModel())
   }
 
   lazy val getFutureOfficeStaffBreakdown : StaffBreakdown = {
-    getOfficeStaffBreakdown(from, to, futureFrequency(), futureCapacity())
+    getOfficeStaffBreakdown(from, to, futureFrequency(), futureCapacity(), rawQuality, getAssignedModel())
   }
 
   lazy val getCurrentOfficeStaffRequired : Int = {
-    getOfficeStaffRequired(from, to, frequency, capacity)
+    getOfficeStaffRequired(from, to, frequency, capacity, rawQuality, getAssignedModel())
   }
 
   var loadedFrequencyByClass : LinkClassValues = LinkClassValues.getInstance()
@@ -154,13 +154,13 @@ case class Link(from : Airport, to : Airport, airline: Airline, price : LinkClas
 
   lazy val schedule : Seq[TimeSlot] = Scheduling.getLinkSchedule(this)
 
-  lazy val getOfficeStaffRequired = (from : Airport, to : Airport, frequency : Int, capacity : LinkClassValues) => {
-    getOfficeStaffBreakdown(from, to, frequency, capacity).total
+  lazy val getOfficeStaffRequired = (from : Airport, to : Airport, frequency : Int, capacity : LinkClassValues, rawQuality : Int, model : Option[Model]) => {
+    getOfficeStaffBreakdown(from, to, frequency, capacity, rawQuality, model).total
   }
 
-  lazy val getOfficeStaffBreakdown = (from : Airport, to : Airport, frequency : Int, capacity : LinkClassValues) => {
+  lazy val getOfficeStaffBreakdown = (from : Airport, to : Airport, frequency : Int, capacity : LinkClassValues, rawQuality : Int, model : Option[Model]) => {
     val flightCategory = Computation.getFlightCategory(from, to)
-    val airlineBaseModifier : Double = AirportCache.getAirport(from.id, true).get.getAirlineBase(airline.id).map(_.getStaffModifier(flightCategory)).getOrElse(1)
+    val airlineBaseModifier : Double = AirportCache.getAirport(from.id,   fullLoad = true).get.getAirlineBase(airline.id).map(_.getStaffModifier(flightCategory, model.get.airplaneType, rawQuality)).getOrElse(1)
     if (frequency == 0) { //future flights
       StaffBreakdown(0, 0, 0, airlineBaseModifier)
     } else {
@@ -191,7 +191,7 @@ object Link {
     val multiplier = if (flightCategory == FlightCategory.INTERNATIONAL) {
       Math.pow(distance + 1600, 0.16) - 1.5
     } else {
-      Math.pow(distance + 800, 0.15) - 2
+      Math.pow(distance + 1000, 0.15) - 2
     }
     val staffPerFrequency = 0.5 * multiplier
     val staffPer500Pax = 1.25 * multiplier
@@ -205,7 +205,7 @@ case class StaffBreakdown(basicStaff : Int, frequencyStaff : Double, capacitySta
 case class StaffSchemeBreakdown(basic : Int, perFrequency : Double, per500Pax : Double)
 
 trait CostModifier {
-  def value(link : Transport, linkClass : LinkClass) : Double
+  def value(link : Transport, linkClass : LinkClass, paxType: PassengerType.Value) : Double
 }
 
 object ExplicitLinkConsideration {
@@ -263,7 +263,7 @@ case class CostStoreProvider() extends CostProvider {
           linkConsideration.link,
           linkConsideration.linkClass,
           linkConsideration.passengerGroup.passengerType,
-          linkConsideration.modifier.map(_.value(linkConsideration.link, linkConsideration.linkClass)).getOrElse(1.0))
+          linkConsideration.modifier.map(_.value(linkConsideration.link, linkConsideration.linkClass, linkConsideration.passengerGroup.passengerType)).getOrElse(1.0))
         computed = true
       }
     //}

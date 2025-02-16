@@ -854,7 +854,7 @@
 											<span id="linkStaffBreakdownTooltip" class="tooltip">
 												<img class="info svg" src='@routes.Assets.versioned("images/icons/information.svg")'>
 												<span class="tooltiptext alignLeft" style="width: 400px;">
-													<h4 style="margin-bottom: 10px;">Office Staff Requirement Breakdown <span class="airlineName"></span></h4>
+													<h4 style="margin-bottom: 10px;">Staff Required Breakdown <span class="airlineName"></span></h4>
 													<div class="table data" style="width: 100%;">
 														<div class="table-row">
 															<div class="label">Flight Type:</div>
@@ -1222,30 +1222,6 @@
 											onmouseover="showBaseDetailsModal()">
 									<img class="info svg" src='@routes.Assets.versioned("images/icons/information.svg")'>
 									<span class="tooltiptext below alignLeft" style="width: 400px;">
-										<div id="baseDetailsModal">
-											<h4 style="margin-bottom: 10px;">Office Scale Details</h4>
-											<div class="table data scaleDetails" style="width: 100%;">
-												<div class="table-header">
-													<div class="cell" style="width: 20%;">
-														<h5>Scale</h5>
-													</div>
-													<div class="cell" style="width: 20%;">
-														<h5>Staff Cap (HQ/base)</h5>
-													</div>
-													<div class="cell" data-group="GROUP_1" style="width: 20%;">
-														<h5>Freq Cap 1</h5>
-													</div>
-													<div class="cell" data-group="GROUP_2" style="width: 20%;">
-														<h5>Freq Cap 2</h5>
-													</div>
-													<div class="cell" data-group="GROUP_3" style="width: 20%;">
-														<h5>Freq Cap 3</h5>
-													</div>
-												</div>
-											</div>
-											<div class="groupRemarks">
-											</div>
-										</div>
 									</span>
 							  </span>
 								  </div>
@@ -4242,9 +4218,11 @@
 	</div>
 
   <div id="baseSpecializationModal" class="modal">
-	  <div class="modal-content"  style="width : 600px;">
+	  <div class="modal-content"  style="width: 920px; padding: 1.5rem">
 		  <span class="close" onclick="closeModal($(this).closest('.modal'))">&times;</span>
-		  <h4>Specializations</h4>
+		  <p class="airportName text-xs m-0"></p>
+		  <h4 class="">Airport Specializations <i class="currentAirline"></i></h4>
+		  <p class="warning pb-2"></p>
 		  <div class="container" style="width: 100%">
 
 		  </div>
@@ -5499,14 +5477,14 @@
 	  <div id="baseDetailsModal" class="modal">
 		  <div class="modal-content"  style="width : 400px;">
 			  <span class="close" onclick="closeModal($(this).closest('.modal'))">&times;</span>
-			  <h4 style="margin-bottom: 10px;">Office Scale Details</h4>
+			  <h4 style="margin-bottom: 10px;">Base Details</h4>
+			  <p>As you level up your base, you have more staff to handle more flights at higher frequencies.</p>
 			  <div class="table data scaleDetails" style="width: 100%;">
 				  <div class="table-header">
-					  <div class="cell" style="width: 20%;"><h5>Scale</h5></div>
-					  <div class="cell" style="width: 20%;"><h5>Staff Cap (HQ/base)</h5></div>
-					  <div class="cell" data-group="GROUP_1" style="width: 20%;"><h5>Freq Cap 1</h5></div>
-					  <div class="cell" data-group="GROUP_2" style="width: 20%;"><h5>Freq Cap 2</h5></div>
-					  <div class="cell" data-group="GROUP_3" style="width: 20%;"><h5>Freq Cap 3</h5></div>
+					  <div class="cell" style="width: 15%;"><p>Scale</p></div>
+					  <div class="cell" style="width: 25%;"><p>Staff Cap<br><small>HQ / base</small></p></div>
+					  <div class="cell" data-group="INTERNATIONAL" style="width: 30%;"><p>Int'l Freq</p></div>
+					  <div class="cell" data-group="DOMESTIC" style="width: 30%;"><p>Domestic Freq</p></div>
 				  </div>
 			  </div>
 			  <div class="groupRemarks">

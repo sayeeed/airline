@@ -2585,12 +2585,14 @@ function updateSatisfaction(result) {
     var topNegativeCommentsByClass = result.topNegativeCommentsByClass
     var topPositiveCommentsByPreference = result.topPositiveCommentsByPreference
     var topNegativeCommentsByPreference = result.topNegativeCommentsByPreference
+    var topPositiveCommentsByType = result.topPositiveCommentsByType
+    var topNegativeCommentsByType = result.topNegativeCommentsByType
 
     $.each(paxTypeSatisfaction, function(index, entry) {
         $row = $("<div class='table-row data-row'><div class='cell' style='width: 50%; vertical-align: middle;'>" + entry.title + "</div></div>")
         var $icon = getSatisfactionIcon(entry.satisfaction)
         $icon.on('mouseover.breakdown', function() {
-            showSatisfactionBreakdown($(this), topPositiveCommentsByClass[entry.level], topNegativeCommentsByClass[entry.level], entry.satisfaction)
+            showSatisfactionBreakdown($(this), topPositiveCommentsByType[entry.id], topNegativeCommentsByType[entry.id], entry.satisfaction)
         })
 
         $row.append("<div class='cell' style='width: 15%;'>" + entry.passengerCount)

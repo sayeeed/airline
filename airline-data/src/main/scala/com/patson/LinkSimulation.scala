@@ -19,7 +19,7 @@ import java.util.concurrent.ThreadLocalRandom
 object LinkSimulation {
 
 
-  private val FUEL_UNIT_COST = OilPrice.DEFAULT_UNIT_COST //for easier flight monitoring, let's make it the default unit price here
+  val FUEL_UNIT_COST = OilPrice.DEFAULT_UNIT_COST //for easier flight monitoring, let's make it the default unit price here
   val CREW_UNIT_COST = 5
   val CREW_BASE_COST = 0
 
@@ -115,7 +115,6 @@ object LinkSimulation {
     println(s"Finished calculation on profits by links. Took ${endTime - startTime} millisecs")
 
     purgeAlerts()
-    //todo: skip if is generated
     checkLoadFactor(flightLinks, cycle)
 
     LinkSource.deleteLinkConsumptionsByCycle(300)
@@ -158,11 +157,14 @@ object LinkSimulation {
         var i = 0
         val assignedInServiceAirplanes = link.getAssignedAirplanes().filter(_._1.isReady)
         for ( i <- 0 until link.frequency) {
-          var airplaneCount : Int = assignedInServiceAirplanes.size
+          val airplaneCount : Int = assignedInServiceAirplanes.size
           if (airplaneCount > 0) {
-            val airplane = assignedInServiceAirplanes.toList.map(_._1)(i % airplaneCount)           //round robin
+            val airplane = assignedInServiceAirplanes.toList.map(_._1)(i % airplaneCount) //round-robin
             val errorValue = ThreadLocalRandom.current().nextDouble()
-            val conditionMultiplier = (Airplane.MAX_CONDITION - airplane.condition * 0.75).toDouble / Airplane.MAX_CONDITION
+            val hangarCount = link.from.getAirlineBase(link.airline.id).get.specializations.count(_.getType == BaseSpecializationType.HANGAR)
+              + link.to.getAirlineBase(link.airline.id).get.specializations.count(_.getType == BaseSpecializationType.HANGAR)
+            val airplaneCondition = Math.min(100, hangarCount * 4 + airplane.condition)
+            val conditionMultiplier = (Airplane.MAX_CONDITION - airplaneCondition * 0.75).toDouble / Airplane.MAX_CONDITION
 
             if (airplane.condition > Airplane.CRITICAL_CONDITION) { //small chance of delay and cancellation
               if (errorValue < cancellationNormalThreshold * conditionMultiplier) {
@@ -318,7 +320,6 @@ object LinkSimulation {
     }
     val overallSatisfaction = if (totalPassengerCount == 0) 0 else satisfactionTotalValue / totalPassengerCount
 
-    //val result = LinkConsumptionDetails(link.id, link.price, link.capacity, link.soldSeats, link.computedQuality, fuelCost, crewCost, airportFees, inflightCost, delayCompensation = delayCompensation, maintenanceCost, depreciation = depreciation, revenue, profit, link.cancellationCount, linklink.from.id, link.to.id, link.airline.id, link.distance, cycle)
     val result = LinkConsumptionDetails(flightLink, fuelCost, crewCost, airportFees, inflightCost, delayCompensation = delayCompensation, maintenanceCost, depreciation = depreciation, loungeCost = loungeCost, revenue, profit, overallSatisfaction, cycle)
     //println("model : " + link.getAssignedModel().get + " profit : " + result.profit + " result: " + result)
     (result, loungeConsumptionDetails.toList)
@@ -327,7 +328,7 @@ object LinkSimulation {
   //"service supplies"
   val computeInflightCost = (classMultiplier : Double, link : Link, soldSeats : Int) => {
     val star = link.rawQuality / 20
-    val durationCostPerHour =
+    val durationCostPerHour: Double =
       if (star == 1) {
         -4.5 //selling food & credit cards :)
       } else if (star == 2) {
@@ -366,7 +367,7 @@ object LinkSimulation {
     val existingAlerts = AlertSource.loadAlertsByCategory(AlertCategory.LINK_CANCELLATION)
 
     //group links by from and to airport ID Tuple(id1, id2), smaller ID goes first in the tuple
-    val linksByAirportIds = links.filter(_.capacity.total > 0).groupBy( link =>
+    val linksByAirportIds = links.filter(_.capacity.total > 0).filter(_.airline.isGenerated == false).groupBy( link =>
       if (link.from.id < link.to.id) (link.from.id, link.to.id) else (link.to.id, link.from.id)
     )
 
