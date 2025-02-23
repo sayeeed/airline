@@ -143,7 +143,7 @@ object AirlineBaseSpecialization extends Enumeration {
   case class ServiceSpecialization1() extends FlightTypeSpecialization {
     override val scaleRequirement : Int = 12
     override val staffModifier : ((FlightCategory.Value, Model.Type.Value, Int) => Double) = {
-      case (_, _, 1) => 0.88
+      case (_, _, 20) => 0.88
       case _ => 1
     }
     override val label = "Fee Processing Center"
@@ -153,18 +153,18 @@ object AirlineBaseSpecialization extends Enumeration {
   case class ServiceSpecialization3() extends FlightTypeSpecialization {
     override val scaleRequirement : Int = 8
     override val staffModifier : ((FlightCategory.Value, Model.Type.Value, Int) => Double) = {
-      case (_, _, 3) => 0.92
-      case (_, _, 4) => 0.92
+      case (_, _, 60) => 0.94
+      case (_, _, 80) => 0.94
       case _ => 1
     }
     override val label = "Bulk Catering Facility"
-    override def descriptions(airport : Airport) = List("8% less staff on flights with 3 or 4 service stars.")
+    override def descriptions(airport : Airport) = List("6% less staff on flights with 3 or 4 service stars.")
   }
 
   case class ServiceSpecialization5() extends FlightTypeSpecialization {
     override val scaleRequirement : Int = 8
     override val staffModifier : ((FlightCategory.Value, Model.Type.Value, Int) => Double) = {
-      case (_, _, 5) => 0.9
+      case (_, _, 100) => 0.9
       case _ => 1
     }
     override val label = "Luxury Outfitter"
@@ -213,9 +213,9 @@ object AirlineBaseSpecialization extends Enumeration {
   case class WifiSpecialization() extends PassengerTypeBrandSpecialization {
     override val scaleRequirement: Int = 4
     override val label = "WiFi & Outlets"
-    override def descriptions(airport: Airport) = List("Adds a 3% preference for travelers", "Adds a 6% preference for business people")
+    override def descriptions(airport: Airport) = List("Adds a 3% preference for business pax", "Adds a 2% preference for travelers")
     override protected val passengerTypeDeltas = Map(
-      PassengerType.BUSINESS -> -0.04,
+      PassengerType.BUSINESS -> -0.03,
       PassengerType.TRAVELER -> -0.02
     )
   }
@@ -243,7 +243,7 @@ object AirlineBaseSpecialization extends Enumeration {
   case class HelpSpecialization() extends PassengerTypeBrandSpecialization {
     override val scaleRequirement : Int = 4
     override val label = "Help Desks"
-    override def descriptions(airport : Airport) = List("Adds a 2% preference for travelers", "Adds a 4% preference for tourists")
+    override def descriptions(airport : Airport) = List("Adds a 4% preference for tourists", "Adds a 2% preference for travelers")
     override protected val passengerTypeDeltas = Map(
       PassengerType.TOURIST -> -0.04,
       PassengerType.TRAVELER -> -0.02,
@@ -260,7 +260,7 @@ object AirlineBaseSpecialization extends Enumeration {
   case class SecuritySpecialization() extends PassengerTypeBrandSpecialization {
     override val scaleRequirement : Int = 4
     override val label = "Fast Track Security"
-    override def descriptions(airport : Airport) = List("Adds a 4% preference for business people")
+    override def descriptions(airport : Airport) = List("Adds a 4% preference for business pax")
     override protected val passengerTypeDeltas = Map(
       PassengerType.BUSINESS -> -0.04,
     )
@@ -268,7 +268,7 @@ object AirlineBaseSpecialization extends Enumeration {
   case class PrioritySpecialization() extends LinkClassBrandSpecialization {
     override val scaleRequirement : Int = 8
     override val label = "Priority Check-In"
-    override def descriptions(airport : Airport) = List("Adds a 5% preference for first & business class")
+    override def descriptions(airport : Airport) = List("Adds a 4% preference for first & business class")
     override protected val linkClassDeltas = Map(
       BUSINESS -> -0.04,
       FIRST -> -0.04
@@ -277,9 +277,9 @@ object AirlineBaseSpecialization extends Enumeration {
   case class KidsSpecialization() extends PassengerTypeBrandSpecialization {
     override val scaleRequirement : Int = 8
     override val label = "Kids' Playzones"
-    override def descriptions(airport : Airport) = List("Adds a 3% preference for travelers", "Adds a 6% preference for tourists")
+    override def descriptions(airport : Airport) = List("Adds a 5% preference for tourists", "Adds a 2% preference for travelers")
     override protected val passengerTypeDeltas = Map(
-      PassengerType.TOURIST -> -0.04,
+      PassengerType.TOURIST -> -0.05,
       PassengerType.TRAVELER -> -0.02,
     )
   }
@@ -296,7 +296,7 @@ object AirlineBaseSpecialization extends Enumeration {
   case class VIPSpecialization2() extends PassengerTypeBrandSpecialization {
     override val scaleRequirement : Int = 8
     override val label = "VIP Suites"
-    override def descriptions(airport : Airport) = List("Adds a 3% preference for travelers", "Adds a 6% preference for tourists")
+    override def descriptions(airport : Airport) = List("Adds a 4% preference for elites")
     override protected val passengerTypeDeltas = Map(
       PassengerType.ELITE -> -0.04
     )
@@ -314,13 +314,13 @@ object AirlineBaseSpecialization extends Enumeration {
     override val getType = BaseSpecializationType.HANGAR
     override val label = "Maintenance Hangar"
     override val scaleRequirement : Int = 10
-    override def descriptions(airport : Airport) = List(s"5% reduction in delays / cancellations for each hangar on a link.")
+    override def descriptions(airport : Airport) = List(s"4% reduction in delays / cancellations.", "Each hangar on a link is a cumulative.")
   }
   case class HangarSpecialization2() extends Specialization {
     override val getType = BaseSpecializationType.HANGAR
     override val label = "Maintenance Hangar II"
     override val scaleRequirement : Int = 14
-    override def descriptions(airport : Airport) = List(s"5% reduction in delays / cancellations for each hangar on a link.")
+    override def descriptions(airport : Airport) = List(s"4% reduction in delays / cancellations.", "Each hangar on a link is a cumulative.")
   }
 
   implicit def valueToSpecialization(x: Value) = x.asInstanceOf[Specialization]

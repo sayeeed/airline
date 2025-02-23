@@ -1494,6 +1494,7 @@ function showSpecializationModal() {
                 $('#baseSpecializationModal .warning').text("Next change can be made in " + info.cooldown + " week(s).")
                 disableButton($('#baseSpecializationModal .confirm'), info.cooldown + " more week(s) before another change")
             } else {
+                $('#baseSpecializationModal .warning').text("")
                 enableButton($('#baseSpecializationModal .confirm'))
             }
 
