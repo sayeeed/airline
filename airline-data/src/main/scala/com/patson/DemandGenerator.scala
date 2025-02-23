@@ -437,4 +437,7 @@ object DemandGenerator {
   }
 
   sealed case class Demand(travelerDemand: LinkClassValues, businessDemand : LinkClassValues, touristDemand : LinkClassValues)
+  def addUpDemands(demand: Demand): Int = {
+    (demand.travelerDemand.totalwithSeatSize + demand.businessDemand.totalwithSeatSize + demand.touristDemand.totalwithSeatSize).toInt
+  }
 }

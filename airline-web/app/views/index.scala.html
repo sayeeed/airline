@@ -538,11 +538,20 @@
 											</div></div>
 										</div>
 										<div class="table-row">
-											<div class="label">Labor / Crew:</div>
+											<div class="label" style="width:45%"><span class="fuelTaxRate"></span>Fuel Tax:</div>
+											<div class="value"><span id="linkFuelTax"></span> <div class="tooltip">
+												<img class="info svg" src='@routes.Assets.versioned("images/icons/information.svg")'>
+												<span class="tooltiptext below" style="width: 280px;">
+													<p><b>Fuel tax</b> increases the more reputation your airline has.</p>
+												</span>
+											</div></div>
+										</div>
+										<div class="table-row">
+											<div class="label">Labor & Crew:</div>
 											<div class="value"><span id="linkCrewCost"></span> <div class="tooltip">
 												<img class="info svg" src='@routes.Assets.versioned("images/icons/information.svg")'>
 												<span class="tooltiptext below" style="width: 280px;">
-													<p><b>Labor / Crew Costs</b> are based on the flight duration, flight capacity, and the company-wide "Target Employee Quality" set in the office.</p>
+													<p><b>Labor & Crew Costs</b> are based on the flight duration, flight capacity, and the company-wide "Target Employee Quality" set in the office.</p>
 												</span>
 											</div></div>
 										</div>
@@ -922,16 +931,16 @@
 										<div class="value" id="capacity"></div>
 									</div>
 									<div class="table-row">
-										<div class="label">Max seats / exit limi:</div>
-										<div class="value" id="maxCapacity"></div>
-									</div>
-									<div class="table-row">
 										<div class="label">Range:</div>
 										<div class="value" id="range"></div>
 									</div>
 									<div class="table-row">
-										<div class="label">Fuel Burn:</div>
-										<div class="value" id="fuelBurn"></div>
+										<div class="label">Ascent Fuel Burn:</div>
+										<div class="value" id="ascentBurn"></div>
+									</div>
+									<div class="table-row">
+										<div class="label">Cruise Fuel Burn:</div>
+										<div class="value" id="cruiseBurn"></div>
 									</div>
 									<div class="table-row">
 										<div class="label">Quality:</div>
@@ -1594,11 +1603,12 @@
 											<div class="cell clickable" style="width: 10%" data-sort-property="family" data-sort-order="ascending" onclick="toggleAirplaneModelTableSortOrder($(this))">Family</div>
 											<div class="cell clickable" style="width: 9%" data-sort-property="size" data-sort-order="ascending" onclick="toggleAirplaneModelTableSortOrder($(this))">Category</div>
 											<div class="cell clickable selected" style="width: 8%" align="right" data-sort-property="price" data-sort-order="ascending" onclick="toggleAirplaneModelTableSortOrder($(this))">Price</div>
-											<div class="cell clickable" style="width: 7%" align="right" data-sort-property="capacity" data-sort-order="ascending" onclick="toggleAirplaneModelTableSortOrder($(this))">Capacity<br><i class="text-hint">max seats</i></div>
+											<div class="cell clickable" style="width: 7%" align="right" data-sort-property="capacity" data-sort-order="ascending" onclick="toggleAirplaneModelTableSortOrder($(this))">Capacity</div>
 											<div class="cell clickable" style="width: 10%" align="right" data-sort-property="quality" data-sort-order="ascending" onclick="toggleAirplaneModelTableSortOrder($(this))">Passenger Experience</div>
 											<div class="cell clickable" style="width: 7%" align="right" data-sort-property="range" data-sort-order="ascending" onclick="toggleAirplaneModelTableSortOrder($(this))">Range</div>
 											<div class="cell clickable" title="roundtrips" style="width: 3%" align="right" data-sort-property="trips" data-sort-order="ascending" onclick="toggleAirplaneModelTableSortOrder($(this))">↻</div>
-											<div class="cell clickable" style="width: 5%" align="right" data-sort-property="fuelPerPax" title="Per Passenger" data-sort-order="ascending" onclick="toggleAirplaneModelTableSortOrder($(this))">Fuel Burn</div>
+											<div class="cell clickable" style="width: 5%" align="right" data-sort-property="ascentBurn" title="Per passenger takeoff burn" data-sort-order="ascending" onclick="toggleAirplaneModelTableSortOrder($(this))">Ascent Fuel</div>
+											<div class="cell clickable" style="width: 5%" align="right" data-sort-property="cruiseBurn" title="Per passenger per 800km curise burn" data-sort-order="ascending" onclick="toggleAirplaneModelTableSortOrder($(this))">Cruise Fuel</div>
 											<div class="cell clickable" style="width: 6%" align="right" data-sort-property="lifespan" data-sort-order="ascending" onclick="toggleAirplaneModelTableSortOrder($(this))">Lifespan</div>
 											<div class="cell clickable" style="width: 7%" align="right" data-sort-property="speed" data-sort-order="ascending" onclick="toggleAirplaneModelTableSortOrder($(this))">Speed</div>
 											<div class="cell clickable" style="width: 6%" align="right" data-sort-property="runwayRequirement" data-sort-order="ascending" onclick="toggleAirplaneModelTableSortOrder($(this))">Runway</div>
@@ -1618,6 +1628,7 @@
 												<div class="cell" style="width: 10%; border-bottom: none;"></div>
 												<div class="cell" style="width: 7%; border-bottom: none;"></div>
 												<div class="cell" style="width: 3%; border-bottom: none;"></div>
+												<div class="cell" style="width: 5%; border-bottom: none;"></div>
 												<div class="cell" style="width: 5%; border-bottom: none;"></div>
 												<div class="cell" style="width: 6%; border-bottom: none;"></div>
 												<div class="cell" style="width: 7%; border-bottom: none;"></div>
@@ -1752,8 +1763,12 @@
 										<div class="value" id="range"></div>
 									</div>
 									<div class="table-row">
-										<div class="label">Fuel Burn:</div>
-										<div class="value" id="fuelBurn"></div>
+										<div class="label">Ascent Fuel Burn:</div>
+										<div class="value" id="ascentBurn"></div>
+									</div>
+									<div class="table-row">
+										<div class="label">Cruise Fuel Burn:</div>
+										<div class="value" id="cruiseBurn"></div>
 									</div>
 									<div class="table-row">
 										<div class="label">Speed:</div>
@@ -2138,6 +2153,10 @@
 										<div class="table-row">
 											<div class="cell">Fuel:</div>
 											<div id="linksFuelCost" class="cell" style="text-align: right;"></div>
+										</div>
+										<div class="table-row">
+											<div class="cell"><span class="fuelTaxRate"></span>Fuel Tax:</div>
+											<div id="linksFuelTax" class="cell" style="text-align: right;"></div>
 										</div>
 										<div class="table-row">
 											<div class="cell">Crew & Labor:</div>
@@ -4937,7 +4956,7 @@
 		<div class="modal-content"  style="width : 800px; height: 800px; margin: 5% auto; overflow:auto;">
 			<span class="close" onclick="closeModal($('#modelConfigurationModal'))">&times;</span>
 			<h4><span class="modelName"></span>&nbsp;Configuration</h4>
-			<p class="pb-2"><b class="modelCapacity"></b> Capacity | <b class="modelMaxSeats"></b> Seat Limit</p>
+			<p class="pb-2"><b class="modelCapacity"></b> Capacity</p>
 			<div class="flex-row gap-4">
 				<div class="flex-align-center">
 					<input type="checkbox" onclick="toggleUtilizationRate($('#modelConfigurationModal'), $(this))" class="toggleUtilizationRateBox">
@@ -5039,92 +5058,51 @@
 
 	<!-- popup of owned airplane details and control -->
 	<div id="ownedAirplaneDetailModal" class="modal">
-		<div class="modal-content py-2" style="max-width: 560px;">
+		<div class="modal-content py-4 px-6" style="max-width: 560px;">
 			<span class="close" onclick="closeModal($('#ownedAirplaneDetailModal'))">&times;</span>
-			<h4>Aircraft Details</h4>
+			<h3 class="pb-4">Aircraft Details</h3>
 			<div id="ownedAirplaneDetail" style="width: 100%;">
 				<div class="modelIllustration pb-4" style="width:100%; position: relative; max-width: 500px;">
 					<picture>
 						<source srcset="" type="image/webp">
 						<img src='' style="width: 100%;">
 					</picture>
-					<p class="label small" style="right: 0px; bottom: 0px; position: absolute; font-style: italic;"><a href='#' target="_blank">Illustration courtesy of Norebbo</a></p>
+					<p class="label small-10px" style="right: 0px; bottom: 0px; position: absolute; font-style: italic;"><a href='#' target="_blank">Illustration courtesy of Norebbo</a></p>
 				</div>
-				<div class="table" style="width: 100%">
-					<div class="table-header">
-						<div class="cell" style="width: 33%;  border-bottom: none"></div>
-						<div class="cell" style="width: 67%; border-bottom: none"></div>
-					</div>
-					<div class="table-row">
-						<div class="cell"><p>Airplane ID:</p></div>
-						<div class="cell" id="airplaneDetailsId"></div>
-					</div>
-					<div class="table-row">
-						<div class="cell"><p>Condition:</p></div>
-						<div class="cell" id="airplaneDetailsCondition"></div>
-					</div>
-					<div class="table-row" id="airplaneDetailsAgeRow">
-						<div class="cell"><p>Age:</p></div>
-						<div class="cell" id="airplaneDetailsAge"></div>
-					</div>
-					<div class="table-row" id="airplaneDetailsDeliveryRow">
-						<div class="cell"><p>Deliver in:</p></div>
-						<div class="cell" id="airplaneDetailsDelivery" style="font-weight: bold;"></div>
-					</div>
-					<div class="table-row">
-						<div class="cell"><p>Sell value:</p></div>
-						<div class="cell" id="airplaneDetailsSellValue"></div>
-					</div>
-					<div class="table-row">
-						<div class="cell"><p>Replace cost:</p></div>
-						<div class="cell" id="airplaneDetailsReplaceCost"></div>
-					</div>
-					<div class="table-row">
-						<div class="cell"><p>Assigned route(s):</p></div>
-						<div class="cell" id="airplaneDetailsLink"></div>
-					</div>
-					<div class="table-row">
-						<div class="cell"><p>Available flight time:</p></div>
-						<div class="cell"><span class="availableFlightMinutes"></span> Minute(s)</div>
-					</div>
-					<div class="table-row">
-						<div class="cell"><p>Home airport:</p></div>
-						<div class="cell">
-							<div class="homeView flex-row">
-								<div class="home"></div>
-								<div data-tooltip-text="Change home airport"><img src='@routes.Assets.versioned("images/icons/gear.png")' class='button edit' style="vertical-align: middle;" onclick="toggleAirplaneHome()"/></div>
-								<div data-tooltip-text="Cannot change home airport with active route(s)"><img class="info svg" src='@routes.Assets.versioned("images/icons/information.svg")' class='button editDisabled' style="vertical-align: middle; display: none;"/></div>
-							</div>
-							<div class="homeEdit" style="display:none">
-								<select class="homeOptions select-css"></select>
-								<img src='@routes.Assets.versioned("images/icons/tick.png")' class='button' style="vertical-align: middle;" onclick="confirmAirplaneHome()"/>
-								<img src='@routes.Assets.versioned("images/icons/cross.png")' class='button' style="vertical-align: middle;" onclick="cancelAirplaneHome()"/>
-							</div>
-						</div>
-					</div>
-					<div class="table-row">
-						<div class="cell"><p>Seat configuration:</p></div>
-						<div class="cell configuration-view flex-row">
-							<div class="configurationBar"></div>
-							<div><img src='@routes.Assets.versioned("images/icons/gear.png")' class='button edit' style="vertical-align: middle;" onclick="toggleAirplaneConfiguration()" title="Pick configuration"/></div>
-							<div data-tooltip-text="Need at least 2 configurations for changes"><img src='@routes.Assets.versioned("images/icons/information.svg")' class="info svg button editDisabled' style="vertical-align: middle; display: none;"/></div>
-						</div>
-						<div class="cell configuration-edit flex-row" style="display:none">
-							<img src='@routes.Assets.versioned("images/icons/arrow-180.png")' class='button' style="vertical-align: middle;" onclick="switchAirplaneConfigurationOption($('#ownedAirplaneDetail'), -1)"/>
-							<div class="configuration-options" style="display : inline-block; width: 80%"></div>
-							<img src='@routes.Assets.versioned("images/icons/arrow.png")' class='button' style="vertical-align: middle;" onclick="switchAirplaneConfigurationOption($('#ownedAirplaneDetail'), 1)"/>
-							<img src='@routes.Assets.versioned("images/icons/tick.png")' class='button' style="vertical-align: middle;" onclick="confirmAirplaneConfigurationOption()"/>
-							<img src='@routes.Assets.versioned("images/icons/cross.png")' class='button' style="vertical-align: middle;" onclick="cancelAirplaneConfigurationOption()"/>
-						</div>
-					</div>
-<!--					<div class="table-row configuration-edit" style="display:none">-->
-<!--						<div class="label">Seat Configuration:div>-->
-<!--						<div class="value">edit here</div>-->
-<!--					</div>-->
+				<div class="homeView flex-row">
+					<p class="home m-0"></p>
+					<div data-tooltip-text="Change home airport"><img src='@routes.Assets.versioned("images/icons/gear.png")' class='button edit' style="vertical-align: middle;" onclick="toggleAirplaneHome()"/></div>
+					<div data-tooltip-text="Cannot change home airport with active route(s)"><img class="info svg" src='@routes.Assets.versioned("images/icons/information.svg")' class='button editDisabled' style="vertical-align: middle; display: none;"/></div>
 				</div>
-				<input type="hidden" id="actionAirplaneId">
-				<button type="button" class="button" id ="sellAirplaneButton" onclick="promptConfirm('Sell this airplane?', sellAirplane, $('#actionAirplaneId').val())">Sell</button>
-				<button type="button" class="button" id ="replaceAirplaneButton" onclick="promptConfirm('Replace this airplane?', replaceAirplane, $('#actionAirplaneId').val())">Replace</button>
+				<div class="homeEdit" style="display:none">
+					<select class="homeOptions select-css"></select>
+					<img src='@routes.Assets.versioned("images/icons/tick.png")' class='button' style="vertical-align: middle;" onclick="confirmAirplaneHome()"/>
+					<img src='@routes.Assets.versioned("images/icons/cross.png")' class='button' style="vertical-align: middle;" onclick="cancelAirplaneHome()"/>
+				</div>
+				<p><i id="airplaneDetailsAge"></i></p>
+				<p id="airplaneDetailsDelivery" style="font-weight: bold;"></p>
+				<p class="m-0 pt-4">Assigned route(s):</p>
+				<div id="airplaneDetailsLink"></div>
+				<p class="pb-6 opacity-70"><i class="availableFlightMinutes"></i></p>
+				<p>Seat configuration:</p>
+				<div class="configurationBar" style="max-width: 90%; width: 90%;"></div>
+				<div class="configuration-edit-button py-1 flex-row">
+					<img src='@routes.Assets.versioned("images/icons/gear.png")' class='button edit' style="vertical-align: middle; height: 100%;" onclick="toggleAirplaneConfiguration()" title="Pick configuration"/>
+					<p class="button" onclick="toggleAirplaneConfiguration()" title="Pick configuration">Swap configs</p>
+				</div>
+				<p id="configuration-warning"><i>Add more configurations to switch them here</i></p>
+				<div class="configuration-edit flex-row" style="display:none">
+					<img src='@routes.Assets.versioned("images/icons/arrow-180.png")' class='button' style="vertical-align: middle;" onclick="switchAirplaneConfigurationOption($('#ownedAirplaneDetail'), -1)"/>
+					<div class="configuration-options" style="display : inline-block; width: 80%"></div>
+					<img src='@routes.Assets.versioned("images/icons/arrow.png")' class='button' style="vertical-align: middle;" onclick="switchAirplaneConfigurationOption($('#ownedAirplaneDetail'), 1)"/>
+					<img src='@routes.Assets.versioned("images/icons/tick.png")' class='button' style="vertical-align: middle;" onclick="confirmAirplaneConfigurationOption()"/>
+					<img src='@routes.Assets.versioned("images/icons/cross.png")' class='button' style="vertical-align: middle;" onclick="cancelAirplaneConfigurationOption()"/>
+				</div>
+				<div class="flex-row">
+					<input type="hidden" id="actionAirplaneId">
+					<button type="button" class="button" id ="sellAirplaneButton" onclick="promptConfirm('Sell this airplane?', sellAirplane, $('#actionAirplaneId').val())">Sell</button>
+					<button type="button" class="button" id ="replaceAirplaneButton" onclick="promptConfirm('Replace this airplane?', replaceAirplane, $('#actionAirplaneId').val())">Replace</button>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -5813,9 +5791,8 @@
 		  <h4 class="m-0">Aircraft Info</h4>
 		  <p class="pb-2"><i>Basics of choosing the right aircraft</i></p>
 		  <p><b>Aircraft type & family:</b> each additional family makes maintenance 10% more expensive and each additional type maintenance 1% more expensive.</p>
-		  <p><b>Capacity & max seats:</b> determines how many seats. Aircraft with a "max seats" are more weight-constrained than space-constrained and lend themselves to using larger business or 1st class seat types.</p>
 		  <p><b>Passenger experience:</b> is 20% of flight quality. The higher quality the more expensive it is. Less than one-star planes slightly decrease quality.</p>
-		  <p><b>Fuel burn:</b> is by duration, so fast planes burn less fuel (all other things being equal). Also, carrying fewer passengers burns less fuel.</p>
+		  <p><b>Fuel burn:</b> Ascent & cruise burn are per passenger.</p>
 		  <p><b>Speed:</b> helicopters and prop planes achieve cruise speed fast and therefore do better at very short and short distances, respectively. Otherwise, speed is speed and some passengers will pay more for faster flights. Larger aircraft have longer turnaround times.</p>
 		  <p><b>Roster & #:</b> tells you what planes you own and total # in circulation.</p>
 	  </div>

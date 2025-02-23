@@ -47,15 +47,11 @@ object NegotiationUtil {
 
   def getMaxFrequencyByGroup(baseScale : Int, flightCategory : FlightCategory.Value) : Int = {
     var maxFrequency = flightCategory match {
-      case FlightCategory.DOMESTIC => 4 + (baseScale * 2.5).toInt
-      case FlightCategory.INTERNATIONAL => 5 + (baseScale * 2).toInt
+      case FlightCategory.DOMESTIC => 1 + (baseScale * 2.5).toInt
+      case FlightCategory.INTERNATIONAL => 2 + (baseScale * 1.5).toInt
     }
-    // NEGOTIATION_EXPERT bonus
-    if (baseScale >= 8) {
-      maxFrequency += (baseScale - 7) * 2
-    }
-    if (baseScale >= 11) { //accumulative with the >= 8 buff
-      maxFrequency += (baseScale - 10) * 2
+    if (baseScale >= 4) {
+      maxFrequency += ((baseScale - 3) * 1.75).toInt
     }
 
     maxFrequency
@@ -83,10 +79,10 @@ object NegotiationUtil {
     val newTotal = currentOfficeStaffUsed + newOfficeStaffRequired
 
     if (newTotal < officeStaffCount) {
-      requirements.append(NegotiationRequirement(STAFF_CAP, 0, s"Requires ${newOfficeStaffRequired} office staff, within your base capacity : ${newTotal} / ${officeStaffCount}"))
+      requirements.append(NegotiationRequirement(STAFF_CAP, 0, s"Requires ${newOfficeStaffRequired} staff, within your base capacity : ${newTotal} / ${officeStaffCount}"))
     } else {
       val requirement = (newTotal - officeStaffCount).toDouble / 10
-      requirements.append(NegotiationRequirement(STAFF_CAP, requirement, s"Requires ${newOfficeStaffRequired} office staff, over your base capacity : ${newTotal} / ${officeStaffCount}"))
+      requirements.append(NegotiationRequirement(STAFF_CAP, requirement, s"Requires ${newOfficeStaffRequired} staff, over your base capacity : ${newTotal} / ${officeStaffCount}"))
     }
 
     val mutualRelationship = CountrySource.getCountryMutualRelationship(newLink.from.countryCode, newLink.to.countryCode)

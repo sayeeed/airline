@@ -492,7 +492,7 @@ object PassengerSimulation {
         if (activeVertices.contains(linkConsideration.from.id)) { //optimization - only need to re-run if the vertex was update in last iteration
           val predecessorLinkConsideration = predecessorMap.get(linkConsideration.from.id)
 
-          var connectionCost = 10.0
+          var connectionCost = 15.0
           var isValid : Boolean = true
           val fromCost = distanceMap.get(linkConsideration.from.id)
           var flightTransit = false
@@ -507,18 +507,20 @@ object PassengerSimulation {
             } else if (predecessorLink.transportType == TransportType.GENERIC_TRANSIT && linkConsideration.link.transportType == TransportType.GENERIC_TRANSIT) {
               isValid = false //don't allow transit 2 transit connections
             } else if (predecessorLink.transportType == TransportType.GENERIC_TRANSIT && predecessorLink.from.id != passengerGroup.fromAirport.id) {
-              connectionCost += 25 //middle "leave the airport" transit connections more expensive
+              connectionCost += 55 //middle "leave the airport" transit connections more expensive
             } else if (predecessorLink.transportType == TransportType.GENERIC_TRANSIT || linkConsideration.link.transportType == TransportType.GENERIC_TRANSIT) {
               connectionCost = 0
             } else {
 
               //now look at the frequency of the link arriving at this FromAirport and the link (current link) leaving this FromAirport. check frequency
               val frequency = Math.max(predecessorLink.frequencyByClass(predecessorLinkConsideration.linkClass), linkConsideration.link.frequencyByClass(linkConsideration.linkClass))
-              //if the bigger of the 2 is less than 21, impose extra layover time (if either one is frequent enough, then consider that as ok)
+
               if (frequency < 7) {
-                connectionCost += (7 * 24 * 4.5) / frequency //possible overnight connection; $126 at 6 freq
+                connectionCost += 150 + (7 - frequency ) * 10 //possible overnight stay //$160 @ 6; $210 @ 1
+              } else if (frequency < 14) {
+                connectionCost += 40 + (14 - frequency) * 10 //$110 @ 7; $50 @ 13
               } else if (frequency < 28) {
-                connectionCost += (7 * 24 * 3) / frequency //$3.00 per hour wait; $36 @ 14 freq
+                connectionCost += 20
               }
 
               if (previousLinkAirlineId != currentLinkAirlineId && (allianceIdByAirlineId.get(previousLinkAirlineId) == null.asInstanceOf[Int] || allianceIdByAirlineId.get(previousLinkAirlineId) != allianceIdByAirlineId.get(currentLinkAirlineId))) { //switch airline, impose extra cost
@@ -526,8 +528,7 @@ object PassengerSimulation {
               }
               flightTransit = true
             }
-            connectionCost *= passengerGroup.preference.preferredLinkClass.priceMultiplier
-            connectionCost += passengerGroup.preference.preferredLinkClass.basePrice
+            connectionCost *= passengerGroup.preference.preferredLinkClass.spaceMultiplier
             connectionCost *= passengerGroup.preference.connectionCostRatio
 
             if (flightTransit) {

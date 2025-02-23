@@ -68,13 +68,15 @@ case class Link(from : Airport, to : Airport, airline: Airline, price : LinkClas
         0
       } else {
         val airplaneConditionQuality = inServiceAirplanes.toList.map {
-          case ((airplane, assignmentPerAirplane)) => airplane.condition / Airplane.MAX_CONDITION * assignmentPerAirplane.frequency
-        }.sum / frequency * 20
+          case ((airplane, assignmentPerAirplane)) => 20 * airplane.condition / Airplane.MAX_CONDITION * assignmentPerAirplane.frequency
+        }.sum / frequency
         val airplaneTypeQuality = getAssignedModel() match {
-          case Some(model) => (model.quality - 2.0) * 7
+          case Some(model) => Math.pow(model.quality + 1, 1.8) - 16
           case None => 0
         }
-        computedQualityStore = (airplaneTypeQuality + (rawQuality.toDouble - 20) / (Link.MAX_QUALITY - 20) * 30 + (airline.airlineInfo.currentServiceQuality / Airline.MAX_SERVICE_QUALITY * 30) + airplaneConditionQuality).toInt
+        val serviceQuality = 30 * (rawQuality.toDouble - 20) / (Link.MAX_QUALITY - 20)
+        val laborQuality = 30 * (airline.airlineInfo.currentServiceQuality / Airline.MAX_SERVICE_QUALITY)
+        computedQualityStore = (airplaneTypeQuality + serviceQuality + laborQuality + airplaneConditionQuality).toInt
         hasComputedQuality = true
         computedQualityStore
       }
@@ -158,9 +160,13 @@ case class Link(from : Airport, to : Airport, airline: Airline, price : LinkClas
     getOfficeStaffBreakdown(from, to, frequency, capacity, rawQuality, model).total
   }
 
-  lazy val getOfficeStaffBreakdown = (from : Airport, to : Airport, frequency : Int, capacity : LinkClassValues, rawQuality : Int, model : Option[Model]) => {
+  lazy val getOfficeStaffBreakdown = (from : Airport, to : Airport, frequency : Int, capacity : LinkClassValues, rawQuality : Int, modelOption : Option[Model]) => {
     val flightCategory = Computation.getFlightCategory(from, to)
-    val airlineBaseModifier : Double = AirportCache.getAirport(from.id,   fullLoad = true).get.getAirlineBase(airline.id).map(_.getStaffModifier(flightCategory, model.get.airplaneType, rawQuality)).getOrElse(1)
+    val model: Model.Type.Value = modelOption match {
+      case Some(model) => model.airplaneType
+      case None => Model.Type.SMALL
+    }
+    val airlineBaseModifier : Double = AirportCache.getAirport(from.id, fullLoad = true).get.getAirlineBase(airline.id).map(_.getStaffModifier(flightCategory, model, rawQuality)).getOrElse(1)
     if (frequency == 0) { //future flights
       StaffBreakdown(0, 0, 0, airlineBaseModifier)
     } else {
@@ -274,19 +280,19 @@ case class CostStoreProvider() extends CostProvider {
 }
 
 
-sealed abstract class LinkClass(val code : String, val spaceMultiplier : Double, val resourceMultiplier : Double, val priceMultiplier : Double, val priceSensitivity : Double, val level : Int, val basePrice : Int) {
+sealed abstract class LinkClass(val code : String, val spaceMultiplier : Double, val resourceMultiplier : Double, val priceSensitivity : Double, val level : Int) {
   def label : String //level for sorting/comparison purpose
 }
-case object FIRST extends LinkClass("F", spaceMultiplier = 6, resourceMultiplier = 4, priceMultiplier = 8, priceSensitivity = 0.75, level = 3, basePrice = 80) {
+case object FIRST extends LinkClass("F", spaceMultiplier = 6, resourceMultiplier = 4, priceSensitivity = 0.75, level = 3) {
   override def label = "first"
 }
-case object BUSINESS extends LinkClass("J", spaceMultiplier = 2.5, resourceMultiplier = 1.5, priceMultiplier = 3.2, priceSensitivity = 0.85, level = 2, basePrice = 70) {
+case object BUSINESS extends LinkClass("J", spaceMultiplier = 2.5, resourceMultiplier = 1.75, priceSensitivity = 0.85, level = 2) {
   override def label = "business"
 }
-case object ECONOMY extends LinkClass("Y", spaceMultiplier = 1, resourceMultiplier = 1, priceMultiplier = 1.15, priceSensitivity = 0.95, level = 1, basePrice = 15) {
+case object ECONOMY extends LinkClass("Y", spaceMultiplier = 1, resourceMultiplier = 1.2, priceSensitivity = 0.95, level = 1) {
   override def label = "economy"
 }
-case object DISCOUNT_ECONOMY extends LinkClass("D", spaceMultiplier = 1, resourceMultiplier = 0.9, priceMultiplier = 0.965, priceSensitivity = 0.95, level = 0, basePrice = 5) {
+case object DISCOUNT_ECONOMY extends LinkClass("D", spaceMultiplier = 1, resourceMultiplier = 1.0, priceSensitivity = 0.95, level = 0) {
   override def label = "discount economy"
 }
 object LinkClass {

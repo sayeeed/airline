@@ -2,7 +2,7 @@ package com.patson.model
 
 case class GenericTransit(from : Airport, to : Airport, distance : Int, var capacity: LinkClassValues, var id : Int = 0) extends Transport {
   override val transportType : TransportType.Value = TransportType.GENERIC_TRANSIT
-  override val duration : Int = (distance.toDouble / 30 * 60).toInt
+  override val duration : Int = (distance.toDouble / 35 * 60).toInt
   override var frequency : Int = 24 * 7
   override def computedQuality() : Int = GenericTransit.QUALITY //constant quality
   override val price : LinkClassValues = LinkClassValues.getInstance()

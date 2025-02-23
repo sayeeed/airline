@@ -57,17 +57,15 @@ package object controllers {
 
   implicit object AirplaneModelWrites extends Writes[Model] {
     def writes(airplaneModel: Model): JsValue = {
-      val fuelPP = if (airplaneModel.capacity > 0) BigDecimal(airplaneModel.fuelBurn / airplaneModel.capacity.toDouble).setScale(2, RoundingMode.HALF_EVEN).toDouble else 0
 
       JsObject(List(
         "id" -> JsNumber(airplaneModel.id),
         "name" -> JsString(airplaneModel.name),
         "family" -> JsString(airplaneModel.family),
         "capacity" -> JsNumber(airplaneModel.capacity),
-        "maxSeats" -> JsNumber(airplaneModel.maxSeats),
         "quality" -> JsNumber(airplaneModel.quality),
-        "fuelBurn" -> JsNumber(airplaneModel.fuelBurn),
-        "fuelPerPax" -> JsNumber(fuelPP),
+        "ascentBurn" -> JsNumber(airplaneModel.ascentBurn),
+        "cruiseBurn" -> JsNumber(airplaneModel.cruiseBurn),
         "speed" -> JsNumber(airplaneModel.speed),
         "range" -> JsNumber(airplaneModel.range),
         "price" -> JsNumber(airplaneModel.price),
@@ -95,8 +93,8 @@ package object controllers {
         "name" -> JsString(airplane.model.name),
         "modelId" -> JsNumber(airplane.model.id),
         "capacity" -> JsNumber(airplane.model.capacity),
-        "maxSeats" -> JsNumber(airplane.model.maxSeats),
-        "fuelBurn" -> JsNumber(airplane.model.fuelBurn),
+        "ascentBurn" -> JsNumber(airplane.model.ascentBurn),
+        "cruiseBurn" -> JsNumber(airplane.model.cruiseBurn),
         "speed" -> JsNumber(airplane.model.speed),
         "range" -> JsNumber(airplane.model.range),
         "price" -> JsNumber(airplane.model.price),
@@ -209,7 +207,6 @@ package object controllers {
       "airlineName" -> JsString(link.airline.name),
       "price" -> Json.toJson(link.price),
       "distance" -> JsNumber(link.distance),
-//      "flightType" -> JsString(FlightCategory.label(link.flightType)),
       "capacity" -> Json.toJson(link.capacity),
       "rawQuality" -> JsNumber(link.rawQuality),
       "computedQuality" -> JsNumber(link.computedQuality()),
@@ -312,11 +309,11 @@ package object controllers {
     def writes(base: AirlineBase): JsValue = {
       var jsObject = JsObject(List(
       "airportId" -> JsNumber(base.airport.id),
-      "airportName" -> JsString(base.airport.name),
+//      "airportName" -> JsString(base.airport.name),
       "airportCode" -> JsString(base.airport.iata),
       "airportRunwayLength" -> JsNumber(base.airport.runwayLength),
       "countryCode" -> JsString(base.airport.countryCode),
-      "airportZone" -> JsString(base.airport.zone),
+//      "airportZone" -> JsString(base.airport.zone),
       "city" -> JsString(base.airport.city),
       "airlineId" -> JsNumber(base.airline.id),
       "airlineName" -> JsString(base.airline.name),
@@ -395,6 +392,7 @@ package object controllers {
         "linksTicketRevenue" -> JsNumber(airlineIncome.links.ticketRevenue),
         "linksAirportFee" -> JsNumber(airlineIncome.links.airportFee),
         "linksFuelCost" -> JsNumber(airlineIncome.links.fuelCost),
+        "linksFuelTax" -> JsNumber(airlineIncome.links.fuelTax),
         "linksCrewCost" -> JsNumber(airlineIncome.links.crewCost),
         "linksInflightCost" -> JsNumber(airlineIncome.links.inflightCost),
         "linksDelayCompensation" -> JsNumber(airlineIncome.links.delayCompensation),

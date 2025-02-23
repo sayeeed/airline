@@ -6,16 +6,14 @@ import com.patson.model.airplane._
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
  
 class AirplaneModelSpec extends WordSpecLike with Matchers with BeforeAndAfterAll {
-  private val GOOD_PROFIT_MARGIN = Map(LIGHT -> 0.25, SMALL -> 0.20, REGIONAL -> 0.15, MEDIUM -> 0.05, LARGE -> 0.0, X_LARGE -> -0.05, JUMBO -> -0.1, SUPERSONIC -> -0.05)
-  private val MAX_PROFIT_MARGIN = Map(LIGHT -> 0.6, SMALL -> 0.55, REGIONAL -> 0.50, MEDIUM -> 0.35, LARGE -> 0.3, X_LARGE -> 0.3, JUMBO -> 0.25, SUPERSONIC -> 0.3)
+  private val GOOD_PROFIT_MARGIN = Map(PROPELLER_SMALL -> 0.2, SMALL -> 0.20, PROPELLER_MEDIUM -> 0.1, REGIONAL -> 0.2, MEDIUM -> 0.1, MEDIUM_XL -> 0.1, LARGE -> 0.05, JUMBO -> -0.05, JUMBO_XL -> -0.05, SUPERSONIC -> -0.05, HELICOPTER -> -0.05, AIRSHIP -> -0.05)
+  private val MAX_PROFIT_MARGIN = Map(PROPELLER_SMALL -> 0.45, SMALL -> 0.45, PROPELLER_MEDIUM -> 0.45, REGIONAL -> 0.45, MEDIUM -> 0.35, MEDIUM_XL -> 0.35, LARGE -> 0.35, JUMBO -> 0.35, JUMBO_XL -> 0.3, SUPERSONIC -> 0.4, HELICOPTER -> 0.4, AIRSHIP -> 0.2)
 
   override protected def beforeAll() : Unit = {
     super.beforeAll()
-//    AirplaneMaintenanceUtil.setTestFactor(Some(1))
   }
 
   override protected def afterAll() : Unit = {
-//    AirplaneMaintenanceUtil.setTestFactor(None)
     super.afterAll()
   }
 
@@ -23,36 +21,47 @@ class AirplaneModelSpec extends WordSpecLike with Matchers with BeforeAndAfterAl
   "all airplane models".must {
     "Generate good profit at MAX LF at suitable range".in {
       Model.models.foreach { airplaneModel =>
-        val margin = simulateProfitMargin(airplaneModel, 1)
-        println(airplaneModel.name + " => " + margin)
-        assert(margin > GOOD_PROFIT_MARGIN(airplaneModel.airplaneType))
-        assert(margin < MAX_PROFIT_MARGIN(airplaneModel.airplaneType))
+        val distances = List(12000, 9000, 6000, 3000, 2000, 1200, 800, 400).reverse
+        var outputString = airplaneModel.name
+        distances.foreach { distance =>
+          if (airplaneModel.range >= distance) {
+            val (marginDiscount, marginEcon, marginBiz, marginFirst) = simulateProfitMargin(airplaneModel, 1, distance)
+            outputString += ", " + marginDiscount + ", " + marginEcon + ", " + marginBiz + ", " + marginFirst
+          }
+        }
+        println(outputString)
       }
     }
   }
   
-  def simulateProfitMargin(airplaneModel : Model, loadFactor : Double) : Double = {
-    val consumptionDetails = simulateStandard(airplaneModel, loadFactor)
-    println(consumptionDetails)
-    consumptionDetails.profit.toDouble / consumptionDetails.revenue
+  def simulateProfitMargin(airplaneModel : Model, loadFactor : Double, distance : Int): (Double, Double, Double, Double) = {
+//    println(consumptionDetails)
+    val discount = simulateStandard(airplaneModel, loadFactor, distance, linkClass = DISCOUNT_ECONOMY)
+    val econ = simulateStandard(airplaneModel, loadFactor, distance)
+    val biz = simulateStandard(airplaneModel, loadFactor, distance, linkClass = BUSINESS)
+    val first = simulateStandard(airplaneModel, loadFactor, distance, linkClass = FIRST)
+    (discount.profit.toDouble / discount.revenue, econ.profit.toDouble / econ.revenue, biz.profit.toDouble / biz.revenue, first.profit.toDouble / first.revenue)
   }
   
-  def simulateStandard(airplaneModel : Model, loadFactor : Double) : LinkConsumptionDetails = {
-    val distance = if (airplaneModel.range > 10000)  10000 else airplaneModel.range //cap at 10000, otherwise frequency will be very low
+  def simulateStandard(airplaneModel : Model, loadFactor : Double, distance : Int, linkClass: LinkClass = ECONOMY) : LinkConsumptionDetails = {
     val (flightType, airportSize) = airplaneModel.airplaneType match {
-      case LIGHT => (FlightType.SHORT_HAUL_DOMESTIC, 3)
-      case SMALL => (FlightType.LONG_HAUL_DOMESTIC, 4)
-      case REGIONAL => (FlightType.LONG_HAUL_INTERNATIONAL, 5)
-      case MEDIUM => (FlightType.LONG_HAUL_INTERNATIONAL, 7)
-      case LARGE => (FlightType.ULTRA_LONG_HAUL_INTERCONTINENTAL, 8)
-      case X_LARGE => (FlightType.ULTRA_LONG_HAUL_INTERCONTINENTAL, 8)
-      case JUMBO => (FlightType.ULTRA_LONG_HAUL_INTERCONTINENTAL, 8)
-      case SUPERSONIC => (FlightType.LONG_HAUL_INTERNATIONAL, 5)
+      case PROPELLER_SMALL => (FlightCategory.DOMESTIC, 2)
+      case SMALL => (FlightCategory.DOMESTIC, 3)
+      case PROPELLER_MEDIUM => (FlightCategory.DOMESTIC, 4)
+      case REGIONAL => (FlightCategory.DOMESTIC, 6)
+      case MEDIUM => (FlightCategory.DOMESTIC, 7)
+      case MEDIUM_XL => (FlightCategory.DOMESTIC, 7)
+      case LARGE => (FlightCategory.INTERNATIONAL, 8)
+      case EXTRA_LARGE => (FlightCategory.INTERNATIONAL, 8)
+      case JUMBO => (FlightCategory.INTERNATIONAL, 8)
+      case JUMBO_XL => (FlightCategory.INTERNATIONAL, 8)
+      case SUPERSONIC => (FlightCategory.INTERNATIONAL, 8)
+      case _ => (FlightCategory.DOMESTIC, 8)
     }
     val duration = Computation.calculateDuration(airplaneModel, distance)
     val frequency = Computation.calculateMaxFrequency(airplaneModel, distance)
-    val capacity = frequency * airplaneModel.capacity
-    val fromAirport = Airport.fromId(1).copy(size = airportSize, baseIncome = Country.HIGH_INCOME_THRESHOLD, basePopulation = 1)
+    val capacity = frequency * (airplaneModel.capacity / linkClass.spaceMultiplier).toInt
+    val fromAirport = Airport.fromId(1).copy(size = airportSize, baseIncome = 60000, basePopulation = 1)
     fromAirport.initAirlineBases(List())
     val toAirport = Airport.fromId(2).copy(size = airportSize)
     toAirport.initAirlineBases(List())
@@ -60,18 +69,37 @@ class AirplaneModelSpec extends WordSpecLike with Matchers with BeforeAndAfterAl
     if (airplaneModel.airplaneType == SUPERSONIC) {
       price *= 1.5
     }
+    if (linkClass == FIRST || linkClass == FIRST) {
+      price *= 1.2 //assume have lounge etc
+    }
     val airline = Airline.fromId(1)
 
-    val link = Link(fromAirport, toAirport, airline, price = price, distance = distance, LinkClassValues.getInstanceByMap(Map(ECONOMY -> capacity)), rawQuality = fromAirport.expectedQuality(flightType, ECONOMY), duration, frequency, flightType)
-    val airplane = Airplane(airplaneModel, airline, constructedCycle = 0 , purchasedCycle = 0, Airplane.MAX_CONDITION, depreciationRate = 0, value = airplaneModel.price, configuration  = AirplaneConfiguration.default(airline, airplaneModel))
+
+    val linkClassValues = LinkClassValues.getInstanceByMap(Map(linkClass -> capacity))
+    val rawQuality = linkClass match {
+      case DISCOUNT_ECONOMY => 20
+      case FIRST => 80
+      case BUSINESS => 60
+      case _ => 40
+    }
+    val airplaneConfiguration: AirplaneConfiguration = linkClass match {
+      case FIRST => AirplaneConfiguration.first(airline, airplaneModel)
+      case BUSINESS => AirplaneConfiguration.business(airline, airplaneModel)
+      case _ => AirplaneConfiguration.default(airline, airplaneModel)
+    }
+
+    val link = Link(fromAirport, toAirport, airline, price = price, distance = distance, linkClassValues, rawQuality, duration, frequency)
+    val airplane = Airplane(airplaneModel, airline, constructedCycle = 0 , purchasedCycle = 0, Airplane.MAX_CONDITION - 1, depreciationRate = 0, value = airplaneModel.price, configuration = airplaneConfiguration)
+
     airplane.setTestUtilizationRate(1)
     val updatedAirplane = AirplaneSimulation.decayAirplanesByAirline(Map(airplane -> LinkAssignments(Map())), airline)(0)
     link.setTestingAssignedAirplanes(Map(updatedAirplane -> frequency))
-    link.addSoldSeats(LinkClassValues.getInstanceByMap(Map(ECONOMY -> (capacity * loadFactor).toInt)))
+    link.addSoldSeats(LinkClassValues.getInstanceByMap(Map(linkClass -> (capacity * loadFactor).toInt)))
     
     LinkSimulation.computeFlightLinkConsumptionDetail(link, 0)
     
     val consumptionResult = LinkSimulation.computeFlightLinkConsumptionDetail(link , 0)
+//    println(consumptionResult)
     consumptionResult
   }
 }

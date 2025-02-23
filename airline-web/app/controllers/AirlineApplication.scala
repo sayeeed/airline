@@ -29,6 +29,7 @@ class AirlineApplication @Inject()(cc: ControllerComponents) extends AbstractCon
       "name" -> JsString(airline.name),
       "balance" -> JsNumber(airline.airlineInfo.balance),
       "reputation" -> JsNumber(BigDecimal(airline.airlineInfo.reputation).setScale(2, BigDecimal.RoundingMode.HALF_EVEN)),
+      "fuelTaxRate" -> JsNumber(airline.fuelTaxRate),
       "serviceQuality" -> JsNumber(airline.airlineInfo.currentServiceQuality),
       "targetServiceQuality" -> JsNumber(airline.airlineInfo.targetServiceQuality),
       "weeklyDividends" -> JsNumber(airline.airlineInfo.weeklyDividends/1000000),
@@ -36,14 +37,14 @@ class AirlineApplication @Inject()(cc: ControllerComponents) extends AbstractCon
       "gradeLevel" -> JsNumber(airline.airlineGrade.level),
       "gradeFloor" -> JsNumber(airline.airlineGrade.reputationFloor),
       "gradeCeiling" -> JsNumber(airline.airlineGrade.reputationCeiling),
-      "stock" -> JsObject(List(
-        "grades" -> JsArray(AirlineGradeStockPrice.grades.map { grade => JsNumber(grade._1) }),
-        "stockPrice" -> JsNumber(airline.airlineInfo.stockPrice),
-        "stockDescription" -> JsString(airline.airlineGradeStockPrice.description),
-        "stockLevel" -> JsNumber(airline.airlineGradeStockPrice.level),
-        "stockCeiling" -> JsNumber(airline.airlineGradeStockPrice.reputationCeiling),
-        "stockFloor" -> JsNumber(airline.airlineGradeStockPrice.reputationFloor),
-      )),
+//      "stock" -> JsObject(List(
+//        "grades" -> JsArray(AirlineGradeStockPrice.grades.map { grade => JsNumber(grade._1) }),
+//        "stockPrice" -> JsNumber(airline.airlineInfo.stockPrice),
+//        "stockDescription" -> JsString(airline.airlineGradeStockPrice.description),
+//        "stockLevel" -> JsNumber(airline.airlineGradeStockPrice.level),
+//        "stockCeiling" -> JsNumber(airline.airlineGradeStockPrice.reputationCeiling),
+//        "stockFloor" -> JsNumber(airline.airlineGradeStockPrice.reputationFloor),
+//      )),
       "tourists" -> JsObject(List(
         "grades" -> JsArray(AirlineGradeTourists.grades.map { grade => JsNumber(grade._1) }),
         "tourists" -> JsNumber(airline.stats.tourists),
@@ -212,7 +213,6 @@ class AirlineApplication @Inject()(cc: ControllerComponents) extends AbstractCon
        
        val destinations = if (airportsServed > 0) airportsServed - 1 else 0 //minus home base
        
-       val currentCycle = CycleSource.loadCycle()
        val airplanes = AirplaneSource.loadAirplanesByOwner(airlineId).filter(_.isReady)
        val airplaneTypes = airplanes.flatMap {
          plane => List(plane.model)
@@ -788,7 +788,7 @@ class AirlineApplication @Inject()(cc: ControllerComponents) extends AbstractCon
 
   def getServiceFundingProjection(airlineId : Int) = AuthenticatedAirline(airlineId) { request =>
     val targetQuality = request.user.getTargetServiceQuality()
-    val targetQualityCost = Math.pow(targetQuality.toDouble / 25, 1.96)
+    val targetQualityCost = Math.pow(targetQuality.toDouble / 22, 1.95)
     val links = LinkSource.loadFlightLinksByAirlineId(airlineId)
     var crewCost = 0
 

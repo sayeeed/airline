@@ -8,7 +8,7 @@ import scala.collection.mutable.ListBuffer
  
 class AirportSimulationSpec extends WordSpecLike with Matchers {
   val sampleLink = Link.fromId(1)
-  val sampleConsumption = LinkConsumptionDetails(link = sampleLink, fuelCost = 0, crewCost = 0, airportFees = 0, inflightCost = 0, delayCompensation = 0, maintenanceCost = 0, loungeCost = 0, depreciation = 0, revenue = 0, profit = 0, satisfaction = 0, cycle = 0)
+  val sampleConsumption = LinkConsumptionDetails(link = sampleLink, fuelCost = 0, fuelTax = 0, crewCost = 0, airportFees = 0, inflightCost = 0, delayCompensation = 0, maintenanceCost = 0, loungeCost = 0, depreciation = 0, revenue = 0, profit = 0, satisfaction = 0, cycle = 0)
   
 //  "getTargetLoyalty".must {
 //    "get target loyalty based on average quality link consumption if volume is huge".in {
@@ -73,15 +73,15 @@ class AirportSimulationSpec extends WordSpecLike with Matchers {
       List(smallAirplane, largeAirplane).foreach { airplane =>
         val distance = airplane.model.range / 2
         val duration = Computation.calculateDuration(airplane.model, distance)
-        val price = Pricing.computeStandardPrice(distance, FlightType.LONG_HAUL_INTERCONTINENTAL, ECONOMY)
+        val price = Pricing.computeStandardPrice(distance, FlightCategory.INTERNATIONAL, ECONOMY)
       
         val frequency = Computation.calculateMaxFrequency(airplane.model, distance)
         val capacity = frequency * airplane.model.capacity
         val fromAirport = Airport.fromId(1)
         val toAirport = Airport.fromId(2)
-        val link = Link(fromAirport, toAirport, Airline.fromId(1), LinkClassValues.getInstanceByMap(Map(ECONOMY -> price)), distance, LinkClassValues.getInstanceByMap(Map(ECONOMY -> capacity)), rawQuality = 0, duration, frequency, Computation.getFlightType(fromAirport, toAirport, distance))
+        val link = Link(fromAirport, toAirport, Airline.fromId(1), LinkClassValues.getInstanceByMap(Map(ECONOMY -> price)), distance, LinkClassValues.getInstanceByMap(Map(ECONOMY -> capacity)), rawQuality = 0, duration, frequency)
         link.setTestingAssignedAirplanes(Map(airplane -> frequency))
-        consumptions.append(LinkConsumptionDetails(link = link, fuelCost = 0, crewCost = 0, airportFees = 0, inflightCost = 0, delayCompensation = 0, maintenanceCost = 0, loungeCost = 0, depreciation = 0, revenue = 0, profit = 0, satisfaction = 0, cycle = 0))
+        consumptions.append(LinkConsumptionDetails(link = link, fuelCost = 0, fuelTax = 0, crewCost = 0, airportFees = 0, inflightCost = 0, delayCompensation = 0, maintenanceCost = 0, loungeCost = 0, depreciation = 0, revenue = 0, profit = 0, satisfaction = 0, cycle = 0))
       }
       
       val consumption = 
@@ -328,15 +328,15 @@ class AirportSimulationSpec extends WordSpecLike with Matchers {
     val airline2 = Airline.fromId(2)
     val airline3 = Airline.fromId(3)
     val airline4 = Airline.fromId(4)
-    val airline1Link1 = Link(airport1, airport2, airline1, LinkClassValues.getInstance(), 1000, LinkClassValues.getInstance(), 0, 0, 0, FlightType.SHORT_HAUL_DOMESTIC, 0, 1)
+    val airline1Link1 = Link(airport1, airport2, airline1, LinkClassValues.getInstance(), 1000, LinkClassValues.getInstance(), 0, 0, 0, 0, 1)
     val badAirline1Link1 = LinkConsideration.getExplicit(airline1Link1, 100000, ECONOMY, false, 0)
     val goodAirline1Link1 = LinkConsideration.getExplicit(airline1Link1, 0, ECONOMY, false, 0)
-    val airline2Link2 = Link(airport2, airport3, airline2, LinkClassValues.getInstance(), 1000, LinkClassValues.getInstance(), 0, 0, 0, FlightType.SHORT_HAUL_DOMESTIC, 0, 2)
+    val airline2Link2 = Link(airport2, airport3, airline2, LinkClassValues.getInstance(), 1000, LinkClassValues.getInstance(), 0, 0, 0, 0, 2)
     val badAirline2Link2 = LinkConsideration.getExplicit(airline2Link2, 100000, ECONOMY, false, 0)
     val goodAirline2Link2 = LinkConsideration.getExplicit(airline2Link2, 0, ECONOMY, false, 0)
     val badRoute = Route(List(badAirline1Link1, badAirline2Link2), 0)
     val goodRoute = Route(List(goodAirline1Link1, goodAirline2Link2), 0)
-    val passengerGroup = PassengerGroup(airport1, AppealPreference(airport1, ECONOMY, 0, 1, 1), PassengerType.BUSINESS)
+    val passengerGroup = PassengerGroup(airport1, AppealPreference(airport1, ECONOMY, 1.0, 1, 0.5, 1), PassengerType.BUSINESS)
     val allAirports = List(airport1, airport2, airport3)
     "Do nothing if there's no consumption".in {
       val (updatingLoyalists, deletingLoyalist) = AirportSimulation.computeLoyalists(allAirports, Map.empty, Map(1 -> List(Loyalist(airport1, airline1, 5)), 2 -> List(Loyalist(airport1, airline2, 50))))
@@ -440,10 +440,10 @@ class AirportSimulationSpec extends WordSpecLike with Matchers {
     "Around net zero if both airlines have similar parameters (4 airlines)".in {
       val linkConsideration1 = goodAirline1Link1
       val airport1 = Airport("", "", "Test Airport 1", 0, 0 , "", "", "", size = 1, baseIncome = 10000, basePopulation = 4000000L, 0, id = 1)
-      val passengerGroup = PassengerGroup(airport1, AppealPreference(airport1, ECONOMY, 0, 1, 1), PassengerType.BUSINESS)
-      val linkConsideration2 = linkConsideration1.copy(link = Link(airport1, airport2, airline2, LinkClassValues.getInstance(), 1000, LinkClassValues.getInstance(), 0, 0, 0, FlightType.SHORT_HAUL_DOMESTIC, 0, 1))
-      val linkConsideration3 = linkConsideration1.copy(link = Link(airport1, airport2, airline3, LinkClassValues.getInstance(), 1000, LinkClassValues.getInstance(), 0, 0, 0, FlightType.SHORT_HAUL_DOMESTIC, 0, 1))
-      val linkConsideration4 = linkConsideration1.copy(link = Link(airport1, airport2, airline4, LinkClassValues.getInstance(), 1000, LinkClassValues.getInstance(), 0, 0, 0, FlightType.SHORT_HAUL_DOMESTIC, 0, 1))
+      val passengerGroup = PassengerGroup(airport1, AppealPreference(airport1, ECONOMY, 1.0, 0, 1, 1), PassengerType.BUSINESS)
+      val linkConsideration2 = linkConsideration1.copy(link = Link(airport1, airport2, airline2, LinkClassValues.getInstance(), 1000, LinkClassValues.getInstance(), 0, 0, 0, 0, 1))
+      val linkConsideration3 = linkConsideration1.copy(link = Link(airport1, airport2, airline3, LinkClassValues.getInstance(), 1000, LinkClassValues.getInstance(), 0, 0, 0, 0, 1))
+      val linkConsideration4 = linkConsideration1.copy(link = Link(airport1, airport2, airline4, LinkClassValues.getInstance(), 1000, LinkClassValues.getInstance(), 0, 0, 0, 0, 1))
 
       val (updatingLoyalists, deletingLoyalist) = AirportSimulation.computeLoyalists(
         allAirports,

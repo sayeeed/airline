@@ -1,6 +1,6 @@
 package com.patson.model
 
-import com.patson.PassengerSimulation.LINK_COST_TOLERANCE_FACTOR
+import com.patson.PassengerSimulation.{LINK_COST_TOLERANCE_FACTOR, countryOpenness}
 import com.patson.model.airplane._
 import com.patson.data.{AirlineSource, AirplaneSource, AirportAssetSource, AirportSource, AllianceSource, BankSource, CountrySource, CycleSource, OilSource}
 import com.patson.Util
@@ -41,38 +41,28 @@ object Computation {
   }
 
   def calculateDuration(airplaneModel: Model, distance : Int) : Int = {
-    val speed =
-      if (airplaneModel.airplaneType == com.patson.model.airplane.Model.Type.SUPERSONIC) {
-        (airplaneModel.speed * 1.5).toInt //up adjusted for SST
-      } else {
-        airplaneModel.speed
-      }
-    val speedLimits = if (airplaneModel.airplaneType == com.patson.model.airplane.Model.Type.PROPELLER_MEDIUM || airplaneModel.airplaneType == com.patson.model.airplane.Model.Type.PROPELLER_SMALL) {
-      List((250, 400), (350, 525))
-    } else {
-      List((300, 350), (400, 500), (400, 700))
+//    val multiplier: Double = airplaneModel.airplaneType match {
+//      case Model.Type.PROPELLER_SMALL => 1.5
+//      case Model.Type.PROPELLER_MEDIUM => 2
+//      case Model.Type.SMALL => 2.25
+//      case Model.Type.REGIONAL => 2.5
+//      case Model.Type.MEDIUM | Model.Type.MEDIUM_XL => 3.5
+//      case Model.Type.HELICOPTER | Model.Type.AIRSHIP => 0
+//      case _ => 4
+//    }
+    val timeToCruise: Int = airplaneModel.airplaneType match {
+      case Model.Type.PROPELLER_SMALL => 5
+      case Model.Type.PROPELLER_MEDIUM => 8
+      case Model.Type.SMALL => 14
+      case Model.Type.REGIONAL => 20
+      case Model.Type.MEDIUM | Model.Type.MEDIUM_XL => 28
+      case Model.Type.HELICOPTER | Model.Type.AIRSHIP => 0
+      case _ => 40
     }
-    calculateDuration(speed, distance, speedLimits)
-  }
-  def calculateDuration(airplaneSpeed : Int, distance : Int, speedLimits : List[(Int, Int)] = List((300, 350), (400, 500), (400, 700))) = {
-    var remainDistance = distance
-    var duration = 0;
-    for ((distanceBucket, maxSpeed) <- speedLimits if (remainDistance > 0)) {
-      val speed = Math.min(maxSpeed, airplaneSpeed)
-      if (distanceBucket >= remainDistance) {
-        duration += remainDistance * 60 / speed
-      } else {
-        duration += distanceBucket * 60 / speed
-      }
-      remainDistance -= distanceBucket
-    }
+    val cruiseTime = distance.toDouble * 60 / airplaneModel.speed
 
-    if (remainDistance > 0) {
-      duration += remainDistance * 60 / airplaneSpeed
-    }
-    duration
+    (timeToCruise + cruiseTime).toInt
   }
-
 
   def calculateFlightMinutesRequired(airplaneModel : Model, distance : Int) : Int = {
     val duration = calculateDuration(airplaneModel, distance)
@@ -389,15 +379,8 @@ def constructAffinityText(fromZone : String, toZone : String, fromCountry : Stri
     }
   }
   private def internalComputeStandardFlightDuration(distance : Int) = {
-    val standardSpeed =
-      if (distance <= 1000) {
-        400
-      } else if (distance <= 2000) {
-        600
-      } else {
-        800
-      }
-    Computation.calculateDuration(standardSpeed, distance)
+    val mediumAirplaneModel = Model.modelByName("Airbus A320")
+    Computation.calculateDuration(mediumAirplaneModel, distance)
   }
 
   def getDomesticAirportWithinRange(principalAirport : Airport, range : Int) = { //range in km

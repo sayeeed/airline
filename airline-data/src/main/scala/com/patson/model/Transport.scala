@@ -77,10 +77,13 @@ abstract class Transport extends IdObject{
         return Some(targetLinkClass, availableSeats(targetLinkClass))
       } else  {
         if (targetLinkClass.level > ECONOMY.level) {
-          val classDiff = 1 //only go down 1 level
-          val lowestAcceptableLevel = targetLinkClass.level - classDiff
-          var level = targetLinkClass.level - 1
+          val lowestAcceptableLevel = if (distance < 1000) {
+            1 //always accept lowest level (economy)
+          } else {
+            targetLinkClass.level - 1
+          }
 
+          var level = targetLinkClass.level - 1
           while (level >= lowestAcceptableLevel) {
             val lowerClass = LinkClass.fromLevel(level)
             val seatsAvailable = availableSeats(lowerClass)

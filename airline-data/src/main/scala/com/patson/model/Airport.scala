@@ -409,28 +409,29 @@ case class Airport(iata : String, icao : String, name : String, latitude : Doubl
 
   def slotFee(airplaneModel : Model, airline : Airline) : Int = {
     val baseSlotFee = if (airplaneModel.airplaneType == HELICOPTER) {
-      32
+      4
     } else {
       size match {
-        case 1 => 4 //small airport
-        case 2 => 8
-        case 3 => 16
-        case 4 => 32
-        case 5 => 64
-        case 6 => 96
-        case 7 => 144
-        case _ => 216 //mega
+        case 1 => 2 //small airport
+        case 2 => 4
+        case 3 => 8
+        case 4 => 16
+        case 5 => 32
+        case 6 => 64
+        case 7 => 96
+        case _ => 128 //mega
       }
     }
 
     import Model.Type._
-    val multiplier = airplaneModel.airplaneType match {
-      case MEDIUM => 5
-      case MEDIUM_XL => 8
-      case LARGE => 12
-      case EXTRA_LARGE => 18
-      case JUMBO => 24
-      case JUMBO_XL => 24
+    val multiplier: Double = airplaneModel.airplaneType match {
+      case REGIONAL => 3
+      case MEDIUM => 4
+      case MEDIUM_XL => 5
+      case LARGE => 9
+      case EXTRA_LARGE => 12
+      case JUMBO => 18
+      case JUMBO_XL => 22
       case SUPERSONIC => 16
       case _ => 2
     }
@@ -446,15 +447,15 @@ case class Airport(iata : String, icao : String, name : String, latitude : Doubl
     (baseSlotFee * multiplier * discount).toInt
   }
 
-  def landingFee(airplaneModel : Model) : Int = {
+  def landingFee(soldSeats : Int) : Int = {
     val perSeat =
-      if (size <= 2) {
-        2
+      if (this.hasFeature(AirportFeatureType.ISOLATED_TOWN)) {
+        -12 //remote subsidy
       } else {
         size
       }
 
-    airplaneModel.capacity * perSeat
+    soldSeats * perSeat
   }
 
   def allowsModel(airplaneModel : Model) : Boolean = {

@@ -111,6 +111,10 @@ case class Airline(name: String, isGenerated : Boolean = false, var id : Int = 0
     AirlineGrades.findGrade(reputation)
   }
 
+  def fuelTaxRate: Int = {
+    AirlineGrades.findTaxRate(airlineInfo.reputation)
+  }
+
   def airlineGradeStockPrice: AirlineGrade = {
     val stockPrice = airlineInfo.stockPrice
     AirlineGradeStockPrice.findGrade(stockPrice)
@@ -239,7 +243,7 @@ case class AirlineIncome(airlineId : Int, profit : Long = 0, revenue: Long = 0, 
         cycle = income2.cycle)
   }
 }
-case class LinksIncome(airlineId : Int, profit : Long = 0, revenue : Long = 0, expense : Long = 0, ticketRevenue: Long = 0, airportFee : Long = 0, fuelCost : Long = 0, crewCost : Long = 0, inflightCost : Long = 0, delayCompensation : Long = 0, maintenanceCost: Long = 0, loungeCost : Long = 0, depreciation : Long = 0, period : Period.Value = Period.WEEKLY, var cycle : Int = 0) {
+case class LinksIncome(airlineId : Int, profit : Long = 0, revenue : Long = 0, expense : Long = 0, ticketRevenue: Long = 0, airportFee : Long = 0, fuelCost : Long = 0, fuelTax : Long = 0, crewCost : Long = 0, inflightCost : Long = 0, delayCompensation : Long = 0, maintenanceCost: Long = 0, loungeCost : Long = 0, depreciation : Long = 0, period : Period.Value = Period.WEEKLY, var cycle : Int = 0) {
   def update(income2 : LinksIncome) : LinksIncome = {
     LinksIncome(airlineId, 
         profit = profit + income2.profit,
@@ -248,6 +252,7 @@ case class LinksIncome(airlineId : Int, profit : Long = 0, revenue : Long = 0, e
         ticketRevenue = ticketRevenue + income2.ticketRevenue,
         airportFee = airportFee + income2.airportFee,
         fuelCost = fuelCost + income2.fuelCost,
+        fuelTax = fuelTax + income2.fuelTax,
         crewCost = crewCost + income2.crewCost,
         inflightCost = inflightCost + income2.inflightCost,
         delayCompensation = delayCompensation + income2.delayCompensation,
@@ -434,6 +439,37 @@ object AirlineGrades {
     1800 -> "Transcendent",
     2000 -> "Apex Rat"
   )
+
+  val taxRate = List(
+    20 -> 0,
+    40 -> 0,
+    60 -> 1,
+    80 -> 1,
+    100 -> 1,
+    125 -> 2,
+    150 -> 2,
+    175 -> 3,
+    200 -> 4,
+    240 -> 5,
+    280 -> 6,
+    320 -> 7,
+    360 -> 9,
+    400 -> 11,
+    500 -> 13,
+    600 -> 15,
+    700 -> 17,
+    800 -> 19,
+    1000 -> 20,
+    1200 -> 21,
+    1400 -> 22,
+    1600 -> 23,
+    1800 -> 24,
+    2000 -> 25,
+  )
+
+  def findTaxRate(reputation: Double) : Int = {
+    taxRate.find(_._1 > reputation).getOrElse(taxRate.last)._2
+  }
 
   def findGrade(reputation: Double): AirlineGrade = {
     val indexedGrades = grades.zipWithIndex

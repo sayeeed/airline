@@ -216,6 +216,7 @@ object AirlineSimulation {
             val linksAirportFee = linkConsumptions.foldLeft(0L)(_ + _.airportFees)
             val linksCrewCost = linkConsumptions.foldLeft(0L)(_ + _.crewCost)
             val linksFuelCost = linkConsumptions.foldLeft(0L)(_ + _.fuelCost)
+            val linksFuelTax = linkConsumptions.foldLeft(0L)(_ + _.fuelTax)
             val linksInflightCost = linkConsumptions.foldLeft(0L)(_ + _.inflightCost)
             val linksDelayCompensation = linkConsumptions.foldLeft(0L)(_ + _.delayCompensation)
             val linksMaintenanceCost = linkConsumptions.foldLeft(0L)(_ + _.maintenanceCost)
@@ -223,11 +224,11 @@ object AirlineSimulation {
             val linksLoungeCost = linkConsumptions.foldLeft(0L)(_ + _.loungeCost)
             val linksRevenue = linkConsumptions.foldLeft(0L)(_ + _.revenue)
 
-            val linksExpense = linksAirportFee + linksCrewCost + linksFuelCost + linksInflightCost + linksDelayCompensation + linksMaintenanceCost + linksDepreciation + linksLoungeCost
+            val linksExpense = linksAirportFee + linksCrewCost + linksFuelCost + linksFuelTax + linksInflightCost + linksDelayCompensation + linksMaintenanceCost + linksDepreciation + linksLoungeCost
 
             totalCashRevenue += linksRevenue
             totalCashExpense += linksExpense - linksDepreciation //airplane depreciation is already deducted on the plane, not a cash expense
-            LinksIncome(airline.id, profit = linksProfit, revenue = linksRevenue, expense = linksExpense, ticketRevenue = linksRevenue, airportFee = -1 * linksAirportFee, fuelCost = -1 * linksFuelCost, crewCost = -1 * linksCrewCost, inflightCost = -1 * linksInflightCost, delayCompensation = -1 * linksDelayCompensation, maintenanceCost= -1 * linksMaintenanceCost, loungeCost= -1 * linksLoungeCost,  depreciation = -1 * linksDepreciation, cycle = currentCycle)
+            LinksIncome(airline.id, profit = linksProfit, revenue = linksRevenue, expense = linksExpense, ticketRevenue = linksRevenue, airportFee = -1 * linksAirportFee, fuelCost = -1 * linksFuelCost, fuelTax = -1 * linksFuelTax, crewCost = -1 * linksCrewCost, inflightCost = -1 * linksInflightCost, delayCompensation = -1 * linksDelayCompensation, maintenanceCost= -1 * linksMaintenanceCost, loungeCost= -1 * linksLoungeCost,  depreciation = -1 * linksDepreciation, cycle = currentCycle)
           }
           case None => LinksIncome(airline.id, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, cycle = currentCycle)
         }

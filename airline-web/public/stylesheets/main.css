@@ -112,7 +112,7 @@ body {
 }
 
 a {
-    font-size: 13px;
+    font-size: inherit;
     color: var(--text-color);
 }
 
@@ -1083,6 +1083,7 @@ div.future {
     width: 100%;
     display: block;
     overflow-x: visible;
+    overflow-y: hidden;
 }
 
 
@@ -1534,6 +1535,9 @@ button {
 }
 small, .small {
     font-size: 85%;
+}
+.small-10px {
+    font-size: 10px;
 }
 i, .italic {
     font-style: italic

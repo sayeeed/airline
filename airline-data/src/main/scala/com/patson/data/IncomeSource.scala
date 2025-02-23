@@ -19,17 +19,11 @@ object IncomeSource {
   val SIMPLE_LOAD = Map(DetailType.AIRLINE -> false, DetailType.AIRPORT -> false, DetailType.AIRPLANE -> false)
   val ID_LOAD : Map[DetailType.Type, Boolean] = Map.empty
 
-//  case class AirlineTransaction(airlineId : Int, transactionType : TransactionType.Value, amount : Long)
-//case class AirlineBalanceData(profit : Long, revenue: Long, expense: Long, links : LinksBalanceData, transactions : TransactionsBalance, others : OthersBalance)
-//case class LinksBalanceData(profit : Long, revenue : Long, expense : Long, airportFee : Long, fuelCost : Long, crewCost : Long, depreciation : Long, inflightCost : Long, maintenanceCost: Long)
-//case class TransactionsBalance(profit : Long, revenue: Long, expense: Long, transactionSummary : Map[TransactionType.Value, Long])
-//case class OthersBalance(profit : Long, revenue: Long, expense: Long, othersSummary : Map[OtherBalanceItemType.Value, Long])
-  
   def saveIncomes(incomes: List[AirlineIncome]) = {
      //open the hsqldb
     val connection = Meta.getConnection()
     val incomePreparedStatement = connection.prepareStatement("REPLACE INTO " + INCOME_TABLE + "(airline, profit, revenue, expense, stock_price, period, cycle) VALUES(?,?,?,?,?,?,?)")
-    val linksPreparedStatement = connection.prepareStatement("REPLACE INTO " + LINKS_INCOME_TABLE + "(airline, profit, revenue, expense, ticket_revenue, airport_fee, fuel_cost, crew_cost, inflight_cost, delay_compensation, maintenance_cost, lounge_cost, depreciation, period, cycle) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+    val linksPreparedStatement = connection.prepareStatement("REPLACE INTO " + LINKS_INCOME_TABLE + "(airline, profit, revenue, expense, ticket_revenue, airport_fee, fuel_cost, fuel_tax, crew_cost, inflight_cost, delay_compensation, maintenance_cost, lounge_cost, depreciation, period, cycle) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
     val transactionsPreparedStatement = connection.prepareStatement("REPLACE INTO " + TRANSACTIONS_INCOME_TABLE + "(airline, profit, revenue, expense, capital_gain, create_link, period, cycle) VALUES(?,?,?,?,?,?,?,?)")
     val othersPreparedStatement = connection.prepareStatement("REPLACE INTO " + OTHERS_INCOME_TABLE + "(airline, profit, revenue, expense, loan_interest, base_upkeep, dividends, advertisement, lounge_upkeep, lounge_cost, lounge_income, asset_expense, asset_revenue, fuel_profit, depreciation, overtime_compensation, period, cycle) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
     
@@ -53,14 +47,15 @@ object IncomeSource {
           linksPreparedStatement.setLong(5, income.links.ticketRevenue)
           linksPreparedStatement.setLong(6, income.links.airportFee)
           linksPreparedStatement.setLong(7, income.links.fuelCost)
-          linksPreparedStatement.setLong(8, income.links.crewCost)
-          linksPreparedStatement.setLong(9, income.links.inflightCost)
-          linksPreparedStatement.setLong(10, income.links.delayCompensation)
-          linksPreparedStatement.setLong(11, income.links.maintenanceCost)
-          linksPreparedStatement.setLong(12, income.links.loungeCost)
-          linksPreparedStatement.setLong(13, income.links.depreciation)
-          linksPreparedStatement.setInt(14, period.id)
-          linksPreparedStatement.setInt(15, income.cycle)
+          linksPreparedStatement.setLong(8, income.links.fuelTax)
+          linksPreparedStatement.setLong(9, income.links.crewCost)
+          linksPreparedStatement.setLong(10, income.links.inflightCost)
+          linksPreparedStatement.setLong(11, income.links.delayCompensation)
+          linksPreparedStatement.setLong(12, income.links.maintenanceCost)
+          linksPreparedStatement.setLong(13, income.links.loungeCost)
+          linksPreparedStatement.setLong(14, income.links.depreciation)
+          linksPreparedStatement.setInt(15, period.id)
+          linksPreparedStatement.setInt(16, income.cycle)
           linksPreparedStatement.addBatch()
           
           
@@ -208,20 +203,21 @@ object IncomeSource {
            
           //should need that many queries...
           val linksBalance = LinksIncome(airlineId = resultSet.getInt("l.airline"),
-                         profit = resultSet.getLong("l.profit"),
-                         revenue = resultSet.getLong("l.revenue"), 
-                         expense = resultSet.getLong("l.expense"), 
-                         ticketRevenue = resultSet.getLong("l.ticket_revenue"), 
-                         airportFee = resultSet.getLong("l.airport_fee"), 
-                         fuelCost = resultSet.getLong("l.fuel_cost"), 
-                         crewCost = resultSet.getLong("l.crew_cost"), 
-                         inflightCost = resultSet.getLong("l.inflight_cost"),
-                         delayCompensation = resultSet.getLong("l.delay_compensation"),
-                         maintenanceCost= resultSet.getLong("l.maintenance_cost"),
-                         loungeCost= resultSet.getLong("l.lounge_cost"),
-                         depreciation = resultSet.getLong("l.depreciation"),
-                         period = Period(resultSet.getInt("l.period")),
-                         cycle = resultSet.getInt("l.cycle"))
+                          profit = resultSet.getLong("l.profit"),
+                          revenue = resultSet.getLong("l.revenue"),
+                          expense = resultSet.getLong("l.expense"),
+                          ticketRevenue = resultSet.getLong("l.ticket_revenue"),
+                          airportFee = resultSet.getLong("l.airport_fee"),
+                          fuelCost = resultSet.getLong("l.fuel_cost"),
+                          fuelTax = resultSet.getLong("l.fuel_tax"),
+                          crewCost = resultSet.getLong("l.crew_cost"),
+                          inflightCost = resultSet.getLong("l.inflight_cost"),
+                          delayCompensation = resultSet.getLong("l.delay_compensation"),
+                          maintenanceCost= resultSet.getLong("l.maintenance_cost"),
+                          loungeCost= resultSet.getLong("l.lounge_cost"),
+                          depreciation = resultSet.getLong("l.depreciation"),
+                          period = Period(resultSet.getInt("l.period")),
+                          cycle = resultSet.getInt("l.cycle"))
                          
             
           val transactionsBalance = TransactionsIncome(airlineId,
