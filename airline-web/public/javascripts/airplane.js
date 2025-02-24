@@ -595,7 +595,7 @@ function buyUsedAirplane(airplaneId, homeAirportId, configurationId) {
 function updateModelInfo(modelId) {
 	loadAirplaneModels()
 	model = loadedModelsById[modelId]
-	var $stars = $(getGradeStarsImgs(model.quality * 2))
+	var $stars = $(getGradeStarsImgs(model.quality))
 	$('#airplaneModelDetails .selectedModel').val(modelId)
 	$('#airplaneModelDetails #modelName').text(model.name)
 	$('#airplaneModelDetails .modelFamily').text(model.family)
@@ -657,7 +657,7 @@ function selectAirplaneModel(model) {
 	} else {
 		$('#airplaneCanvas .modelIllustration').hide()
 	}
-	var $stars = $(getGradeStarsImgs(model.quality * 2))
+	var $stars = $(getGradeStarsImgs(model.quality))
 	
 	$('#airplaneCanvas .selectedModel').val(model.id)
 	$('#airplaneCanvas .modelName').text(model.name)
@@ -1305,11 +1305,11 @@ function loadOwnedAirplaneDetails(airplaneId, selectedItem, closeCallback, disab
                         plotSeatConfigurationBar($('#ownedAirplaneDetailModal .configurationBar'), configuration, airplane.capacity, result.spaceMultipliers)
 
                         if (result.configurations.length <= 1) { //then cannot change
-                            $("#ownedAirplaneDetail #configuration-edit-button").hide()
+                            $("#ownedAirplaneDetail .configuration-edit-button").hide()
                             $("#ownedAirplaneDetail #configuration-warning").show()
                         } else {
                             $("#ownedAirplaneDetail #configuration-warning").hide()
-                            $("#ownedAirplaneDetail #configuration-edit-button").show()
+                            $("#ownedAirplaneDetail .configuration-edit-button").show()
 
                             $("#ownedAirplaneDetail .configuration-options").empty()
                             $("#ownedAirplaneDetail .configuration-options").data("selectedIndex", 0)

@@ -175,7 +175,7 @@ object Meta {
     statement.close()
     
 
-    statement = connection.prepareStatement("CREATE TABLE " + AIRLINE_TABLE + "( id INTEGER PRIMARY KEY AUTO_INCREMENT, name VARCHAR(256), is_generated TINYINT(1))")
+    statement = connection.prepareStatement("CREATE TABLE " + AIRLINE_TABLE + "( id INTEGER PRIMARY KEY AUTO_INCREMENT, name VARCHAR(256), airline_type TINYINT(1))")
     statement.execute()
     statement.close()
     

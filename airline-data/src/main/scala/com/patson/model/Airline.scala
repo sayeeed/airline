@@ -1,12 +1,13 @@
 package com.patson.model
 
 import com.patson.data._
+import com.patson.model.AirlineType.AirlineType
 
 import java.util.{Calendar, Date}
 import scala.collection.mutable.ListBuffer
 import scala.collection.immutable.ListMap
 
-case class Airline(name: String, isGenerated : Boolean = false, var id : Int = 0) extends IdObject {
+case class Airline(name: String, airlineType: AirlineType.AirlineType = AirlineType.LEGACY, var id : Int = 0) extends IdObject {
   val airlineInfo = AirlineInfo(0, 0, 0, 0, 0, 0, 0)
   var allianceId : Option[Int] = None
   var bases : List[AirlineBase] = List.empty
@@ -188,6 +189,31 @@ case class Airline(name: String, isGenerated : Boolean = false, var id : Int = 0
   lazy val delegateBoosts = AirlineSource.loadAirlineModifierByAirlineId(id).filter(_.modifierType == AirlineModifierType.DELEGATE_BOOST).map(_.asInstanceOf[DelegateBoostAirlineModifier])
 }
 
+object AirlineType extends Enumeration {
+  type AirlineType = Value
+  val LEGACY, BEGINNER, NON_PLAYER, ULCC, LUXURY, REGIONAL, MEGA_HQ, NOSTALGIA = Value
+  val label: AirlineType => String = {
+    case LEGACY => "Legacy"
+    case NON_PLAYER => "Non-Player"
+    case ULCC => "Ultra Low-Cost"
+    case LUXURY => "Luxury"
+    case REGIONAL => "Regional Contract"
+    case MEGA_HQ => "Mega HQ"
+    case BEGINNER => "Beginner"
+    case NOSTALGIA => "Nostalgia"
+  }
+  def fromId(id: Int): AirlineType = id match {
+    case 0 => LEGACY
+    case 1 => BEGINNER
+    case 2 => NON_PLAYER
+    case 3 => ULCC
+    case 4 => LUXURY
+    case 5 => REGIONAL
+    case 6 => MEGA_HQ
+    case 7 => NOSTALGIA
+    case _ => throw new IllegalArgumentException("Invalid AirlineType ID: " + id)
+  }
+}
 
 case class DelegateInfo(availableCount : Int, boosts : List[DelegateBoostAirlineModifier], busyDelegates: List[BusyDelegate]) {
   //take away all the boosted ones that are unoccupied, those are not eligible for permanent tasks (country relation/campaign etc)

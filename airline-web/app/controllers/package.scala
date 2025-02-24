@@ -38,7 +38,7 @@ package object controllers {
         "gradeDescription" -> airline.airlineGrade.description,
         "airlineCode" -> airline.getAirlineCode(),
         "baseCount" -> airline.getBases().size,
-        "isGenerated" -> airline.isGenerated
+        "type" -> AirlineType.label(airline.airlineType)
       )
 
       if (airline.getCountryCode().isDefined) {

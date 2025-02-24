@@ -139,7 +139,7 @@ object GeoDataGenerator extends App {
               patchRunways.foreach { patchRunway =>
                 list.find(_.code.equals(patchRunway.code)) match {
                   case Some(duplicate) =>
-                    println(s"Skipping patch runways for $iata as same code for runway $duplicate is already found for $patchRunway!")
+//                    println(s"Skipping patch runways for $iata as same code for runway $duplicate is already found for $patchRunway!")
                   case None =>
                     list += patchRunway
                 }

@@ -340,6 +340,7 @@ object ConsumptionHistorySource {
         val connection = Meta.getConnection()
         val flightCategory = Computation.getFlightCategory(link.from, link.to)
         val standardPrice = Pricing.computeStandardPriceForAllClass(link.distance, flightCategory)
+        val loadFactor = link.getTotalSoldSeats.toDouble / link.getTotalCapacity
         try {
           val preparedStatement = connection.prepareStatement("SELECT * FROM " + PASSENGER_HISTORY_TABLE + " WHERE link = ? ")
     

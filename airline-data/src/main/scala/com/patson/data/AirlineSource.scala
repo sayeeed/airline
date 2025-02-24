@@ -15,7 +15,7 @@ import java.util.Date
 
 
 object AirlineSource {
-  private[this] val BASE_QUERY = "SELECT a.id AS id, a.name AS name, a.is_generated AS is_generated, ai.* FROM " + AIRLINE_TABLE + " a JOIN " + AIRLINE_INFO_TABLE + " ai ON a.id = ai.airline "
+  private[this] val BASE_QUERY = "SELECT a.id AS id, a.name AS name, a.airline_type AS airline_type, ai.* FROM " + AIRLINE_TABLE + " a JOIN " + AIRLINE_INFO_TABLE + " ai ON a.id = ai.airline "
   def loadAllAirlines(fullLoad : Boolean = false) = {
       loadAirlinesByCriteria(List.empty, fullLoad)
   }
@@ -62,7 +62,8 @@ object AirlineSource {
         val airlines = new ListBuffer[Airline]()
         
         while (resultSet.next()) {
-          val airline = Airline(resultSet.getString("name"), isGenerated = resultSet.getBoolean("is_generated"))
+          val airlineType = AirlineType.fromId(resultSet.getInt("airline_type"))
+          val airline = Airline(resultSet.getString("name"), airlineType)
           airline.id = resultSet.getInt("id")
           airline.setBalance(resultSet.getLong("balance"))
           airline.setReputation(resultSet.getDouble("reputation"))
@@ -130,12 +131,12 @@ object AirlineSource {
     val connection = Meta.getConnection()
     try {
       connection.setAutoCommit(false)
-      val preparedStatement = connection.prepareStatement("INSERT INTO " + AIRLINE_TABLE + "(name, is_generated) VALUES(?,?)", Statement.RETURN_GENERATED_KEYS)
+      val preparedStatement = connection.prepareStatement("INSERT INTO " + AIRLINE_TABLE + "(name, airline_type) VALUES(?,?)", Statement.RETURN_GENERATED_KEYS)
           
       airlines.foreach { 
         airline =>
           preparedStatement.setString(1, airline.name)
-          preparedStatement.setBoolean(2, airline.isGenerated)
+          preparedStatement.setInt(2, airline.airlineType.id)
           preparedStatement.executeUpdate()
           val generatedKeys = preparedStatement.getGeneratedKeys
           if (generatedKeys.next()) {
@@ -153,7 +154,7 @@ object AirlineSource {
             infoStatement.setInt(5, airline.getWeeklyDividends())
             infoStatement.setDouble(6, airline.getStockPrice())
             infoStatement.setDouble(7, airline.getReputation())
-            infoStatement.setString(8, airline.getCountryCode().getOrElse(null))
+            infoStatement.setString(8, airline.getCountryCode().orNull)
             infoStatement.setString(9, airline.getAirlineCode())
             infoStatement.setLong(10, airline.getMinimumRenewalBalance())
             infoStatement.executeUpdate()
@@ -230,7 +231,7 @@ object AirlineSource {
         index += 1
         updateStatement.setDouble(index, airline.getReputation())
         index += 1
-        updateStatement.setString(index, airline.getCountryCode().getOrElse(null))
+        updateStatement.setString(index, airline.getCountryCode().orNull)
         index += 1
         updateStatement.setString(index, airline.getAirlineCode())
         index += 1

@@ -22,7 +22,6 @@ class OilSpec(_system: ActorSystem) extends TestKit(_system) with ImplicitSender
     TestKit.shutdownActorSystem(system)
   }
  
-  import FlightType._
   //200 km = 150
   //1000 km = 150 + 100 = 250  (800 * 0.125) 
   //2000 km = 250 + 100 = 350  (1000 * 0.1)

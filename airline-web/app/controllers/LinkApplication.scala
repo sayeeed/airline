@@ -503,9 +503,7 @@ class LinkApplication @Inject()(cc: ControllerComponents) extends AbstractContro
         val existingStaffRequired = existingLinks.map(_.getFutureOfficeStaffRequired).sum
         val newStaffRequired = existingStaffRequired - existingListOption.map(_.getFutureOfficeStaffRequired).getOrElse(0) + staffRequiredByThisLink
         val extraCompensation = base.getOvertimeCompensation(newStaffRequired) - base.getOvertimeCompensation(existingStaffRequired)
-        if( airline.isGenerated ) {
-          0
-        } else if (extraCompensation > 0) { //then we should prompt warning of over limit
+        if (extraCompensation > 0) { //then we should prompt warning of over limit
           extraCompensation
         } else {
           0

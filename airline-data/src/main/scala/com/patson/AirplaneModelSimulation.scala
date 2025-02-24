@@ -54,7 +54,7 @@ object AirplaneModelSimulation {
     discounts.toList
   }
 
-  val MAX_PRICE_DISCOUNT_PERCENTAGE = 25
+  val MAX_PRICE_DISCOUNT_PERCENTAGE = 2
   val CONSTRUCTION_TIME_DISCOUNT = 99
 
   val getModelLowDemandDiscountThreshold = (model: Model) => { //smaller model has higher threshold. as the volume is supposed to be higher

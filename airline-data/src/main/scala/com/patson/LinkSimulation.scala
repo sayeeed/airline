@@ -362,7 +362,7 @@ object LinkSimulation {
     val existingAlerts = AlertSource.loadAlertsByCategory(AlertCategory.LINK_CANCELLATION)
 
     //group links by from and to airport ID Tuple(id1, id2), smaller ID goes first in the tuple
-    val linksByAirportIds = links.filter(_.capacity.total > 0).filter(_.airline.isGenerated == false).groupBy( link =>
+    val linksByAirportIds = links.filter(_.capacity.total > 0).filter(_.airline.airlineType != AirlineType.NON_PLAYER).groupBy( link =>
       if (link.from.id < link.to.id) (link.from.id, link.to.id) else (link.to.id, link.from.id)
     )
 

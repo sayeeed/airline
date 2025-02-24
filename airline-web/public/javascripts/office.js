@@ -241,23 +241,23 @@ function updateProgress(stats, stockPrice){
     $('.reputationValueCurrent').text(activeAirline.reputation)
     $("#officeCanvas .reputationStars").html($starBar)
 
-    $('.stockValueCurrent').text("$" + stockPrice.toFixed(2))
+//    $('.stockValueCurrent').text("$" + stockPrice.toFixed(2))
     $('.touristsValueCurrent').text(shortNumber(activeAirline.tourists.tourists))
     $('.elitesValueCurrent').text(shortNumber(activeAirline.elites.elites))
 
     $('.reputationText').text(activeAirline.gradeDescription)
-    $('.stockText').text(activeAirline.stock.stockDescription)
+//    $('.stockText').text(activeAirline.stock.stockDescription)
     $('.touristsText').text(activeAirline.tourists.touristsDescription)
     $('.elitesText').text(activeAirline.elites.elitesDescription)
 
     $('.reputationLevel').text("Level " + activeAirline.gradeLevel)
-    $('.stockLevel').text("Level " + activeAirline.stock.stockLevel)
+//    $('.stockLevel').text("Level " + activeAirline.stock.stockLevel)
     $('.touristsLevel').text("Level " + activeAirline.tourists.touristsLevel)
     $('.elitesLevel').text("Level " + activeAirline.elites.elitesLevel)
 
     $('.reputationTrend').text((activeAirline.reputationBreakdowns.total).toFixed(0))
     $('.reputationValueNext').text(activeAirline.gradeCeiling)
-    $('.stockValueNext').text("$"+activeAirline.stock.stockCeiling)
+//    $('.stockValueNext').text("$"+activeAirline.stock.stockCeiling)
     $('.touristsValueNext').text(activeAirline.tourists.touristsCeiling)
     $('.elitesValueNext').text(activeAirline.elites.elitesCeiling)
     $('.reputationValuePrev').text(activeAirline.gradeFloor)
@@ -376,6 +376,7 @@ function updateAirlineDetails() {
 
 	    	$('#airlineCode').text(airline.airlineCode)
 	    	$('#airlineCodeInput').val(airline.airlineCode)
+	    	$(".fuelTaxRate").text(airline.fuelTaxRate + "% ")
 	    	$('#destinations').text(airline.destinations)
 	    	$('#fleetSize').text(airline.fleetSize)
 	    	$('#fleetAge').text(getYearMonthText(airline.fleetAge))
@@ -524,6 +525,7 @@ function updateIncomeSheet(airlineIncome) {
         $("#linksTicketRevenue").text('$' + commaSeparateNumber(airlineIncome.linksTicketRevenue))
         $("#linksAirportFee").text('$' + commaSeparateNumber(airlineIncome.linksAirportFee))
         $("#linksFuelCost").text('$' + commaSeparateNumber(airlineIncome.linksFuelCost))
+        $("#linksFuelTax").text('$' + commaSeparateNumber(airlineIncome.linksFuelTax))
         $("#linksCrewCost").text('$' + commaSeparateNumber(airlineIncome.linksCrewCost))
         $("#linksInflightCost").text('$' + commaSeparateNumber(airlineIncome.linksInflightCost))
         $("#linksMaintenance").text('$' + commaSeparateNumber(airlineIncome.linksMaintenanceCost))
@@ -1356,9 +1358,8 @@ function populateBaseDetailsModal() {
                 row.append("<div class='cell'>" + entry.scale + "</div>")
 
                 row.append("<div class='cell'>" + entry.headquartersStaffCapacity + "/" + entry.baseStaffCapacity + "</div>")
-                row.append("<div class='cell'>" + maxFrequency.GROUP_1 + "</div>")
-                row.append("<div class='cell'>" + maxFrequency.GROUP_2 + "</div>")
-                row.append("<div class='cell'>" + maxFrequency.GROUP_3 + "</div>")
+                row.append("<div class='cell'>" + maxFrequency.INTERNATIONAL + "</div>")
+                row.append("<div class='cell'>" + maxFrequency.DOMESTIC + "</div>")
                 row.attr('data-scale', entry.scale)
 
                 $table.append(row)

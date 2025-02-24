@@ -257,7 +257,6 @@ class AllianceApplication @Inject()(cc: ControllerComponents) extends AbstractCo
             allianceJson = allianceJson + ("ranking" -> JsNumber(ranking))
             allianceJson = allianceJson + ("championPoints" -> JsNumber(championPoints))
             allianceJson = allianceJson + ("reputationBonus" -> JsNumber(Alliance.getReputationBonus(ranking)))
-            //allianceJson = allianceJson + ("maxFrequencyBonus" -> JsNumber(Alliance.getMaxFrequencyBonus(ranking)))
           }
         }
         
