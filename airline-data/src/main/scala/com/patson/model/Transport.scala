@@ -13,7 +13,6 @@ abstract class Transport extends IdObject{
   val frequencyByClass : LinkClass => Int
   val transportType : TransportType.Value
   val price: LinkClassValues
-  val flightType : FlightType.Value
   var availableSeats : LinkClassValues = capacity.copy()
   var minorDelayCount : Int
   var majorDelayCount : Int
@@ -57,13 +56,12 @@ abstract class Transport extends IdObject{
   def standardPrice(linkClass : LinkClass) : Int = {
     var price = standardPrice.get(linkClass)
     if (price == null.asInstanceOf[Int]) {
-      price = Pricing.computeStandardPrice(distance, flightType, linkClass)
+      price = Pricing.computeStandardPrice(this.distance, Computation.getFlightCategory(from, to), linkClass)
       standardPrice.put(linkClass, price)
     }
     price
   }
 
-  import FlightType._
   /**
     * Find seats at or below the requestedLinkClass
     *
@@ -79,13 +77,13 @@ abstract class Transport extends IdObject{
         return Some(targetLinkClass, availableSeats(targetLinkClass))
       } else  {
         if (targetLinkClass.level > ECONOMY.level) {
-          val classDiff = flightType match {
-            case SHORT_HAUL_DOMESTIC | SHORT_HAUL_INTERNATIONAL => targetLinkClass.level - 1//accept all classes
-            case _ => 1
+          val lowestAcceptableLevel = if (distance < 1000) {
+            1 //always accept lowest level (economy)
+          } else {
+            targetLinkClass.level - 1
           }
-          val lowestAcceptableLevel = targetLinkClass.level - classDiff
-          var level = targetLinkClass.level - 1
 
+          var level = targetLinkClass.level - 1
           while (level >= lowestAcceptableLevel) {
             val lowerClass = LinkClass.fromLevel(level)
             val seatsAvailable = availableSeats(lowerClass)

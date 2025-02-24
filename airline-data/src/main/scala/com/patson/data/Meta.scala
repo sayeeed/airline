@@ -175,7 +175,7 @@ object Meta {
     statement.close()
     
 
-    statement = connection.prepareStatement("CREATE TABLE " + AIRLINE_TABLE + "( id INTEGER PRIMARY KEY AUTO_INCREMENT, name VARCHAR(256), is_generated TINYINT(1))")
+    statement = connection.prepareStatement("CREATE TABLE " + AIRLINE_TABLE + "( id INTEGER PRIMARY KEY AUTO_INCREMENT, name VARCHAR(256), airline_type TINYINT(1))")
     statement.execute()
     statement.close()
     
@@ -370,7 +370,6 @@ object Meta {
       "quality INTEGER, " +
       "duration INTEGER, " +
       "frequency INTEGER," +
-      "flight_type TINYINT," +
       "flight_number INTEGER," +
       "airplane_model SMALLINT," +
       "from_country CHAR(2)," +
@@ -416,6 +415,7 @@ object Meta {
       "sold_seats_first INTEGER, " +
       "quality SMALLINT, " +
       "fuel_cost INTEGER, " +
+      "fuel_tax INTEGER, " +
       "crew_cost INTEGER, " +
       "airport_fees INTEGER, " +
       "inflight_cost INTEGER, " +
@@ -435,7 +435,6 @@ object Meta {
       "frequency SMALLINT, " +
       "duration SMALLINT, " +
       "transport_type TINYINT, " +
-      "flight_type TINYINT, " +
       "flight_number SMALLINT, " +
       "airplane_model SMALLINT, " +
       "raw_quality SMALLINT, " +
@@ -555,9 +554,9 @@ object Meta {
       "name VARCHAR(256), " +
       "family VARCHAR(256), " +
       "capacity INTEGER, " +
-      "max_seats INTEGER, " +
       "quality INTEGER, " +
-      "fuel_burn INTEGER, " +
+      "ascent_burn DOUBLE, " +
+      "cruise_burn DOUBLE, " +
       "speed INTEGER, " +
       "fly_range INTEGER, " +
       "price INTEGER, " +
@@ -809,6 +808,7 @@ object Meta {
       "ticket_revenue LONG," +
       "airport_fee LONG," +
       "fuel_cost LONG," +
+      "fuel_tax LONG," +
       "crew_cost LONG," +
       "inflight_cost LONG," +
       "delay_compensation LONG," +

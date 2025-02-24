@@ -17,9 +17,8 @@ class LinkSpec(_system: ActorSystem) extends TestKit(_system) with ImplicitSende
   val fromAirport = Airport("", "", "From Airport", 0, 0, "", "", "", 1, baseIncome = 40000, basePopulation = 1, 0, 0)
   val toAirport = Airport("", "", "To Airport", 0, 180, "", "", "", 1, baseIncome = 40000, basePopulation = 1, 0, 0)
   val distance = Util.calculateDistance(fromAirport.latitude, fromAirport.longitude, toAirport.latitude, toAirport.longitude).toInt
-  val defaultPrice = Pricing.computeStandardPriceForAllClass(distance, fromAirport, toAirport)
-
-  val flightType = Computation.getFlightType(fromAirport, toAirport, distance)
+  val flightType = Computation.getFlightCategory(fromAirport, toAirport)
+  val defaultPrice = Pricing.computeStandardPriceForAllClass(distance, flightType)
   val model = Model.modelByName("Boeing 737 MAX 9")
 
 
@@ -31,7 +30,7 @@ class LinkSpec(_system: ActorSystem) extends TestKit(_system) with ImplicitSende
       val config1 = AirplaneConfiguration(100, 0, 0, testAirline1, model, false)
       val config2 = AirplaneConfiguration(50, 25, 0, testAirline1, model, false)
       val config3 = AirplaneConfiguration(50, 10, 5, testAirline1, model, false)
-      val airline1Link = Link(fromAirport, toAirport, testAirline1, defaultPrice, distance = distance, LinkClassValues.getInstance(200, 35, 5) * 10, rawQuality = 0, 600, frequency = 30, flightType)
+      val airline1Link = Link(fromAirport, toAirport, testAirline1, defaultPrice, distance = distance, LinkClassValues.getInstance(200, 35, 5) * 10, rawQuality = 0, 600, frequency = 30)
 
       airline1Link.setAssignedAirplanes(
         scala.collection.immutable.Map(

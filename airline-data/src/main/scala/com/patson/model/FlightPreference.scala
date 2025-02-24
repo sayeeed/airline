@@ -115,7 +115,7 @@ abstract class FlightPreference(homeAirport : Airport) {
       } else {
         priceSensitivity
       }
-    val sfBuffer = 0.03
+    val sfBuffer = 0.04
     1 - sfBuffer + deltaFromStandardPrice * priceSensitivityModifier / standardPrice
   }
 
@@ -135,13 +135,10 @@ abstract class FlightPreference(homeAirport : Airport) {
       case PassengerType.TRAVELER => 0.75
       case _ => 0.5
     }
-    val qualityDelta = link.computedQuality - homeAirport.expectedQuality(link.flightType, preferredLinkClass)
+    val qualityDelta = link.computedQuality - homeAirport.expectedQuality(link.distance, preferredLinkClass)
 
-    val GOOD_QUALITY_DELTA = paxType match {
-      case PassengerType.TOURIST => 10
-      case PassengerType.ELITE => 30
-      case _ => 20
-    }
+    val GOOD_QUALITY_DELTA =  20
+
     val priceAdjust =
       if (qualityDelta < 0) {
         1 - qualityDelta.toDouble / Link.MAX_QUALITY * 1
@@ -160,14 +157,15 @@ abstract class FlightPreference(homeAirport : Airport) {
   }
 
   /**
-   * returns cost, modified by preferredLinkClass priceMultiplier
+   * returns cost, adjusted to preferredLinkClass with penalty
    */
   val priceAdjustedByLinkClassDiff = (link : Transport, linkClass : LinkClass) => {
     val cost = link.cost(linkClass) //use cost here
     if (preferredLinkClass.level != 0 && linkClass.level < preferredLinkClass.level) { //ignore discount_economy
-      val shortDistanceModified = 0.5 + Math.min(1, link.distance / 1000) / 2
+      val shortDistanceModified = 0.5 + 0.5 * Math.min(1, link.distance / 1000)
       val classDiffMultiplier: Double = 1 + (preferredLinkClass.level - linkClass.level) * 0.35 * shortDistanceModified
-      preferredLinkClass.basePrice - linkClass.basePrice + (cost / linkClass.priceMultiplier * preferredLinkClass.priceMultiplier * classDiffMultiplier).toInt //have to normalize the price to match the preferred link class, * classDiffMultiplier for unwillingness to downgrade
+      val preferredClassPriceRatio = Pricing.computeStandardPrice(link, preferredLinkClass) / Pricing.computeStandardPrice(link, linkClass)
+      (cost * preferredClassPriceRatio * classDiffMultiplier).toInt //have to normalize the price to match the preferred link class, * classDiffMultiplier for unwillingness to downgrade
     } else {
       cost
     }
@@ -190,8 +188,8 @@ abstract class FlightPreference(homeAirport : Airport) {
     val flightDurationRatioDelta = {
       if (flightDurationSensitivity == 0 || link.transportType != TransportType.FLIGHT) {
         0
-      } else if (flightDurationSensitivity <= 0.6 && link.asInstanceOf[Link].getAssignedModel().get.category == Model.Category.SPECIAL ) {
-        0
+//      } else if (flightDurationSensitivity <= 0.6 && link.transportType == TransportType.FLIGHT && link.asInstanceOf[Link].getAssignedModel().get.category == Model.Category.SPECIAL ) {
+//        0
       } else {
         val flightDurationThreshold = Computation.computeStandardFlightDuration(link.distance)
         Math.min(flightDurationSensitivity, (link.duration - flightDurationThreshold).toFloat / flightDurationThreshold * flightDurationSensitivity)
@@ -274,7 +272,7 @@ object FlightPreferenceType extends Enumeration {
   type Preference = Value
 
   protected case class Val(title: String, description: String, priority: Int) extends super.Val
-  implicit def valueToFlightPreferenceTypeVal(x: Value) = x.asInstanceOf[Val]
+  implicit def valueToFlightPreferenceTypeVal(x: Value): Val = x.asInstanceOf[Val]
 
   val DEAL = Val("Deal Seeker", "", 1)
   val BRAND = Val("Brand Sensitive", "", 2)
@@ -312,7 +310,7 @@ case class LastMinutePreference(homeAirport : Airport, preferredLinkClass: LinkC
   }
   override val connectionCostRatio = {
     if (priceModifier < 1) { //LAST_MINUTE_DEAL
-      0.1
+      0.2
     } else { //LAST_MINUTE
       1.0
     }
@@ -339,7 +337,7 @@ case class AppealPreference(homeAirport : Airport, preferredLinkClass : LinkClas
 
   override val connectionCostRatio = {
     if (loyaltyRatio > 1) {
-      1.7
+      1.8
     } else {
       1.2
     }

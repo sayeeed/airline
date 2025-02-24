@@ -1,53 +1,46 @@
 package com.patson.model
-import FlightType._
+
+import com.patson.model.FlightCategory.FlightCategory
 
 /**
  * Cost base model
  */
 object Pricing {
-  //base 10
-  //200 km = 10 + 40
-  //1000 km = 50 + 100 = 150  (800 * 0.125) // 250
-  //2000 km = 150 + 100 = 250  (1000 * 0.1) // 350
-  //10000 km = 150 + 900 = 1050  (9000 * 0.1) // 750
-  val modifierBrackets = List((200, 0.2),(800, 0.125),(Int.MaxValue, 0.1))
+  val modifierBrackets: Map[LinkClass, List[(Int, Double)]] = Map(
+    DISCOUNT_ECONOMY  -> List((400, 0.06), (1000, 0.08), (6000, 0.065), (Int.MaxValue, 0.075)),
+    ECONOMY           -> List((400, 0.11), (1000, 0.084), (6000, 0.075), (Int.MaxValue, 0.08)),
+    BUSINESS          -> List((400, 0.28), (1000, 0.22), (6000, 0.162), (Int.MaxValue, 0.22)),
+    FIRST             -> List((400, 0.92), (1000, 0.28), (6000, 0.26), (Int.MaxValue, 0.498))
+  )
   val INTERNATIONAL_PRICE_MULTIPLIER = 1.05
 
-  def computeStandardPrice(link : Link, linkClass : LinkClass) : Int = {
-    computeStandardPrice(link.distance, link.flightType, linkClass)
+  def computeStandardPrice(link : Transport, linkClass : LinkClass) : Int = {
+    val flightCategory = Computation.getFlightCategory(link.from, link.to)
+    computeStandardPrice(link.distance, flightCategory, linkClass)
   }
-  def computeStandardPrice(distance : Int, flightType : FlightType, linkClass : LinkClass) : Int = {
+  def computeStandardPrice(distance: Int, flightCategory: FlightCategory.Value, linkClass: LinkClass) : Int = {
     var remainDistance = distance
-    var price = linkClass.basePrice.toDouble
-    for (priceBracket <- modifierBrackets if(remainDistance > 0)) {
+    var price = 15.0
+    for (priceBracket <- modifierBrackets(linkClass) if(remainDistance > 0)) {
       if (priceBracket._1 >= remainDistance) {
         price += remainDistance * priceBracket._2
       } else {
-        price += priceBracket._1 * priceBracket._2
+        price += priceBracket._1.toDouble * priceBracket._2
       }
       remainDistance -= priceBracket._1
     }
-    price = ((flightType match {
-      case SHORT_HAUL_INTERNATIONAL | MEDIUM_HAUL_INTERNATIONAL | LONG_HAUL_INTERNATIONAL | ULTRA_LONG_HAUL_INTERCONTINENTAL => (price * INTERNATIONAL_PRICE_MULTIPLIER)
-      case _ => price
-    }) * linkClass.priceMultiplier).toInt
+    price = if (flightCategory == FlightCategory.INTERNATIONAL) {
+      price * INTERNATIONAL_PRICE_MULTIPLIER
+    } else {
+      price
+    }
     
-    (price * 1.20).toInt //increase the standard price by 20%
-    // 150 * 1.2 = 180    250 * 1.5 = 375 | 57%
-    // 250 * 1.2 = 300    350 * 1.5 = 525
-    // 1050 * 1.2 = 1260  750 * 1.5 = 1125
+    (price * 1.12).toInt //increase the standard price by 12%
   }
   
-//  def computeStandardPriceForAllClass(distance : Int, fromAirport : Airport, toAirport : Airport) : LinkClassValues = {
-//    val priceByLinkClass : List[(LinkClass, Int)] = LinkClass.values.map { linkClass =>
-//      (linkClass, computeStandardPrice(distance, Computation.getFlightType(fromAirport, toAirport, distance), linkClass))
-//    }
-//    LinkClassValues.getInstanceByMap(priceByLinkClass.toMap)
-//  }
-  
-  def computeStandardPriceForAllClass(distance : Int, flightType : FlightType.Value) : LinkClassValues = {
+  def computeStandardPriceForAllClass(distance: Int, flightCategory: FlightCategory.Value) : LinkClassValues = {
     val priceByLinkClass : List[(LinkClass, Int)] = LinkClass.values.map { linkClass =>
-      (linkClass, computeStandardPrice(distance, flightType, linkClass))
+      (linkClass, computeStandardPrice(distance, flightCategory, linkClass))
     }
     LinkClassValues.getInstanceByMap(priceByLinkClass.toMap)
   }

@@ -6,8 +6,6 @@ import com.patson.data._
 
 import scala.collection.mutable._
 import scala.collection.{immutable, mutable}
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
 import com.patson.model.airplane.{Airplane, AirplaneMaintenanceUtil, LinkAssignments}
 import com.patson.model.event.Olympics
 
@@ -19,9 +17,9 @@ import java.util.concurrent.ThreadLocalRandom
 object LinkSimulation {
 
 
-  private val FUEL_UNIT_COST = OilPrice.DEFAULT_UNIT_COST //for easier flight monitoring, let's make it the default unit price here
-  val CREW_UNIT_COST = 5
-  val CREW_BASE_COST = 0
+  val FUEL_UNIT_COST = OilPrice.DEFAULT_UNIT_COST * 92 //for easier flight monitoring, let's make it the default unit price here
+  val CREW_UNIT_COST = 6.75
+  val CREW_BASE_COST = 300
 
 
   def linkSimulation(cycle: Int) : (List[LinkConsumptionDetails], scala.collection.immutable.Map[Lounge, LoungeConsumptionDetails], immutable.Map[(PassengerGroup, Airport, Route), Int], List[AirlineStat]) = {
@@ -108,14 +106,13 @@ object LinkSimulation {
           loungeConsumptionDetails ++= loungeResult
         }
       case nonFlightLink => //only compute for flights (class Link)
-        linkConsumptionDetails += LinkConsumptionDetails(nonFlightLink, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, cycle)
+        linkConsumptionDetails += LinkConsumptionDetails(nonFlightLink, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, cycle)
     }
 
     endTime = System.currentTimeMillis()
     println(s"Finished calculation on profits by links. Took ${endTime - startTime} millisecs")
 
     purgeAlerts()
-    //todo: skip if is generated
     checkLoadFactor(flightLinks, cycle)
 
     LinkSource.deleteLinkConsumptionsByCycle(300)
@@ -158,11 +155,17 @@ object LinkSimulation {
         var i = 0
         val assignedInServiceAirplanes = link.getAssignedAirplanes().filter(_._1.isReady)
         for ( i <- 0 until link.frequency) {
-          var airplaneCount : Int = assignedInServiceAirplanes.size
+          val airplaneCount : Int = assignedInServiceAirplanes.size
           if (airplaneCount > 0) {
-            val airplane = assignedInServiceAirplanes.toList.map(_._1)(i % airplaneCount)           //round robin
+            val airplane = assignedInServiceAirplanes.toList.map(_._1)(i % airplaneCount) //round-robin
             val errorValue = ThreadLocalRandom.current().nextDouble()
-            val conditionMultiplier = (Airplane.MAX_CONDITION - airplane.condition * 0.75).toDouble / Airplane.MAX_CONDITION
+            val hangarCountTo = link.from.getAirlineBase(link.airline.id).get.specializations.count(_.getType == BaseSpecializationType.HANGAR)
+            val hangarCountFrom = link.to.getAirlineBase(link.airline.id) match {
+              case Some(base: AirlineBase) => base.specializations.count(_.getType == BaseSpecializationType.HANGAR)
+              case None => 0
+            }
+            val airplaneCondition = Math.min(100, (hangarCountTo + hangarCountFrom) * 4 + airplane.condition)
+            val conditionMultiplier = (Airplane.MAX_CONDITION - airplaneCondition * 0.75).toDouble / Airplane.MAX_CONDITION
 
             if (airplane.condition > Airplane.CRITICAL_CONDITION) { //small chance of delay and cancellation
               if (errorValue < cancellationNormalThreshold * conditionMultiplier) {
@@ -207,23 +210,19 @@ object LinkSimulation {
   def computeLinkAndLoungeConsumptionDetail(link : Link, cycle : Int, allAirplaneAssignments : immutable.Map[Int, LinkAssignments], passengerCostEntries : List[PassengerCost]) : (LinkConsumptionDetails, List[LoungeConsumptionDetails]) = {
     val flightLink = link.asInstanceOf[Link]
 
+
     val fuelCost = flightLink.getAssignedModel() match {
       case Some(model) =>
-        val distanceFactor = 0.5 + 0.05 * Math.pow(flightLink.duration.toDouble / 60, 1.4)
-        val loadFactor = 0.5 + 0.5 * flightLink.getTotalSoldSeats.toDouble / flightLink.getTotalCapacity
-        val ascendTime = if (model.airplaneType == com.patson.model.airplane.Model.Type.PROPELLER_SMALL || model.airplaneType == com.patson.model.airplane.Model.Type.PROPELLER_MEDIUM) {
-          18
-        } else if (model.airplaneType == com.patson.model.airplane.Model.Type.HELICOPTER) {
-          0
-        } else {
-          Math.min(50, flightLink.duration.toDouble / 3 * 2)
-        }
-        val fuelBurn = ascendTime * model.fuelBurn * 4.75 + (flightLink.duration - ascendTime) * model.fuelBurn
+        val loadFactor = 0.75 + 0.25 * flightLink.getTotalSoldSeats.toDouble / flightLink.capacity.totalwithSeatSize
+        val distanceFactor = 1 + 0.1 * Math.pow(flightLink.duration.toDouble / 60, 1.34 * loadFactor)
+        val fuelCost = FUEL_UNIT_COST * model.capacity * distanceFactor * (model.ascentBurn * loadFactor + model.cruiseBurn * link.distance / 800)
 
-        (fuelBurn * FUEL_UNIT_COST * (flightLink.frequency - flightLink.cancellationCount) * loadFactor * distanceFactor).toInt
+        (fuelCost * (flightLink.frequency - flightLink.cancellationCount)).toInt
       case None => 0
     }
 
+    val fuelTaxRate = AirlineGrades.findTaxRate(link.airline.getReputation())
+    val fuelTax = (fuelCost * (fuelTaxRate.toDouble / 100)).toInt
 
     val inServiceAssignedAirplanes = flightLink.getAssignedAirplanes().filter(_._1.isReady)
     //the % of time spent on this link for each airplane
@@ -249,18 +248,17 @@ object LinkSimulation {
     val airportFees = flightLink.getAssignedModel() match {
       case Some(model) =>
         val airline = flightLink.airline
-        (flightLink.from.slotFee(model, airline) + flightLink.to.slotFee(model, airline) + flightLink.from.landingFee(model) + flightLink.to.landingFee(model)) * flightLink.frequency
+        (flightLink.from.slotFee(model, airline) + flightLink.to.slotFee(model, airline)) * flightLink.frequency + flightLink.from.landingFee(flightLink.getTotalSoldSeats) + flightLink.to.landingFee(flightLink.getTotalSoldSeats)
       case None => 0
     }
 
     var depreciation = 0
     inServiceAssignedAirplanes.foreach {
       case(airplane, _) =>
-        //link.getAssignedAirplanes().toList.map(_._1).foldLeft(0)(_ + _.depreciationRate)
         depreciation += (airplane.depreciationRate * assignmentWeights(airplane)).toInt
     }
 
-    val targetQualityCost = Math.pow(flightLink.airline.getTargetServiceQuality().toDouble / 25, 1.96)
+    val targetQualityCost = Math.pow(flightLink.airline.getTargetServiceQuality().toDouble / 22, 1.95)
     var crewCost = CREW_BASE_COST
     var inflightCost, revenue = 0
     LinkClass.values.foreach { linkClass =>
@@ -303,7 +301,7 @@ object LinkSimulation {
 
     }
 
-    val profit = revenue - fuelCost - maintenanceCost - crewCost - airportFees - inflightCost - delayCompensation - depreciation - loungeCost
+    val profit = revenue - fuelCost - fuelTax - maintenanceCost - crewCost - airportFees - inflightCost - delayCompensation - depreciation - loungeCost
 
     //calculation overall satisifaction
     var satisfactionTotalValue : Double = 0
@@ -318,24 +316,22 @@ object LinkSimulation {
     }
     val overallSatisfaction = if (totalPassengerCount == 0) 0 else satisfactionTotalValue / totalPassengerCount
 
-    //val result = LinkConsumptionDetails(link.id, link.price, link.capacity, link.soldSeats, link.computedQuality, fuelCost, crewCost, airportFees, inflightCost, delayCompensation = delayCompensation, maintenanceCost, depreciation = depreciation, revenue, profit, link.cancellationCount, linklink.from.id, link.to.id, link.airline.id, link.distance, cycle)
-    val result = LinkConsumptionDetails(flightLink, fuelCost, crewCost, airportFees, inflightCost, delayCompensation = delayCompensation, maintenanceCost, depreciation = depreciation, loungeCost = loungeCost, revenue, profit, overallSatisfaction, cycle)
+    val result = LinkConsumptionDetails(flightLink, fuelCost, fuelTax, crewCost, airportFees, inflightCost, delayCompensation = delayCompensation, maintenanceCost, depreciation = depreciation, loungeCost = loungeCost, revenue, profit, overallSatisfaction, cycle)
     //println("model : " + link.getAssignedModel().get + " profit : " + result.profit + " result: " + result)
     (result, loungeConsumptionDetails.toList)
   }
 
   //"service supplies"
   val computeInflightCost = (classMultiplier : Double, link : Link, soldSeats : Int) => {
-    val star = link.rawQuality / 20
-    val durationCostPerHour =
-      if (star == 1) {
-        -4.5 //selling food & credit cards :)
-      } else if (star == 2) {
+    val durationCostPerHour: Double =
+      if (link.rawQuality <= 20) {
+        -5 //selling food & credit cards :)
+      } else if (link.rawQuality <= 40) {
         0
-      } else if (star == 3) {
-        2
-      } else if (star == 4) {
-        7
+      } else if (link.rawQuality <= 60) {
+        4
+      } else if (link.rawQuality <= 80) {
+        10
       } else {
         15
       }
@@ -366,7 +362,7 @@ object LinkSimulation {
     val existingAlerts = AlertSource.loadAlertsByCategory(AlertCategory.LINK_CANCELLATION)
 
     //group links by from and to airport ID Tuple(id1, id2), smaller ID goes first in the tuple
-    val linksByAirportIds = links.filter(_.capacity.total > 0).groupBy( link =>
+    val linksByAirportIds = links.filter(_.capacity.total > 0).filter(_.airline.airlineType != AirlineType.NON_PLAYER).groupBy( link =>
       if (link.from.id < link.to.id) (link.from.id, link.to.id) else (link.to.id, link.from.id)
     )
 

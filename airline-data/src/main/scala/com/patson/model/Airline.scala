@@ -1,13 +1,13 @@
 package com.patson.model
 
 import com.patson.data._
-import com.patson.model.AirlineBaseSpecialization.{DelegateSpecialization, Specialization}
+import com.patson.model.AirlineType.AirlineType
 
 import java.util.{Calendar, Date}
 import scala.collection.mutable.ListBuffer
 import scala.collection.immutable.ListMap
 
-case class Airline(name: String, isGenerated : Boolean = false, var id : Int = 0) extends IdObject {
+case class Airline(name: String, airlineType: AirlineType.AirlineType = AirlineType.LEGACY, var id : Int = 0) extends IdObject {
   val airlineInfo = AirlineInfo(0, 0, 0, 0, 0, 0, 0)
   var allianceId : Option[Int] = None
   var bases : List[AirlineBase] = List.empty
@@ -112,6 +112,10 @@ case class Airline(name: String, isGenerated : Boolean = false, var id : Int = 0
     AirlineGrades.findGrade(reputation)
   }
 
+  def fuelTaxRate: Int = {
+    AirlineGrades.findTaxRate(airlineInfo.reputation)
+  }
+
   def airlineGradeStockPrice: AirlineGrade = {
     val stockPrice = airlineInfo.stockPrice
     AirlineGradeStockPrice.findGrade(stockPrice)
@@ -180,11 +184,36 @@ case class Airline(name: String, isGenerated : Boolean = false, var id : Int = 0
   val DELEGATE_PER_LEVEL = 3
   lazy val delegateCount = BASE_DELEGATE_COUNT +
     airlineGrade.level * DELEGATE_PER_LEVEL +
-    AirlineSource.loadAirlineBasesByAirline(id).flatMap(_.specializations).filter(_.isInstanceOf[DelegateSpecialization]).map(_.asInstanceOf[DelegateSpecialization].delegateBoost).sum +
+    AirlineSource.loadAirlineBasesByAirline(id).flatMap(_.specializations).count(_.getType == BaseSpecializationType.DELEGATE) +
     delegateBoosts.map(_.amount).sum
   lazy val delegateBoosts = AirlineSource.loadAirlineModifierByAirlineId(id).filter(_.modifierType == AirlineModifierType.DELEGATE_BOOST).map(_.asInstanceOf[DelegateBoostAirlineModifier])
 }
 
+object AirlineType extends Enumeration {
+  type AirlineType = Value
+  val LEGACY, BEGINNER, NON_PLAYER, ULCC, LUXURY, REGIONAL, MEGA_HQ, NOSTALGIA = Value
+  val label: AirlineType => String = {
+    case LEGACY => "Legacy"
+    case NON_PLAYER => "Non-Player"
+    case ULCC => "Ultra Low-Cost"
+    case LUXURY => "Luxury"
+    case REGIONAL => "Regional Contract"
+    case MEGA_HQ => "Mega HQ"
+    case BEGINNER => "Beginner"
+    case NOSTALGIA => "Nostalgia"
+  }
+  def fromId(id: Int): AirlineType = id match {
+    case 0 => LEGACY
+    case 1 => BEGINNER
+    case 2 => NON_PLAYER
+    case 3 => ULCC
+    case 4 => LUXURY
+    case 5 => REGIONAL
+    case 6 => MEGA_HQ
+    case 7 => NOSTALGIA
+    case _ => throw new IllegalArgumentException("Invalid AirlineType ID: " + id)
+  }
+}
 
 case class DelegateInfo(availableCount : Int, boosts : List[DelegateBoostAirlineModifier], busyDelegates: List[BusyDelegate]) {
   //take away all the boosted ones that are unoccupied, those are not eligible for permanent tasks (country relation/campaign etc)
@@ -240,7 +269,7 @@ case class AirlineIncome(airlineId : Int, profit : Long = 0, revenue: Long = 0, 
         cycle = income2.cycle)
   }
 }
-case class LinksIncome(airlineId : Int, profit : Long = 0, revenue : Long = 0, expense : Long = 0, ticketRevenue: Long = 0, airportFee : Long = 0, fuelCost : Long = 0, crewCost : Long = 0, inflightCost : Long = 0, delayCompensation : Long = 0, maintenanceCost: Long = 0, loungeCost : Long = 0, depreciation : Long = 0, period : Period.Value = Period.WEEKLY, var cycle : Int = 0) {
+case class LinksIncome(airlineId : Int, profit : Long = 0, revenue : Long = 0, expense : Long = 0, ticketRevenue: Long = 0, airportFee : Long = 0, fuelCost : Long = 0, fuelTax : Long = 0, crewCost : Long = 0, inflightCost : Long = 0, delayCompensation : Long = 0, maintenanceCost: Long = 0, loungeCost : Long = 0, depreciation : Long = 0, period : Period.Value = Period.WEEKLY, var cycle : Int = 0) {
   def update(income2 : LinksIncome) : LinksIncome = {
     LinksIncome(airlineId, 
         profit = profit + income2.profit,
@@ -249,6 +278,7 @@ case class LinksIncome(airlineId : Int, profit : Long = 0, revenue : Long = 0, e
         ticketRevenue = ticketRevenue + income2.ticketRevenue,
         airportFee = airportFee + income2.airportFee,
         fuelCost = fuelCost + income2.fuelCost,
+        fuelTax = fuelTax + income2.fuelTax,
         crewCost = crewCost + income2.crewCost,
         inflightCost = inflightCost + income2.inflightCost,
         delayCompensation = delayCompensation + income2.delayCompensation,
@@ -325,7 +355,6 @@ object Airline {
     airlineWithJustId
   }
   val MAX_SERVICE_QUALITY : Double = 100
-  val MAX_MAINTENANCE_QUALITY : Double = 100
 
   def resetAirline(airlineId : Int, newBalance : Long, resetExtendedInfo : Boolean = false) : Option[Airline] = {
     AirlineSource.loadAirlineById(airlineId, true) match {
@@ -436,6 +465,37 @@ object AirlineGrades {
     1800 -> "Transcendent",
     2000 -> "Apex Rat"
   )
+
+  val taxRate = List(
+    20 -> 0,
+    40 -> 0,
+    60 -> 1,
+    80 -> 1,
+    100 -> 1,
+    125 -> 2,
+    150 -> 2,
+    175 -> 3,
+    200 -> 4,
+    240 -> 5,
+    280 -> 6,
+    320 -> 7,
+    360 -> 9,
+    400 -> 11,
+    500 -> 13,
+    600 -> 15,
+    700 -> 17,
+    800 -> 19,
+    1000 -> 20,
+    1200 -> 21,
+    1400 -> 22,
+    1600 -> 23,
+    1800 -> 24,
+    2000 -> 25,
+  )
+
+  def findTaxRate(reputation: Double) : Int = {
+    taxRate.find(_._1 > reputation).getOrElse(taxRate.last)._2
+  }
 
   def findGrade(reputation: Double): AirlineGrade = {
     val indexedGrades = grades.zipWithIndex

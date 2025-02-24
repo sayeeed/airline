@@ -257,7 +257,6 @@ class AllianceApplication @Inject()(cc: ControllerComponents) extends AbstractCo
             allianceJson = allianceJson + ("ranking" -> JsNumber(ranking))
             allianceJson = allianceJson + ("championPoints" -> JsNumber(championPoints))
             allianceJson = allianceJson + ("reputationBonus" -> JsNumber(Alliance.getReputationBonus(ranking)))
-            //allianceJson = allianceJson + ("maxFrequencyBonus" -> JsNumber(Alliance.getMaxFrequencyBonus(ranking)))
           }
         }
         
@@ -296,7 +295,6 @@ class AllianceApplication @Inject()(cc: ControllerComponents) extends AbstractCo
         "toLatitude" -> JsNumber(link.to.latitude),
         "toLongitude" -> JsNumber(link.to.longitude),
         "capacity" -> Json.toJson(link.capacity),
-        "flightType" -> JsString(link.flightType.toString()),
         "flightCode" -> JsString(LinkUtil.getFlightCode(link.airline, link.flightNumber))))
         result = result.append(linkJson) 
       }

@@ -29,6 +29,7 @@ class AirlineApplication @Inject()(cc: ControllerComponents) extends AbstractCon
       "name" -> JsString(airline.name),
       "balance" -> JsNumber(airline.airlineInfo.balance),
       "reputation" -> JsNumber(BigDecimal(airline.airlineInfo.reputation).setScale(2, BigDecimal.RoundingMode.HALF_EVEN)),
+      "fuelTaxRate" -> JsNumber(airline.fuelTaxRate),
       "serviceQuality" -> JsNumber(airline.airlineInfo.currentServiceQuality),
       "targetServiceQuality" -> JsNumber(airline.airlineInfo.targetServiceQuality),
       "weeklyDividends" -> JsNumber(airline.airlineInfo.weeklyDividends/1000000),
@@ -36,14 +37,14 @@ class AirlineApplication @Inject()(cc: ControllerComponents) extends AbstractCon
       "gradeLevel" -> JsNumber(airline.airlineGrade.level),
       "gradeFloor" -> JsNumber(airline.airlineGrade.reputationFloor),
       "gradeCeiling" -> JsNumber(airline.airlineGrade.reputationCeiling),
-      "stock" -> JsObject(List(
-        "grades" -> JsArray(AirlineGradeStockPrice.grades.map { grade => JsNumber(grade._1) }),
-        "stockPrice" -> JsNumber(airline.airlineInfo.stockPrice),
-        "stockDescription" -> JsString(airline.airlineGradeStockPrice.description),
-        "stockLevel" -> JsNumber(airline.airlineGradeStockPrice.level),
-        "stockCeiling" -> JsNumber(airline.airlineGradeStockPrice.reputationCeiling),
-        "stockFloor" -> JsNumber(airline.airlineGradeStockPrice.reputationFloor),
-      )),
+//      "stock" -> JsObject(List(
+//        "grades" -> JsArray(AirlineGradeStockPrice.grades.map { grade => JsNumber(grade._1) }),
+//        "stockPrice" -> JsNumber(airline.airlineInfo.stockPrice),
+//        "stockDescription" -> JsString(airline.airlineGradeStockPrice.description),
+//        "stockLevel" -> JsNumber(airline.airlineGradeStockPrice.level),
+//        "stockCeiling" -> JsNumber(airline.airlineGradeStockPrice.reputationCeiling),
+//        "stockFloor" -> JsNumber(airline.airlineGradeStockPrice.reputationFloor),
+//      )),
       "tourists" -> JsObject(List(
         "grades" -> JsArray(AirlineGradeTourists.grades.map { grade => JsNumber(grade._1) }),
         "tourists" -> JsNumber(airline.stats.tourists),
@@ -212,7 +213,6 @@ class AirlineApplication @Inject()(cc: ControllerComponents) extends AbstractCon
        
        val destinations = if (airportsServed > 0) airportsServed - 1 else 0 //minus home base
        
-       val currentCycle = CycleSource.loadCycle()
        val airplanes = AirplaneSource.loadAirplanesByOwner(airlineId).filter(_.isReady)
        val airplaneTypes = airplanes.flatMap {
          plane => List(plane.model)
@@ -436,7 +436,7 @@ class AirlineApplication @Inject()(cc: ControllerComponents) extends AbstractCon
      val totalOfficeStaffRequired = LinkSource.loadFlightLinksByFromAirportAndAirlineId(base.airport.id, base.airline.id).map(_.getFutureOfficeStaffRequired).sum
      val capacityAfterDowngrade = base.copy(scale = base.scale - 1).getOfficeStaffCapacity
      if (capacityAfterDowngrade < totalOfficeStaffRequired) {
-       return Some(s"Cannot downgrade this base, as the office staff capacity will become $capacityAfterDowngrade which is lower than the required $totalOfficeStaffRequired to maintain current flights from this base")
+       return Some(s"Cannot downgrade this base, as the staff capacity will become $capacityAfterDowngrade which is lower than the required $totalOfficeStaffRequired to maintain current flights from this base")
      }
 
      AirlineSource.loadLoungeByAirlineAndAirport(base.airline.id, base.airport.id).foreach { lounge =>
@@ -788,7 +788,7 @@ class AirlineApplication @Inject()(cc: ControllerComponents) extends AbstractCon
 
   def getServiceFundingProjection(airlineId : Int) = AuthenticatedAirline(airlineId) { request =>
     val targetQuality = request.user.getTargetServiceQuality()
-    val targetQualityCost = Math.pow(targetQuality.toDouble / 25, 1.96)
+    val targetQualityCost = Math.pow(targetQuality.toDouble / 22, 1.95)
     val links = LinkSource.loadFlightLinksByAirlineId(airlineId)
     var crewCost = 0
 
@@ -1128,10 +1128,11 @@ class AirlineApplication @Inject()(cc: ControllerComponents) extends AbstractCon
       AirportSource.loadAirportBaseSpecializationsLastUpdate(airportId, airlineId) match {
         case Some(lastUpdate) =>
           val currentCycle = CycleSource.loadCycle()
-          if (BaseSpecializationType.COOLDOWN + lastUpdate <= currentCycle) {
+          val baseCooldown = if (AirlineCache.getAirline(airlineId).get.airlineGrade.level > 9) BaseSpecializationType.COOLDOWN else LinkNegotiationDelegateTask.COOL_DOWN
+          if (baseCooldown + lastUpdate <= currentCycle) {
             0
           } else {
-            BaseSpecializationType.COOLDOWN + lastUpdate - currentCycle
+            baseCooldown + lastUpdate - currentCycle
           }
         case None => 0
       }
@@ -1145,7 +1146,7 @@ class AirlineApplication @Inject()(cc: ControllerComponents) extends AbstractCon
         specializations.foreach { specialization =>
           specializationsJson = specializationsJson.append(Json.toJsObject(specialization) +
             ("active" -> JsBoolean(activeSpecializations.contains(specialization))) +
-            ("available" -> JsBoolean(base.scale >= specialization.scaleRequirement)) +
+            ("available" -> JsBoolean(base.scale >= specialization.scaleRequirement && cooldown == 0)) +
             ("free" -> JsBoolean(specialization.free))
           )
         }
@@ -1159,10 +1160,11 @@ class AirlineApplication @Inject()(cc: ControllerComponents) extends AbstractCon
   def setBaseSpecializations(airlineId: Int, airportId : Int) = AuthenticatedAirline(airlineId) { request =>
     val inputSpecializations = request.body.asInstanceOf[AnyContentAsJson].json.\("selectedSpecializations").as[List[String]].map(AirlineBaseSpecialization.withName(_))
 
+    val baseCooldown = if (AirlineCache.getAirline(airlineId).get.airlineGrade.level > 9) BaseSpecializationType.COOLDOWN else LinkNegotiationDelegateTask.COOL_DOWN
     val cooldown =
       AirportSource.loadAirportBaseSpecializationsLastUpdate(airportId, airlineId).map { lastUpdate =>
         val currentCycle = CycleSource.loadCycle()
-        BaseSpecializationType.COOLDOWN + lastUpdate - currentCycle
+        baseCooldown + lastUpdate - currentCycle
       }.getOrElse(0)
 
     if (cooldown > 0) {
@@ -1171,12 +1173,14 @@ class AirlineApplication @Inject()(cc: ControllerComponents) extends AbstractCon
       //validate
       AirlineSource.loadAirlineBaseByAirlineAndAirport(airlineId, airportId) match {
         case Some(base) =>
-          val specializationByScale = mutable.HashMap[Int, AirlineBaseSpecialization.Value]() //use a map by scale, to avoid selecting multiple spec per scale
-          inputSpecializations.foreach { specialization =>
-            specializationByScale.put(specialization.scaleRequirement, specialization)
-
+          val specializationsByScale = inputSpecializations.groupBy(_.scaleRequirement)
+          val isValid = specializationsByScale.forall(_._2.size <= 2) // Validate that each scale requirement has no more than 2 specializations
+          if (!isValid) {
+            throw new IllegalArgumentException("Cannot have more than 2 specializations per scale requirement")
           }
-          val selectedSpecializations = specializationByScale.values.toList.filter(!_.free)
+
+          // Get all selected non-free specializations
+          val selectedSpecializations = inputSpecializations.filter(!_.free)
           val existingSpecializations = base.specializations.filter(!_.free)
           val newSpecializations = selectedSpecializations.filter(!existingSpecializations.contains(_))
           val removedSpecializations = existingSpecializations.filter(!selectedSpecializations.contains(_))

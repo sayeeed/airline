@@ -1,12 +1,12 @@
 package controllers
 
-import com.patson.AirportSimulation
+import com.patson.{AirportSimulation, LinkSimulation}
 import com.patson.data._
 import com.patson.model.Scheduling.{TimeSlot, TimeSlotStatus}
+import com.patson.model.airplane.Airplane
 import com.patson.model.{Link, _}
 import com.patson.util.{AirlineCache, AirportCache, ChampionUtil}
 import controllers.AuthenticationObject.AuthenticatedAirline
-import controllers.NegotiationUtil.FlightTypeGroup
 import controllers.WeatherUtil.{Coordinates, Weather}
 import play.api.data.Form
 import play.api.data.Forms.{mapping, number}
@@ -76,23 +76,7 @@ class Application @Inject()(cc: ControllerComponents, val configuration: play.ap
       ))
     }
   }
-  
-//  implicit object AirportProjectFormat extends Format[AirportProject] {
-//     def writes(project : AirportProject): JsValue = {
-//       Json.obj(
-//         "projectId" -> project.id,
-//         "airportId" -> project.airport.id,
-//         "projectType" -> project.projectType.toString(),
-//         "status" -> project.status.toString(),
-//         "progress" -> project.progress
-//       )
-//    }
-//    def reads(json: JsValue): JsResult[AirportProject] = {
-//      val airport = Airport.fromId((json \ "id").as[Int])
-//      val projectType = ProjectType.withName((json \ "projectType").as[String])
-//      JsSuccess(AirportProject(airport, projectType, ProjectStatus.INITIATED, progress = 0, duration = 0, level = 0)) //TODO not implemented
-//    }
-//  }
+
 
   implicit object LoyalistWrites extends Writes[Loyalist] {
     def writes(loyalist: Loyalist): JsValue = {
@@ -554,12 +538,13 @@ class Application @Inject()(cc: ControllerComponents, val configuration: play.ap
     Ok(result)
   }
 
-  def getScaleDetails() = Action {
+  def getGameRules() = Action {
+    //todo add: constants for fuel formula, deprecation, etc (but not things that may become airline specific)
     var scaleProgressionResult = Json.arr()
     (1 to 15).map { scale =>
       var perScaleResult = Json.obj("scale" -> scale)
       var maxFrequencyJson = Json.obj()
-      FlightTypeGroup.values.foreach { group =>
+      FlightCategory.values.foreach { group =>
         maxFrequencyJson = maxFrequencyJson + (group.toString -> JsNumber(NegotiationUtil.getMaxFrequencyByGroup(scale, group)))
       }
 
@@ -571,26 +556,53 @@ class Application @Inject()(cc: ControllerComponents, val configuration: play.ap
       scaleProgressionResult = scaleProgressionResult.append(perScaleResult)
     }
 
-    var groupInfoJson = Json.obj()
-    FlightType.values.toList.groupBy(NegotiationUtil.getFlightTypeGroup(_)).foreach {
-      case (group, flightTypes) => groupInfoJson = groupInfoJson + (group.toString -> JsString(flightTypes.map(FlightType.label(_)).mkString(", ")))
+    val linkClasses: List[LinkClass] = List(DISCOUNT_ECONOMY, ECONOMY, BUSINESS, FIRST)
+    implicit val linkClassWrites: Writes[LinkClass] = new Writes[LinkClass] {
+      def writes(linkClass: LinkClass): JsValue = {
+        Json.obj(
+          "name" -> linkClass.label,
+          "spaceMultiplier" -> linkClass.spaceMultiplier,
+          "resourceMultiplier" -> linkClass.resourceMultiplier
+        )
+      }
     }
-    var result = Json.obj("scaleProgression" -> scaleProgressionResult, "groupInfo" -> groupInfoJson)
+    val linkClassJson = Json.toJson(linkClasses)
+
+    var linkValues = Json.obj(
+      "fuelCost" -> JsNumber(LinkSimulation.FUEL_UNIT_COST),
+      "maxFlightMin" -> JsNumber(Airplane.MAX_FLIGHT_MINUTES),
+      "conditionBad" -> JsNumber(Airplane.BAD_CONDITION),
+      "conditionCritical" -> JsNumber(Airplane.CRITICAL_CONDITION)
+    )
+    linkValues
 
 
+    var result = Json.obj("scaleProgression" -> scaleProgressionResult, "classValues" -> linkClassJson, "linkValues" -> linkValues)
     Ok(result)
   }
 
-//  def getLookups() = Action {
-//    val airlineGradeLookup = AirlineGrades.grades
-////    val airlineGradeTourists = AirlineGradeTourists.grades.keys.toList.sorted
-////    val airlineGradeElites = AirlineGradeElites.grades.keys.toList.sorted
-////    val airlineGradeStockPrice = AirlineGradeStockPrice.grades.keys.toList.sorted
-////val output = Json.obj("airlineGradeTourists" -> airlineGradeTourists, "airlineGradeElites" -> airlineGradeElites, "airlineGradeLookup" -> airlineGradeLookup)
-//    val output = Json.obj("airlineGradeLookup" -> airlineGradeLookup)
-////
-//    Ok(output)
-//  }
+
+  def getScaleDetails() = Action {
+    var scaleProgressionResult = Json.arr()
+    (1 to 15).map { scale =>
+      var perScaleResult = Json.obj("scale" -> scale)
+      var maxFrequencyJson = Json.obj()
+      FlightCategory.values.foreach { group =>
+        maxFrequencyJson = maxFrequencyJson + (group.toString -> JsNumber(NegotiationUtil.getMaxFrequencyByGroup(scale, group)))
+      }
+
+      perScaleResult =  perScaleResult +
+        ("maxFrequency" -> maxFrequencyJson) +
+        ("baseStaffCapacity" -> JsNumber(AirlineBase.getOfficeStaffCapacity(scale, false))) +
+        ("headquartersStaffCapacity" -> JsNumber(AirlineBase.getOfficeStaffCapacity(scale, true)))
+
+      scaleProgressionResult = scaleProgressionResult.append(perScaleResult)
+    }
+
+    var result = Json.obj("scaleProgression" -> scaleProgressionResult)
+
+    Ok(result)
+  }
 
   def getAirportChampions(airportId : Int, airlineId : Option[Int]) = Action {
     var result = Json.obj()

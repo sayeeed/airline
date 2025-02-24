@@ -10,7 +10,6 @@ object AirplaneModelInitializer {
   def populateAirplaneModels() = {
     ModelSource.deleteAllModels()
   
-    //case class Model(name : String, capacity : Int, fuelBurn : Int, speed : Int, range : Int, price : Int) extends IdObject
     ModelSource.saveModels(Model.models)
   }
 }

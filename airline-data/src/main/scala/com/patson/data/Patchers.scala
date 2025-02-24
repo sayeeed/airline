@@ -16,19 +16,6 @@ object Patchers extends App {
   main()
 
 
-  //  ALTER TABLE `airline`.`link`
-  //ADD COLUMN `flight_type` INT(2) NULL AFTER `frequency`;
-
-  def patchFlightType() {
-    val updatingLinks = LinkSource.loadAllFlightLinks(LinkSource.FULL_LOAD).map { link =>
-      val flightType = Computation.getFlightType(link.from, link.to)
-      println(flightType.id)
-      link.copy(flightType = flightType)
-    }
-
-    LinkSource.updateLinks(updatingLinks)
-  }
-
   def airplaneModelPatcher() {
     val existingModelsByName = ModelSource.loadAllModels().map(model => (model.name, model)).toMap
 

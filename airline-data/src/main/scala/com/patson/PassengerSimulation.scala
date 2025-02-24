@@ -1,12 +1,9 @@
-
-
 package com.patson
 
 import java.util.{ArrayList, Collections}
 import java.util.concurrent.atomic.AtomicInteger
 import com.patson.data.{AirlineSource, AirportSource, AllianceSource, CountrySource, CycleSource, LinkSource}
 import com.patson.model.AirlineBaseSpecialization.BrandSpecialization
-import com.patson.model.FlightType.Value
 import com.patson.model._
 import FlightPreferenceType._
 
@@ -119,14 +116,12 @@ object PassengerSimulation {
 
     println(s"Simple Cost modifiers $airlineCostModifiers")
 
-    val specializationCostModifiers : Map[(Int, Int), SpecializationModifier] = AirportSource.loadAllAirportBaseSpecializations.filter{
-      case(airline, airport, specialization) =>
+    val specializationCostModifiers: Map[(Int, Int), SpecializationModifier] = AirportSource.loadAllAirportBaseSpecializations.filter {
+      case (airline, airport, specialization) =>
         activeAirlineIds.contains(airline.id) && specialization == BaseSpecializationType.BRANDING
     }.map {
-      case (airline, airport, brandingSpecialization) => ((airline.id, airport.id), SpecializationModifier(brandingSpecialization.asInstanceOf[BrandSpecialization].linkCostDeltaByClass))
+      case (airline, airport, brandingSpecialization) => ((airline.id, airport.id), SpecializationModifier(brandingSpecialization.asInstanceOf[BrandSpecialization].deltaByLinkClassAndPassengerType))
     }.toMap
-
-    //specializationCostModifiers : Map[(Int, Int), Double] = Map.empty, //(airlineId , airportId) -> modifier
 
     val externalCostModifier = ExternalCostModifier(airlineCostModifiers, specializationCostModifiers)
 
@@ -318,7 +313,7 @@ object PassengerSimulation {
       return Some(DISTANCE)
     }
 
-    val routeAffordableCost = Pricing.computeStandardPrice(routeDisplacement, Computation.getFlightType(fromAirport, toAirport, routeDisplacement), preferredLinkClass) * ROUTE_COST_TOLERANCE_FACTOR
+    val routeAffordableCost = Pricing.computeStandardPrice(routeDisplacement, Computation.getFlightCategory(fromAirport, toAirport), preferredLinkClass) * ROUTE_COST_TOLERANCE_FACTOR
     if (route.totalCost > routeAffordableCost) {
       //println(s"rejected affordable: $routeAffordableCost, cost : , ${route.totalCost}  $route" )
       return Some(TOTAL_COST)
@@ -338,93 +333,15 @@ object PassengerSimulation {
 
   }
 
-
-
-
-//  def findAllRoutes(requiredRoutes : Map[PassengerGroup, Set[Airport]], linksList : List[Link], activeAirportIds : Set[Int],  countryOpenness : Map[String, Int] = PassengerSimulation.countryOpenness) : Future[Map[PassengerGroup, Map[Airport, Route]]] = {
-//    val totalRequiredRoutes = requiredRoutes.foldLeft(0){ case (currentCount, (fromAirport, toAirports)) => currentCount + toAirports.size }
-//
-//    println("Total routes to compute : " + totalRequiredRoutes)
-//    println("Total passenger groups : " + requiredRoutes.size)
-//
-//    val links = linksList.toArray
-//
-//    val demandSource = Source(requiredRoutes.iterator)
-//    val computeFlow: Flow[(PassengerGroup, Set[Airport]), (PassengerGroup, Map[Airport, Route])] = Flow[(PassengerGroup, Set[Airport])].map {
-//      case(passengerGroup, toAirports) =>
-//        val linkClass = passengerGroup.preference.linkClass
-//        //remove links that's unknown to this airport then compute cost for each link. Cost is adjusted by the PassengerGroup's preference
-//        val linkConsiderations = ArrayBuffer[LinkConsideration]()
-//
-//        var walker = 0
-//        while (walker < links.length) {
-//          val link = links(walker)
-//          walker += 1
-//
-//          //see if there are any seats for that class (or lower) left
-//          link.availableSeatsAtOrBelowClass(linkClass).foreach {
-//            case(matchingLinkClass, seatsLeft) =>
-//              //from the perspective of the passenger group, how well does it know each link
-//              val airlineAwarenessFromCity = passengerGroup.fromAirport.getAirlineAwareness(link.airline.id)
-//              val airlineAwarenessFromReputation = link.airline.getReputation() / 2
-//              //println("Awareness from reputation " + airlineAwarenessFromReputation)
-//              val airlineAwareness = Math.max(airlineAwarenessFromCity, airlineAwarenessFromReputation)
-//
-//              if (airlineAwareness > Random.nextInt(AirlineAppeal.MAX_AWARENESS)) {
-//                var cost = passengerGroup.preference.computeCost(link) //cost should NOT be lower if seats available are lower than requested class, this reflect the unwillingness to downgrade
-//                //2 instance of the link, one for each direction. Take note that the underlying link is the same, hence capacity and other params is shared properly!
-//                val linkConsideration1 = LinkConsideration(link, cost, matchingLinkClass, false)
-//                val linkConsideration2 = LinkConsideration(link, cost, matchingLinkClass, true)
-//                if (hasFreedom(linkConsideration1, passengerGroup.fromAirport, countryOpenness)) {
-//                  linkConsiderations += linkConsideration1
-//                }
-//                if (hasFreedom(linkConsideration2, passengerGroup.fromAirport, countryOpenness)) {
-//                  linkConsiderations += linkConsideration2
-//                }
-//              }
-//          }
-//
-//        }
-//
-//        //then find the shortest route based on the cost
-//
-//        val routeMap = findShortestRoute(passengerGroup.fromAirport, toAirports, activeAirportIds, linkConsiderations, 4)
-//        //if (!routeMap.isEmpty) { println(routeMap) }
-//        (passengerGroup, routeMap)
-//    }
-//    //val resultSink = Sink.foreach { demandInfo : (Airport, Map[Airport, Int]) => println() }
-//    var counter = 0
-//    var progressCount = 0
-//    val progressChunk = requiredRoutes.size / 100
-//
-//    val resultSink = Sink.fold(Map[PassengerGroup, Map[Airport, Route]]()) {
-//      (map, demandInfo : (PassengerGroup, Map[Airport, Route])) =>
-//         counter += 1
-//          if (progressChunk == 0 || counter % progressChunk == 0) {
-//            progressCount += 1;
-//            print(".")
-//            if (progressCount % 10 == 0) {
-//              print(progressCount + "% ")
-//            }
-//          }
-//        map + demandInfo
-//    }
-//
-//    val completeFlow = demandSource.via(computeFlow).to(resultSink)
-//    val materializedFlow = completeFlow.run()
-//    materializedFlow.get(resultSink)
-//  }
-
-
-  case class SpecializationModifier(deltaByLinkClass : Map[LinkClass, Double]) {
-    val value = (preferredLinkClass : LinkClass) => {
-      1.0 + deltaByLinkClass.getOrElse(preferredLinkClass, 0.0)
+  case class SpecializationModifier(deltaByLinkClassAndPassengerType: Map[(LinkClass, PassengerType.Value), Double]) {
+    val value = (preferredLinkClass: LinkClass, paxType: PassengerType.Value) => {
+      1.0 + deltaByLinkClassAndPassengerType.getOrElse((preferredLinkClass, paxType), 0.0)
     }
   }
 
   case class ExternalCostModifier(airlineCostModifiers : Map[Int, Double] = Map.empty,
                                   specializationCostModifiers : Map[(Int, Int), SpecializationModifier] = Map.empty) extends CostModifier { //(airlineId , airportId) -> modifier)
-    override def value(link : Transport, linkClass : LinkClass) : Double = {
+    override def value(link : Transport, linkClass : LinkClass, paxType : PassengerType.Value) : Double = {
       var modifier = 1.0
       if (airlineCostModifiers.contains(link.airline.id)) {
         modifier *= airlineCostModifiers(link.airline.id)
@@ -432,11 +349,11 @@ object PassengerSimulation {
 
       val airlineFromAirportTuple = (link.airline.id, link.from.id)
       if (specializationCostModifiers.contains(airlineFromAirportTuple)) {
-        modifier *= specializationCostModifiers(airlineFromAirportTuple).value(linkClass)
+        modifier *= specializationCostModifiers(airlineFromAirportTuple).value(linkClass, paxType)
       }
       val airlineToAirportTuple = (link.airline.id, link.to.id)
       if (specializationCostModifiers.contains(airlineToAirportTuple)) {
-        modifier *= specializationCostModifiers(airlineToAirportTuple).value(linkClass)
+        modifier *= specializationCostModifiers(airlineToAirportTuple).value(linkClass, paxType)
       }
       modifier
     }
@@ -575,7 +492,7 @@ object PassengerSimulation {
         if (activeVertices.contains(linkConsideration.from.id)) { //optimization - only need to re-run if the vertex was update in last iteration
           val predecessorLinkConsideration = predecessorMap.get(linkConsideration.from.id)
 
-          var connectionCost = 10.0
+          var connectionCost = 15.0
           var isValid : Boolean = true
           val fromCost = distanceMap.get(linkConsideration.from.id)
           var flightTransit = false
@@ -590,18 +507,20 @@ object PassengerSimulation {
             } else if (predecessorLink.transportType == TransportType.GENERIC_TRANSIT && linkConsideration.link.transportType == TransportType.GENERIC_TRANSIT) {
               isValid = false //don't allow transit 2 transit connections
             } else if (predecessorLink.transportType == TransportType.GENERIC_TRANSIT && predecessorLink.from.id != passengerGroup.fromAirport.id) {
-              connectionCost += 25 //middle "leave the airport" transit connections more expensive
+              connectionCost += 55 //middle "leave the airport" transit connections more expensive
             } else if (predecessorLink.transportType == TransportType.GENERIC_TRANSIT || linkConsideration.link.transportType == TransportType.GENERIC_TRANSIT) {
               connectionCost = 0
             } else {
 
               //now look at the frequency of the link arriving at this FromAirport and the link (current link) leaving this FromAirport. check frequency
               val frequency = Math.max(predecessorLink.frequencyByClass(predecessorLinkConsideration.linkClass), linkConsideration.link.frequencyByClass(linkConsideration.linkClass))
-              //if the bigger of the 2 is less than 21, impose extra layover time (if either one is frequent enough, then consider that as ok)
+
               if (frequency < 7) {
-                connectionCost += (7 * 24 * 4.5) / frequency //possible overnight connection; $126 at 6 freq
+                connectionCost += 150 + (7 - frequency ) * 10 //possible overnight stay //$160 @ 6; $210 @ 1
+              } else if (frequency < 14) {
+                connectionCost += 40 + (14 - frequency) * 10 //$110 @ 7; $50 @ 13
               } else if (frequency < 28) {
-                connectionCost += (7 * 24 * 3) / frequency //$3.00 per hour wait; $36 @ 14 freq
+                connectionCost += 20
               }
 
               if (previousLinkAirlineId != currentLinkAirlineId && (allianceIdByAirlineId.get(previousLinkAirlineId) == null.asInstanceOf[Int] || allianceIdByAirlineId.get(previousLinkAirlineId) != allianceIdByAirlineId.get(currentLinkAirlineId))) { //switch airline, impose extra cost
@@ -609,8 +528,7 @@ object PassengerSimulation {
               }
               flightTransit = true
             }
-            connectionCost *= passengerGroup.preference.preferredLinkClass.priceMultiplier
-            connectionCost += passengerGroup.preference.preferredLinkClass.basePrice
+            connectionCost *= passengerGroup.preference.preferredLinkClass.spaceMultiplier
             connectionCost *= passengerGroup.preference.connectionCostRatio
 
             if (flightTransit) {

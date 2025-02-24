@@ -11,6 +11,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
 import AirportFeatureType._
+import com.patson.model.FlightCategory.FlightCategory
 import com.patson.model.airplane.Model.Type.HELICOPTER
 
 case class Airport(iata : String, icao : String, name : String, latitude : Double, longitude : Double, countryCode : String, city : String, zone : String, var size : Int, baseIncome : Int, basePopulation : Long, popMiddleIncome : Int = 0, popElite : Int = 0, var runwayLength : Int = Airport.MIN_RUNWAY_LENGTH, var id : Int = 0) extends IdObject {
@@ -408,28 +409,29 @@ case class Airport(iata : String, icao : String, name : String, latitude : Doubl
 
   def slotFee(airplaneModel : Model, airline : Airline) : Int = {
     val baseSlotFee = if (airplaneModel.airplaneType == HELICOPTER) {
-      32
+      4
     } else {
       size match {
-        case 1 => 4 //small airport
-        case 2 => 8
-        case 3 => 16
-        case 4 => 32
-        case 5 => 64
-        case 6 => 96
-        case 7 => 144
-        case _ => 216 //mega
+        case 1 => 2 //small airport
+        case 2 => 4
+        case 3 => 8
+        case 4 => 16
+        case 5 => 32
+        case 6 => 64
+        case 7 => 96
+        case _ => 128 //mega
       }
     }
 
     import Model.Type._
-    val multiplier = airplaneModel.airplaneType match {
-      case MEDIUM => 5
-      case MEDIUM_XL => 8
-      case LARGE => 12
-      case EXTRA_LARGE => 18
-      case JUMBO => 24
-      case JUMBO_XL => 24
+    val multiplier: Double = airplaneModel.airplaneType match {
+      case REGIONAL => 3
+      case MEDIUM => 4
+      case MEDIUM_XL => 5
+      case LARGE => 9
+      case EXTRA_LARGE => 12
+      case JUMBO => 18
+      case JUMBO_XL => 22
       case SUPERSONIC => 16
       case _ => 2
     }
@@ -445,23 +447,31 @@ case class Airport(iata : String, icao : String, name : String, latitude : Doubl
     (baseSlotFee * multiplier * discount).toInt
   }
 
-  def landingFee(airplaneModel : Model) : Int = {
+  def landingFee(soldSeats : Int) : Int = {
     val perSeat =
-      if (size <= 2) {
-        2
+      if (this.hasFeature(AirportFeatureType.ISOLATED_TOWN)) {
+        -12 //remote subsidy
       } else {
         size
       }
 
-    airplaneModel.capacity * perSeat
+    soldSeats * perSeat
   }
 
   def allowsModel(airplaneModel : Model) : Boolean = {
     runwayLength >= airplaneModel.runwayRequirement
   }
 
-  val expectedQuality = (flightType : FlightType.Value, linkClass : LinkClass) => {
-    Math.max(0, Math.min((baseIncome.toDouble / 70000 * 35).toInt, 35) + Airport.qualityExpectationFlightTypeAdjust(flightType)(linkClass)) //35% on income level, 45% on flight type, 20% for GOOD_QUALITY_DELTA
+  //class baseline = -5 to 35
+  //distance = up to 9, 18, 27
+  //airport income = up to 30
+  //GOOD_QUALITY_DELTA seeks up to another 20, but never more than 100
+  val expectedQuality = (distance: Int, linkClass: LinkClass) => {
+    val classBaseline = LinkClassValues.getInstance(15, 20, 35, -5)
+    val distanceMod = Math.min(9.0, distance / 1200.0) * LinkClassValues.getInstance(2, 3, 3, 1)(linkClass)
+    val incomeBaseline = Math.min((baseIncome.toDouble / 76000 * 30).toInt, 30)
+
+    Math.max(0, Math.min(99,classBaseline(linkClass) + incomeBaseline + distanceMod).toInt)
   }
 
   private[this] def getCountry() : Country = {
@@ -552,19 +562,6 @@ object Airport {
 
   val MAJOR_AIRPORT_LOWER_THRESHOLD = 5
   val MIN_RUNWAY_LENGTH = 750
-
-  import FlightType._
-  val qualityExpectationFlightTypeAdjust =
-  Map(
-    SHORT_HAUL_DOMESTIC -> LinkClassValues.getInstance(-10, 5, 15, -15),
-    MEDIUM_HAUL_DOMESTIC -> LinkClassValues.getInstance(-5, 10, 25, -15),
-    LONG_HAUL_DOMESTIC -> LinkClassValues.getInstance(0, 15, 30, -10),
-    ULTRA_LONG_HAUL_DOMESTIC -> LinkClassValues.getInstance(5, 25, 40, -5),
-    SHORT_HAUL_INTERNATIONAL ->  LinkClassValues.getInstance(0, 10, 20, -15),
-    MEDIUM_HAUL_INTERNATIONAL ->  LinkClassValues.getInstance(5, 20, 30, -15),
-    LONG_HAUL_INTERNATIONAL -> LinkClassValues.getInstance(10, 30, 40, -10),
-    ULTRA_LONG_HAUL_INTERCONTINENTAL -> LinkClassValues.getInstance(10, 35, 45, -5)
-  )
 }
 
 case class Runway(length : Int, code : String, runwayType : RunwayType.Value, lighted : Boolean)

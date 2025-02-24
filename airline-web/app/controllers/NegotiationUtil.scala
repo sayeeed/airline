@@ -3,7 +3,6 @@ package controllers
 import com.patson.data.{AirlineSource, AirportSource, AllianceSource, CountrySource, CycleSource, DelegateSource, LinkSource, NegotiationSource}
 import com.patson.model
 import com.patson.model.FlightCategory.DOMESTIC
-import com.patson.model.FlightType._
 import com.patson.model.Title.APPROVED_AIRLINE
 import com.patson.model.airplane.Model.Type.HELICOPTER
 import com.patson.model.{LinkNegotiationDelegateTask, _}
@@ -42,43 +41,26 @@ object NegotiationUtil {
     capacity(ECONOMY) * ECONOMY.spaceMultiplier + capacity(BUSINESS) * BUSINESS.spaceMultiplier + capacity(FIRST) * FIRST.spaceMultiplier
   }
 
-  object FlightTypeGroup extends Enumeration {
-    type FlightTypeGroup = Value
-    val GROUP_1, GROUP_2, GROUP_3 = Value
+  def getMaxFrequencyByFlightType(baseScale : Int, flightCategory: FlightCategory.Value) : Int = {
+    getMaxFrequencyByGroup(baseScale, flightCategory)
   }
 
-  val getFlightTypeGroup : model.FlightType.Value => FlightTypeGroup.Value = (flightType : FlightType.Value) => flightType match {
-    case SHORT_HAUL_DOMESTIC | MEDIUM_HAUL_DOMESTIC => FlightTypeGroup.GROUP_1
-    case LONG_HAUL_DOMESTIC | SHORT_HAUL_INTERNATIONAL  => FlightTypeGroup.GROUP_2
-    case MEDIUM_HAUL_INTERNATIONAL | LONG_HAUL_INTERNATIONAL | ULTRA_LONG_HAUL_DOMESTIC | ULTRA_LONG_HAUL_INTERCONTINENTAL => FlightTypeGroup.GROUP_3
-  }
-
-  def getMaxFrequencyByFlightType(baseScale : Int, flightType : FlightType.Value) : Int = {
-    getMaxFrequencyByGroup(baseScale, getFlightTypeGroup(flightType))
-  }
-
-  def getMaxFrequencyByGroup(baseScale : Int, flightTypeGroup : FlightTypeGroup.Value) : Int = {
-    var maxFrequency = flightTypeGroup match {
-      case FlightTypeGroup.GROUP_1 => 4 + (baseScale * 2.5).toInt
-      case FlightTypeGroup.GROUP_2 => 5 + (baseScale * 2).toInt
-      case FlightTypeGroup.GROUP_3 => 6 + (baseScale * 1.5).toInt
+  def getMaxFrequencyByGroup(baseScale : Int, flightCategory : FlightCategory.Value) : Int = {
+    var maxFrequency = flightCategory match {
+      case FlightCategory.DOMESTIC => 1 + (baseScale * 2.5).toInt
+      case FlightCategory.INTERNATIONAL => 2 + (baseScale * 1.5).toInt
     }
-    // NEGOTIATION_EXPERT bonus
-    if (baseScale >= 8) {
-      maxFrequency += (baseScale - 7) * 2
-    }
-    if (baseScale >= 11) { //accumulative with the >= 8 buff
-      maxFrequency += (baseScale - 10) * 2
+    if (baseScale >= 4) {
+      maxFrequency += ((baseScale - 3) * 1.75).toInt
     }
 
     maxFrequency
   }
 
-  def getRequirementMultiplier(flightType : FlightType.Value) = {
-    flightType match {
-      case SHORT_HAUL_DOMESTIC | MEDIUM_HAUL_DOMESTIC => 1
-      case LONG_HAUL_DOMESTIC | SHORT_HAUL_INTERNATIONAL | MEDIUM_HAUL_INTERNATIONAL => 1.5
-      case LONG_HAUL_INTERNATIONAL | ULTRA_LONG_HAUL_DOMESTIC | ULTRA_LONG_HAUL_INTERCONTINENTAL => 2
+  def getRequirementMultiplier(flightCategory : FlightCategory.Value) : Int = {
+    flightCategory match {
+      case FlightCategory.DOMESTIC => 1
+      case FlightCategory.INTERNATIONAL => 2
     }
   }
 
@@ -86,6 +68,7 @@ object NegotiationUtil {
     import NegotiationRequirementType._
     val requirements = ListBuffer[NegotiationRequirement]()
     val isNewLink = existingLinkOption.isEmpty
+    val flightCategory = Computation.getFlightCategory(newLink.from, newLink.to)
     val airport = newLink.from
     val baseOption = airline.getBases().find(_.airport.id == airport.id)
 
@@ -96,10 +79,10 @@ object NegotiationUtil {
     val newTotal = currentOfficeStaffUsed + newOfficeStaffRequired
 
     if (newTotal < officeStaffCount) {
-      requirements.append(NegotiationRequirement(STAFF_CAP, 0, s"Requires ${newOfficeStaffRequired} office staff, within your base capacity : ${newTotal} / ${officeStaffCount}"))
+      requirements.append(NegotiationRequirement(STAFF_CAP, 0, s"Requires ${newOfficeStaffRequired} staff, within your base capacity : ${newTotal} / ${officeStaffCount}"))
     } else {
       val requirement = (newTotal - officeStaffCount).toDouble / 10
-      requirements.append(NegotiationRequirement(STAFF_CAP, requirement, s"Requires ${newOfficeStaffRequired} office staff, over your base capacity : ${newTotal} / ${officeStaffCount}"))
+      requirements.append(NegotiationRequirement(STAFF_CAP, requirement, s"Requires ${newOfficeStaffRequired} staff, over your base capacity : ${newTotal} / ${officeStaffCount}"))
     }
 
     val mutualRelationship = CountrySource.getCountryMutualRelationship(newLink.from.countryCode, newLink.to.countryCode)
@@ -112,11 +95,11 @@ object NegotiationUtil {
     if (frequencyDelta > 0) {
       val helicopterBonus = if(newLink.getAssignedModel().getOrElse(Model.fromId(0)).airplaneType == HELICOPTER) 6 else 0
       val baseLevel = baseOption.map(_.scale).getOrElse(0)
-      val maxFrequency = getMaxFrequencyByFlightType(baseLevel, newLink.flightType) + helicopterBonus
-      val multiplier = getRequirementMultiplier(newLink.flightType)
+      val maxFrequency = getMaxFrequencyByFlightType(baseLevel, flightCategory) + helicopterBonus
+      val multiplier = getRequirementMultiplier(flightCategory)
 
       if (newFrequency > maxFrequency) {
-        requirements.append(NegotiationRequirement(EXCESSIVE_FREQUENCY, (newFrequency - maxFrequency) * multiplier, s"Excessive frequency $newFrequency is over your base level($baseLevel) frequency threshold $maxFrequency for ${FlightType.label(newLink.flightType)}"))
+        requirements.append(NegotiationRequirement(EXCESSIVE_FREQUENCY, (newFrequency - maxFrequency) * multiplier, s"Excessive frequency $newFrequency is over your base level($baseLevel) frequency threshold $maxFrequency for"))
       }
     }
 
@@ -152,7 +135,7 @@ object NegotiationUtil {
   def getToAirportRequirements(airline : Airline, newLink : Link, existingLinkOption : Option[Link], airlineLinks : List[Link]) = {
     val newModel : Model = newLink.getAssignedModel().getOrElse(Model.fromId(0))
     val newFrequency = newLink.futureFrequency()
-    val flightType = Computation.getFlightType(newLink.from, newLink.to)
+    val flightCategory = Computation.getFlightCategory(newLink.from, newLink.to)
 
     val existingModel = existingLinkOption match {
       case Some(link) => link.getAssignedModel() match {
@@ -167,39 +150,30 @@ object NegotiationUtil {
     val frequencyDelta = newFrequency - existingFrequency
     val requirements = ListBuffer[NegotiationRequirement]()
 
-    val flightTypeMultiplier = flightType match {
-      case SHORT_HAUL_DOMESTIC => 1
-      case MEDIUM_HAUL_DOMESTIC => 1
-      case LONG_HAUL_DOMESTIC => 1.5
-      case ULTRA_LONG_HAUL_DOMESTIC => 2
-      case SHORT_HAUL_INTERNATIONAL => 1.67
-      case MEDIUM_HAUL_INTERNATIONAL => 2
-      case LONG_HAUL_INTERNATIONAL => 2.5
-      case ULTRA_LONG_HAUL_INTERCONTINENTAL => 3
-    }
+    val multiplier = if (flightCategory == FlightCategory.INTERNATIONAL) 2 else 1 + Math.floor(newLink.distance / 700) / 10
     val NEW_LINK_BASE_REQUIREMENT = 1
     val UPDATE_BASE_REQUIREMENT = 0.3
 
     import NegotiationRequirementType._
 
     if (existingLinkOption.isEmpty) {
-      requirements.append(NegotiationRequirement(NEW_LINK, NEW_LINK_BASE_REQUIREMENT * flightTypeMultiplier, "New Flight Negotiation"))
+      requirements.append(NegotiationRequirement(NEW_LINK, NEW_LINK_BASE_REQUIREMENT * multiplier, "New Flight Negotiation"))
       val mutualRelationship = CountrySource.getCountryMutualRelationship(newLink.from.countryCode, newLink.to.countryCode)
       if (mutualRelationship < 0) {
         requirements.append(NegotiationRequirement(BAD_MUTUAL_RELATIONSHIP, mutualRelationship * -2, s"Bad relationship between ${newLink.from.countryCode} and ${newLink.to.countryCode}"))
       }
     } else {
-      requirements.append(NegotiationRequirement(UPDATE_LINK, UPDATE_BASE_REQUIREMENT * flightTypeMultiplier, "Update Flights"))
+      requirements.append(NegotiationRequirement(UPDATE_LINK, UPDATE_BASE_REQUIREMENT * multiplier, "Update Flights"))
     }
 
     if (existingLinkOption.nonEmpty && aircraftSizeDelta > 0 && newModel.airplaneTypeSize != existingModel.airplaneTypeSize) {
-      requirements.append(NegotiationRequirement(UPSIZE_GATE, aircraftSizeDelta * flightTypeMultiplier, s"Increase gate size to ${newModel.airplaneTypeLabel}"))
+      requirements.append(NegotiationRequirement(UPSIZE_GATE, aircraftSizeDelta * multiplier, s"Increase gate size to ${newModel.airplaneTypeLabel}"))
     }
 
     if (frequencyDelta > 0) {
       val capacityChangeCost = frequencyDelta.toDouble * newModel.airplaneTypeSize
       val slotText = if (frequencyDelta > 1) "gates" else "gate"
-      requirements.append(NegotiationRequirement(INCREASE_CAPACITY, capacityChangeCost * flightTypeMultiplier, s"${frequencyDelta} ${newModel.airplaneTypeLabel} $slotText"))
+      requirements.append(NegotiationRequirement(INCREASE_CAPACITY, capacityChangeCost * multiplier, s"${frequencyDelta} ${newModel.airplaneTypeLabel} $slotText"))
     }
 
     if (frequencyDelta > 0) {
@@ -212,7 +186,7 @@ object NegotiationUtil {
       requirements.append(NegotiationRequirement(LACK_COUNTRY_TITLE, 1.0, s"Extra regulatory scrutiny! (Does not apply if you have Established country title)"))
     }
 
-    if (FlightType.getCategory(flightType) == FlightCategory.INTERNATIONAL) {
+    if (flightCategory == FlightCategory.INTERNATIONAL) {
       val airport = newLink.to
       val country = CountryCache.getCountry(airport.countryCode).get
       airline.getCountryCode().foreach { homeCountryCode =>
@@ -253,18 +227,11 @@ object NegotiationUtil {
     requirements.toList
   }
   val getStaffRequired = (link : Link) => {
-    Computation.getFlightType(link.from, link.to) match {
-      case SHORT_HAUL_DOMESTIC => 2
-      case MEDIUM_HAUL_DOMESTIC => 2
-      case LONG_HAUL_DOMESTIC => 5
-      case ULTRA_LONG_HAUL_DOMESTIC => 10
-      case SHORT_HAUL_INTERNATIONAL => 5
-      case MEDIUM_HAUL_INTERNATIONAL => 10
-      case LONG_HAUL_INTERNATIONAL => 10
-      case ULTRA_LONG_HAUL_INTERCONTINENTAL => 15
+    Computation.getFlightCategory(link.from, link.to) match {
+      case FlightCategory.DOMESTIC => 3
+      case FlightCategory.INTERNATIONAL => 6
     }
   }
-
 
   def getNegotiationRequirements(newLink : Link, existingLinkOption : Option[Link], airline : Airline, airlineLinks : List[Link]) = {
     val fromAirportRequirements : List[NegotiationRequirement] = getFromAirportRequirements(airline, newLink, existingLinkOption, airlineLinks)
