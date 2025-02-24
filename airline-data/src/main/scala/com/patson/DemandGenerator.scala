@@ -189,7 +189,7 @@ object DemandGenerator {
       if (distance < 350 && !List("FO", "BS", "KY", "TC", "VC", "GD", "DM", "AG", "MS", "BQ", "BL", "MF", "SX", "AI", "VI", "VG", "VC", "VU", "WF", "MU", "MV", "CC", "CK", "CV", "ST", "NP").contains(fromAirport.countryCode)) {
         distance.toDouble / 350
       } else if (distance > 5000) {
-        1.0 - distance.toDouble / 36000 * (1 - affinity.toDouble / 15.0) //affinity affects perceived distance
+        1.0 - distance.toDouble / 38000 * (1 - affinity.toDouble / 15.0) //affinity affects perceived distance
       } else if (distance > 2000) { //bit less than medium-distance, with a 0.01 boost
         1.11 - distance.toDouble / 20000 * (1 - affinity.toDouble / 20.0) //affinity affects perceived distance
       } else 1

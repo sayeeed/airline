@@ -283,10 +283,10 @@ function updateMilestones(breakdowns) {
         if(breakdown.value >= 5){
             document.getElementById("m-aircraft1").src = "/assets/images/icons/tick.png"
         }
-        if(breakdown.value >= 10){
+        if(breakdown.value >= 15){
             document.getElementById("m-aircraft2").src = "/assets/images/icons/tick.png"
         }
-        if(breakdown.value >= 20){
+        if(breakdown.value >= 25){
             document.getElementById("m-aircraft3").src = "/assets/images/icons/tick.png"
         }
       } else if(breakdown.description === "Milestone Countries Served" && breakdown.value >= 0){

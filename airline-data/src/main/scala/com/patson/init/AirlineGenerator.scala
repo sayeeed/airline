@@ -13,11 +13,11 @@ import com.patson.Authentication
 
 import scala.util.Random
 import com.patson.DemandGenerator
+import com.patson.UserSimulation.configFactory
 import com.patson.data._
 import com.patson.data.airplane._
 
 import scala.collection.mutable.ArrayBuffer
-
 import java.awt.Color
 import java.util.concurrent.ThreadLocalRandom
 import scala.collection.mutable
@@ -62,8 +62,12 @@ object AirlineGenerator extends App {
       val baseAirport = topAirports(i)
       val user = User(userName = baseAirport.iata, email = "bot", Calendar.getInstance, Calendar.getInstance, UserStatus.ACTIVE, level = 0, None, List.empty)
       UserSource.saveUser(user)
-      Authentication.createUserSecret(baseAirport.iata, Random.nextInt(5000).toString)
-      
+      if (configFactory.hasPath("dev")) {
+        Authentication.createUserSecret(baseAirport.iata, "12345")
+      } else {
+        Authentication.createUserSecret(baseAirport.iata, Random.nextInt(5000).toString)
+      }
+
       val newAirline = Airline("Rats Global " + baseAirport.iata, isGenerated = true)
       newAirline.setBalance(1000000000)
       newAirline.setTargetServiceQuality(49)
