@@ -39,12 +39,14 @@ object GeoDataGenerator extends App {
       "AU"
 //    } else if (List("NU", "CK").contains(countryCode)) {
 //      "NZ"
-    } else if (List("PM", "WF", "GF", "GP", "MF", "MQ", "PM", "BL", "RE", "NC", "PF").contains(countryCode)) {
+    } else if (List("PM", "WF", "GF", "GP", "MF", "MQ", "BL", "RE", "NC", "PF").contains(countryCode)) {
       "FR"
     } else if (List("BQ").contains(countryCode)) {
       "NL"
     } else if (List("IM", "JE", "GI", "FK", "GG", "SH", "MS", "AI").contains(countryCode)) {
       "GB"
+    } else if (List("GL", "FO").contains(countryCode)) {
+      "DK"
     } else {
       countryCode
     }

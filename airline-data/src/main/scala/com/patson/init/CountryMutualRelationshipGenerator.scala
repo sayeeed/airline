@@ -35,9 +35,9 @@ object CountryMutualRelationshipGenerator extends App {
       "GB", "TC", "KY", "VG", "BM"
 //      "GB", "TC", "KY", "BM", "VG", "MS", "AI", "BM"
     )),
-    Affiliation("Denmark", 5, List(
-      "DK", "GL", "FO"
-    )),
+//    Affiliation("Denmark", 5, List(
+//      "DK", "GL", "FO"
+//    )),
     Affiliation("Netherlands", 5, List(
       "NL", "AW", "CW", "SX"
     )),
@@ -254,9 +254,9 @@ object CountryMutualRelationshipGenerator extends App {
     Relation("CH", Direction.BI, 4, List(
       "FR","DE","AT","IT","ES","NL","BE","DK","SE"
     )),
-    Relation("SH", Direction.BI, 3, List(
-      "FK", "NA"
-    )),
+//    Relation("SH", Direction.BI, 3, List(
+//      "FK", "NA"
+//    )),
     Relation("GB", Direction.BI, 4, List(
       "AU", "NZ"
     )),
@@ -326,12 +326,12 @@ object CountryMutualRelationshipGenerator extends App {
     Relation("US", Direction.BI, 1, List(
       "SA", "EG"
     )),
-    Relation("GP", Direction.BI, 4, List(
-      "CA", "US", "PR"
-    )),
-    Relation("MQ", Direction.BI, 4, List(
-      "CA", "US", "PR"
-    )),
+//    Relation("GP", Direction.BI, 4, List(
+//      "CA", "US", "PR"
+//    )),
+//    Relation("MQ", Direction.BI, 4, List(
+//      "CA", "US", "PR"
+//    )),
     Relation("CO", Direction.BI, 3, List(
       "US", "PE", "EC", "PA", "CL"
     )),
@@ -409,7 +409,7 @@ object CountryMutualRelationshipGenerator extends App {
       "AZ"
     )),
     Relation("VE", Direction.TO, -1, List(
-      "US", "CO", "GF", "GY", "SR", "AR"
+      "US", "CO", "GY", "SR", "AR"
     ))
   )
 
