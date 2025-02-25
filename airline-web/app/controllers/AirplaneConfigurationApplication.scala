@@ -60,11 +60,13 @@ class AirplaneConfigurationApplication @Inject()(cc: ControllerComponents) exten
         case Some(model) =>
           if (economy * ECONOMY.spaceMultiplier + business * BUSINESS.spaceMultiplier + first * FIRST.spaceMultiplier > model.capacity) {
             BadRequest("configuration is not within capacity limit!")
+          } else if (economy <= AirplaneConfiguration.MIN_SEATS_PER_CLASS || business <= AirplaneConfiguration.MIN_SEATS_PER_CLASS || first == AirplaneConfiguration.MIN_SEATS_PER_CLASS) {
+            BadRequest(s"must have at least ${AirplaneConfiguration.MIN_SEATS_PER_CLASS} seats per class!")
           } else {
             val existingConfigurations: Map[Int, AirplaneConfiguration] = AirplaneSource.loadAirplaneConfigurationsByCriteria(List(("airline", airlineId), ("model", modelId))).map(config => (config.id, config)).toMap
             if (configurationId == 0) { // new config, check if there's still space
               if (existingConfigurations.size >= AirplaneConfiguration.MAX_CONFIGURATION_TEMPLATE_COUNT) {
-                 BadRequest("configuration count exceeds limit!")
+                 BadRequest("too many configurations saved!")
               } else {
                 val newConfig = AirplaneConfiguration(economy, business, first, request.user, model, isDefault)
                 AirplaneSource.saveAirplaneConfigurations(List(newConfig))
