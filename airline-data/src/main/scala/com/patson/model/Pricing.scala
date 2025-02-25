@@ -9,8 +9,8 @@ object Pricing {
   val modifierBrackets: Map[LinkClass, List[(Int, Double)]] = Map(
     DISCOUNT_ECONOMY  -> List((400, 0.06), (1000, 0.08), (6000, 0.065), (Int.MaxValue, 0.075)),
     ECONOMY           -> List((400, 0.11), (1000, 0.084), (6000, 0.075), (Int.MaxValue, 0.08)),
-    BUSINESS          -> List((400, 0.28), (1000, 0.22), (6000, 0.162), (Int.MaxValue, 0.22)),
-    FIRST             -> List((400, 0.92), (1000, 0.28), (6000, 0.26), (Int.MaxValue, 0.498))
+    BUSINESS          -> List((400, 0.28), (1000, 0.22), (6000, 0.162), (Int.MaxValue, 0.225)),
+    FIRST             -> List((400, 0.91), (1000, 0.27), (6000, 0.26), (Int.MaxValue, 0.5))
   )
   val INTERNATIONAL_PRICE_MULTIPLIER = 1.05
 
@@ -35,7 +35,7 @@ object Pricing {
       price
     }
     
-    (price * 1.12).toInt //increase the standard price by 12%
+    (price * 1.1).toInt //increase the standard price by 10%
   }
   
   def computeStandardPriceForAllClass(distance: Int, flightCategory: FlightCategory.Value) : LinkClassValues = {

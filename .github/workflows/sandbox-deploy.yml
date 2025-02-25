@@ -36,8 +36,8 @@ jobs:
           port: 22
           source: "."
           strip_components: 0
-          target: "/var/www/myfly.club/airline/"
-      - name: Build java, restart server
+          target: "/var/www/sandbox.myfly.club/"
+      - name: Build java
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.sandbox_host }}
@@ -46,6 +46,6 @@ jobs:
           port: 22
           script_stop: true
           script: |
-            cd /var/www/myfly.club/airline/airline-data/
+            cd /var/www/sandbox.myfly.club/airline-data/
             sbt clean publishLocal
       

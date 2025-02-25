@@ -132,7 +132,7 @@ function updateAirplaneModelTable(sortProperty, sortOrder) {
 	
 	$.each(modelsFiltered, function(index, modelOwnerInfo) {
 		var row = $("<div class='table-row clickable' data-model-id='" + modelOwnerInfo.id + "' onclick='selectAirplaneModel(loadedModelsById[" + modelOwnerInfo.id + "])'></div>")
-		var stars = $("<div class='cell' align='right'>").append(getGradeStarsImgs(modelOwnerInfo.quality * 2)).append("</div>")
+		var stars = $("<div class='cell' align='right'>").append(getGradeStarsImgs(modelOwnerInfo.quality)).append("</div>")
 		var capacity = modelOwnerInfo.capacity
         modelOwnerInfo.costPerPax = calcCostPerPax(modelOwnerInfo, rangeRequirement)
         modelOwnerInfo.trips = calcFreq(modelOwnerInfo, rangeRequirement)
