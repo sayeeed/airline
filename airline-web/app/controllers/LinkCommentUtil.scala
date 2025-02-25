@@ -12,11 +12,11 @@ import scala.util.Random
 object LinkCommentUtil {
   val SIMULATE_AIRPORT_COUNT = 5
 
-  def simulateComments(consumptionEntries : List[LinkConsumptionHistory], airline : Airline, link : Link) : Map[(LinkClass, FlightPreferenceType.Value), LinkCommentSummary] = {
+  def simulateComments(consumptionEntries : List[LinkConsumptionHistory], airline : Airline, link : Link) : Map[(LinkClass, FlightPreferenceType.Value, PassengerType.Value), LinkCommentSummary] = {
     val random = new Random(airline.id + link.id) //need a steady generator
 
     val topConsumptionEntriesByHomeAirport : List[(Int, List[LinkConsumptionHistory])] = consumptionEntries.groupBy(_.homeAirport.id).toList.sortBy(_._2.map(_.passengerCount).sum).takeRight(SIMULATE_AIRPORT_COUNT)
-    val result = mutable.Map[(LinkClass, FlightPreferenceType.Value), ListBuffer[LinkComment]]()
+    val result = mutable.Map[(LinkClass, FlightPreferenceType.Value, PassengerType.Value), ListBuffer[LinkComment]]()
     topConsumptionEntriesByHomeAirport.foreach {
       case (airportId, consumptions) => AirportCache.getAirport(airportId, true).foreach { homeAirport =>
         val pool: immutable.Map[(LinkClass, FlightPreferenceType.Value), List[FlightPreference]] = DemandGenerator.getFlightPreferencePoolOnAirport(homeAirport).pool.toList.flatMap {
@@ -29,15 +29,14 @@ object LinkCommentUtil {
         }.toMap
         consumptions.foreach { consumption =>
           pool.get((consumption.preferredLinkClass, consumption.preferenceType)).foreach { preferences =>
-            result.getOrElseUpdate((consumption.linkClass, consumption.preferenceType), ListBuffer()).appendAll(generateCommentsPerConsumption(preferences, consumption, homeAirport, airline, link, random))
-            //println(s"Picked $pickedPreference for $consumption")
+            result.getOrElseUpdate((consumption.preferredLinkClass, consumption.preferenceType, consumption.passengerType), ListBuffer()).appendAll(generateCommentsPerConsumption(preferences, consumption, homeAirport, airline, link, random))
           }
         }
 
       }
     }
 
-    val sampleSizeGrouping : MapView[(LinkClass, FlightPreferenceType.Value), Int] = topConsumptionEntriesByHomeAirport.flatMap(_._2).groupBy(entry => (entry.linkClass, entry.preferenceType)).view.mapValues(_.map(_.passengerCount).sum)
+    val sampleSizeGrouping : MapView[(LinkClass, FlightPreferenceType.Value, PassengerType.Value), Int] = topConsumptionEntriesByHomeAirport.flatMap(_._2).groupBy(entry => (entry.preferredLinkClass, entry.preferenceType, entry.passengerType)).view.mapValues(_.map(_.passengerCount).sum)
     result.map {
       case(key, comments) =>
         val sampleSize = sampleSizeGrouping(key)
@@ -56,7 +55,7 @@ object LinkCommentUtil {
       weightMarkerWalker = weightMarkerWalker + weight.weight
       (weight, weightMarkerWalker)
     }
-    def drawCommentWeight(random : Random) = {
+    def drawCommentWeight(random : Random): Option[CommentWeight] = {
       if (totalWeights == 0) { //possible if all preference are close to neutral
         None
       } else {
@@ -71,7 +70,6 @@ object LinkCommentUtil {
     //pricing
     val linkClass = consumption.linkClass
     val paxType = consumption.passengerType
-    val flightType = link.flightType
     val preferredLinkClass = consumption.preferredLinkClass
     val sampleSize = Math.min(MAX_SAMPLE_SIZE_PER_CONSUMPTION, consumption.passengerCount)
     val allComments = ListBuffer[LinkComment]()
@@ -80,11 +78,12 @@ object LinkCommentUtil {
     import LinkCommentGroup._
     val poolByPreference : Map[FlightPreference, CommentWeightedPool] = preferences.map { preference =>
       val adjustRatioByGroup : Map[controllers.LinkCommentGroup.Value, Double] = Map(
-         PRICE -> preference.priceAdjustRatio(link, linkClass),
-         LOYALTY -> preference.loyaltyAdjustRatio(link),
-         QUALITY -> preference.qualityAdjustRatio(homeAirport, link, preferredLinkClass, paxType),
-         DURATION -> preference.tripDurationAdjustRatio(link, preferredLinkClass, paxType),
-         LOUNGE -> preference.loungeAdjustRatio(link, preference.loungeLevelRequired, linkClass)
+        PRICE -> preference.priceAdjustRatio(link, linkClass),
+        LOYALTY -> preference.loyaltyAdjustRatio(link),
+        QUALITY -> preference.qualityAdjustRatio(homeAirport, link, preferredLinkClass, paxType),
+        DURATION -> preference.tripDurationAdjustRatio(link, preferredLinkClass, paxType),
+        FREQUENCY -> preference.frequencyAdjustRatio(link, preferredLinkClass, paxType),
+        LOUNGE -> preference.loungeAdjustRatio(link, preference.loungeLevelRequired, linkClass)
       )
 
       val pool = CommentWeightedPool(adjustRatioByGroup.map {
@@ -106,9 +105,9 @@ object LinkCommentUtil {
           val comments = weight.commentGroup match {
             case PRICE => generateCommentsForPrice(weight.adjustRatio)
             case LOYALTY => generateCommentsForLoyalty(weight.adjustRatio)
-            case QUALITY => generateCommentsForQuality(link.computedQuality, link.rawQuality, airline.getCurrentServiceQuality(), link.getAssignedAirplanes().keys.toList, homeAirport.expectedQuality(flightType, linkClass), flightType, paxType)
+            case QUALITY => generateCommentsForQuality(link.computedQuality, link.rawQuality, airline.getCurrentServiceQuality(), link.getAssignedAirplanes().keys.toList, homeAirport.expectedQuality(link.distance, linkClass), paxType, link.distance)
             case DURATION => generateCommentsForFlightDuration(link.duration, standardDuration)
-            case DURATION =>generateCommentsForFlightFrequency(link.duration, link.frequency, preference.frequencyThreshold)
+            case FREQUENCY =>generateCommentsForFlightFrequency(link.duration, link.frequency, preference.frequencyThreshold)
             case LOUNGE => generateCommentsForLounge(preference.loungeLevelRequired, link.from, link.to, airline.id, airline.getAllianceId())
             case _ => List.empty
 
@@ -124,23 +123,6 @@ object LinkCommentUtil {
 
     }
     allComments
-
-
-
-//      allComments.appendAll(generateCommentsForPrice(priceDeltaRatio, sampleSize, preference.priceSensitivity))
-//      allComments.appendAll(generateCommentsForLoyalty(homeAirport.getAirlineLoyalty(airline.id), sampleSize, preference.loyaltySensitivity))
-//      val expectedQuality = homeAirport.expectedQuality(link.flightType, linkClass)
-//      allComments.appendAll(generateCommentsForRawQuality(link.rawQuality, airline.getCurrentServiceQuality(), expectedQuality, flightType, sampleSize, preference.qualitySensitivity))
-//      allComments.appendAll(generateCommentsForServiceQuality(airline.getCurrentServiceQuality(), expectedQuality, flightType, sampleSize, preference.qualitySensitivity))
-//      allComments.appendAll(generateCommentsForAirplaneCondition(link.getAssignedAirplanes().keys.toList, sampleSize))
-//      val expectedFrequency = 7 * 24 * 60 / preference.waitDurationThreshold
-//      allComments.appendAll(generateCommentsForFrequency(link.frequency, expectedFrequency, sampleSize, preference.waitDurationSensitivity))
-//      allComments.appendAll(generateCommentsForFlightDuration(link.duration, Computation.computeStandardFlightDuration(link.distance), sampleSize, preference.speedSensitivity))
-
-//      val commentCount = allComments.groupBy(comment => comment).view.mapValues(_.length).toMap
-      //println(s"${consumption.passengerCount} of [[Preference $preference ]]has comments $commentCount")
-//    }
-
   }
 
   def generateCommentsForPrice(ratio : Double)(implicit random : Random) = {
@@ -153,27 +135,25 @@ object LinkCommentUtil {
     List(LinkComment.loyaltyComment(ratio, expectedRatio)).flatten
   }
 
-  def generateCommentsForQuality(computedQuality: Int, rawQuality : Int, serviceQuality : Double, airplanes : List[Airplane], expectedQuality : Int, flightType : FlightType.Value, paxType: PassengerType.Value)(implicit random : Random) = {
+  def generateCommentsForQuality(computedQuality: Int, rawQuality : Int, serviceQuality : Double, airplanes : List[Airplane], expectedQuality : Int, paxType: PassengerType.Value, distance : Int)(implicit random : Random) = {
+    val qualityDelta = computedQuality - expectedQuality
     List(
-      generateCommentForRawQuality(rawQuality, computedQuality, expectedQuality, flightType),
-      generateCommentForServiceQuality(serviceQuality, expectedQuality, flightType),
-      generateCommentForAirplaneCondition(airplanes)).flatten
+      generateCommentForRawQuality(rawQuality, qualityDelta, distance), //per route
+      generateCommentForQuality(qualityDelta, computedQuality, distance),
+      generateCommentForAirplaneCondition(airplanes, qualityDelta)).flatten
   }
 
-  def generateCommentForRawQuality(rawQuality : Int, computedQuality : Int, expectedQuality : Int, flightType : FlightType.Value)(implicit random : Random) = {
-//    val adjustedExpectation = expectedQuality + com.patson.Util.getBellRandom(0, 60, Some(random.nextInt()))
-    List(LinkComment.rawQualityComment(rawQuality, computedQuality, expectedQuality, flightType)).flatten
+  def generateCommentForRawQuality(rawQuality : Int, qualityDelta : Int, distance : Int)(implicit random : Random) : List[LinkComment] = {
+    List(LinkComment.rawQualityComment(rawQuality, qualityDelta, distance)).flatten
   }
 
-  def generateCommentForServiceQuality(serviceQuality : Double, expectedQuality : Double, flightType : FlightType.Value)(implicit random : Random) = {
-//    val adjustedExpectation = expectedQuality + com.patson.Util.getBellRandom(0, 60, Some(random.nextInt()))
-    List(LinkComment.serviceQualityComment(serviceQuality, expectedQuality, flightType)).flatten
+  def generateCommentForQuality(qualityDelta : Int, computedQuality : Int, distance : Int)(implicit random : Random) : List[LinkComment] = {
+    List(LinkComment.qualityComment(qualityDelta, computedQuality, distance)).flatten
   }
 
-  def generateCommentForAirplaneCondition(airplanes : List[Airplane])(implicit random : Random) = {
-    val expectation = com.patson.Util.getBellRandom(50, 60, Some(random.nextInt()))
+  def generateCommentForAirplaneCondition(airplanes : List[Airplane], qualityDelta : Int)(implicit random : Random) = {
     val pickedAirplane = airplanes(Random.nextInt(airplanes.length))
-    List(LinkComment.airplaneConditionComment(pickedAirplane.condition, expectation)).flatten
+    List(LinkComment.airplaneConditionComment(pickedAirplane.condition, pickedAirplane.model.quality, qualityDelta)).flatten
   }
 
 //  def generateCommentsForFrequency(frequency: Int, expectedFrequency : Int, passengerCount : Int, frequencySensitivity: Double)(implicit random : Random) = {
@@ -256,67 +236,71 @@ object LinkComment {
     }
   }
 
-  val rawQualityComment = (rawQuality : Int, computedQuality: Int, expectedQuality : Double, flightType : FlightType.Value) => { //top comment requires good research ie serviceQuality
-    val qualityDelta = rawQuality - expectedQuality
+  val rawQualityComment = (rawQuality: Int, qualityDelta: Int, distance: Int) => {
     val random = Random.nextInt(3)
-    import FlightType._
-    val comment = flightType match {
-      case SHORT_HAUL_DOMESTIC | SHORT_HAUL_INTERNATIONAL =>
-        if (rawQuality <= 20 && qualityDelta < -10) {
+    val comment = rawQuality match {
+      case x if x <= 20 =>
+        if (qualityDelta < -10) {
           if (random == 0) {
-            Some("Not even a cup of water was provided!")
+            Some("They had ads in the toilet!")
           } else if (random == 1) {
-            Some("This service is beyond thrifty!")
+            Some("Fees fees and more fees!")
           } else {
-            Some("Absolutely zero service!")
+            Some("They charged me to bring my purse!")
           }
-        } else if (rawQuality >= 40 && qualityDelta > 10) {
+        } else if (qualityDelta > 10) {
           if (random == 0) {
-            Some("I was pleasantly surprised with the snack given the short flight duration!")
+            Some("Fees on everything but great service otherwise!")
           } else if (random == 1) {
-            Some("This drink is a nice touch even for such a short flight!")
+            Some("Bought a snack box and it was great!")
           } else {
-            Some("I am liking this welcome cookie!")
+            Some("Great service ")
+          }
+        } else {
+          None
+        }
+      case x if x <= 40 =>
+        Some("Great onboard service but everything else was terrible!")
+      case x if x <= 60 =>
+        Some("Great onboard service but everything else was terrible!")
+      case x if x <= 80 =>
+        if (qualityDelta < -10) {
+          if (random == 0) {
+            Some("Great onboard service but everything else was terrible!")
+          } else {
+            Some("Needed those unlimited drinks with how terrible everything else was!")
+          }
+        } else if (qualityDelta > 15) {
+          if (random == 0) {
+            Some("Loved the unlimited caviar")
+          } else if (random == 1) {
+            Some("Wonderful entertainment options!")
+          } else {
+            Some("I slept so well!")
+          }
+        } else {
+          None
+        }
+      case x if x <= 100 =>
+        if (qualityDelta < -10) {
+          if (random == 0) {
+            Some("Great onboard service but everything else was terrible!")
+          } else {
+            Some("Needed those unlimited drinks with how terrible everything else was!")
+          }
+        } else if (qualityDelta > 15) {
+          if (random == 0) {
+            Some("Loved the unlimited caviar")
+          } else if (random == 1) {
+            Some("Wonderful entertainment options!")
+          } else {
+            Some("I slept so well!")
           }
         } else {
           None
         }
       case _ =>
-        if (rawQuality <= 40 && qualityDelta < -10) {
-          if (random == 0) {
-            Some("Either I missed the food service or there was none provided at all!")
-          } else if (random == 1) {
-            Some("This service is beyond thrifty!")
-          } else {
-            Some("Absolutely zero service!")
-          }
-        } else if (rawQuality <= 60 && qualityDelta < 0) {
-          if (random == 0) {
-            Some("The food was terrible!")
-          } else if (random == 1) {
-            Some("The drink selection was bad!")
-          } else {
-            Some("This snack cracker tastes cheap!")
-          }
-        } else if (rawQuality == 100 && computedQuality >= 60 && qualityDelta > 20) {
-          if (random == 0) {
-            Some("Wow! I was served a full course meal and the dessert was delicious!")
-          } else if (random == 1) {
-            Some("The signature special drink was so good!")
-          } else {
-            Some("Michelin star quality meal!")
-          }
-        } else if (rawQuality >= 60 && qualityDelta > 10) {
-          if (random == 0) {
-            Some("The in-flight meal served was quite tasty!")
-          } else if (random == 1) {
-            Some("There is a good selection of meal options!")
-          } else {
-            Some("This wine is quite decent.")
-          }
-        } else {
-          None
-        }
+        None
     }
     comment.map { comment =>
       LinkComment(comment, LinkCommentType.RAW_QUALITY, qualityDelta > 0)
@@ -324,67 +308,180 @@ object LinkComment {
   }
 
 
-  val serviceQualityComment = (serviceQuality : Double, expectedQuality : Double, flightType : FlightType.Value) => {
-    val qualityDelta = serviceQuality - expectedQuality
+
+  val qualityComment = (qualityDelta : Double, computedQuality : Int, distance : Int) => {
     val random = Random.nextInt(3)
-    import FlightType._
-    val comment = flightType match {
-      case SHORT_HAUL_DOMESTIC | SHORT_HAUL_INTERNATIONAL =>
-        if (serviceQuality <= 20 && qualityDelta < 0) {
-          if (random == 0) {
-            Some("The flight attendants were unprofessional!")
-          } else if (random == 1) {
-            Some("This seat is so uncomfortable!")
+    val comment = computedQuality match {
+      case x if x < 22 =>
+        if (qualityDelta < -25) {
+          if (distance < 800) {
+            Some("Short flight but a very long list of horrible experiences. Horrible!")
+          } else if (random == 0) {
+            Some("Probably the worst flight I have ever taken.")
           } else {
-            Some("There is no IFE at all!")
+            Some("Never again. Striking incompetence at every turn.")
           }
-        } else if (serviceQuality >= 40 && qualityDelta > 10) {
-          if (random == 0) {
-            Some("The flight attendants are helpful!")
+        } else if (qualityDelta < -10) {
+          if (distance < 800) {
+            Some("You wouldn't think things could go so wrong on such a short flight!")
+          } else if (random == 0) {
+            Some("I have low expectations, and I have to say this was still just terrible.")
           } else if (random == 1) {
-            Some("This seat is pretty comfy for a short flight like this!")
+            Some("The toilet was overflowing!")
           } else {
-            Some("The entertainment options are decent!")
+            Some("They lost my luggage.")
+          }
+        } else if (qualityDelta > 15) {
+          Some("I'm happy with the basics!")
+        } else {
+          Some("No service and that's fine.")
+        }
+      case x if x < 44 =>
+        if (qualityDelta < -25) {
+          if (random == 0) {
+            Some("Maybe I have high expectations, but I have to say it was horrible!")
+          } else {
+            Some("I expect very good service and this wasn't it that's for sure!")
+          }
+        } else if (qualityDelta < -10) {
+          if (random == 0) {
+            Some("You call this food?! Wouldn't serve it to my rats!")
+          } else if (random == 1) {
+            Some("Broken WiFi and wouldn't give me refund.")
+          } else {
+            Some("You call this legroom?!")
+          }
+        } else if (qualityDelta > 15) {
+          if (distance < 800) {
+            if (random == 0) {
+              Some("Short and sweet flight!")
+            } else if (random == 1) {
+              Some("Even on the short flight the professionalism shone through!")
+            } else {
+              None
+            }
+          } else if (distance > 6000) {
+            if (random == 0) {
+              Some("Long flight but it felt short!")
+            } else if (random == 1) {
+              Some("Great experience!")
+            } else {
+              None
+            }
+          } else {
+            if (random == 0) {
+              Some("Wow everyone was so nice!")
+            } else if (random == 1) {
+              Some("Felt like they went the extra mile!")
+            } else {
+              None
+            }
           }
         } else {
-          None
+          if (random == 0) {
+            Some("Met expectations.")
+          } else {
+            None
+          }
         }
-      case _ =>
-        if (serviceQuality <= 40 && qualityDelta < -10) {
+      case x if x > 70 =>
+        if (qualityDelta < -25) {
           if (random == 0) {
-            Some("The flight attendants were unprofessional!")
-          } else if (random == 1) {
-            Some("This seat is so uncomfortable!")
+            Some("Yuck yuck yuck! An insult to premium travel! Thanks for ruining my trip!")
           } else {
-            Some("The entertainment options are poor!")
+            Some("I'm going to personally sue the pilot, the flight attendant, their managers, that whole *$%&@ airline – when I say champagne I mean champagne not $%&@$&$ sparking wine!!!!")
           }
-        } else if (serviceQuality <= 40 && qualityDelta < 0) {
+        } else if (qualityDelta < -10) {
           if (random == 0) {
-            Some("The flight attendants were not very helpful.")
-          } else if (random == 1) {
-            Some("This seat is so-so, I would rather have a better seat for long flight like this.")
+            Some("I was expecting something better.")
           } else {
-            Some("The entertainment options are uninspiring!")
+            Some("The meal service was underwhelming.")
           }
-        } else if (serviceQuality >= 70 && qualityDelta > 20) {
+        } else if (qualityDelta > 30) {
           if (random == 0) {
-            Some("Service was impeccable from start to finish!")
+            Some("I've never experienced such good service!")
           } else if (random == 1) {
-            Some("This seat is superb! I don't even mind the long flight!")
+            Some("They made me feel like a king!")
           } else {
-            Some("State-of-the-art IFE!")
+            Some("More luxury than I know what do with!")
           }
-        } else if (serviceQuality >= 50 && qualityDelta > 10) {
-          if (random == 0) {
-            Some("The flight attendants are polite and cheerful!")
-          } else if (random == 1) {
-            Some("I found the seat pretty comfy!")
+        } else if (qualityDelta > 15) {
+          if (distance < 800) {
+            if (random == 0) {
+              Some("Great attention to detail!")
+            } else if (random == 1) {
+              Some("Even on the short flight the professionalism shone through!")
+            } else {
+              Some("Felt premium!")
+            }
+          } else if (distance > 6000) {
+            if (random == 0) {
+              Some("Because it was a long flight, they had pet rats for everyone to cuddle with!")
+            } else if (random == 1) {
+              Some("They helped me make my connecting flight – was a big help after the long flight!")
+            } else {
+              Some("High quality service!")
+            }
           } else {
-            Some("The entertainment options are decent!")
+            if (random == 0) {
+              Some("High quality service!")
+            } else if (random == 1) {
+              Some("Felt like they went the extra mile!")
+            } else {
+              Some("Great attention to detail!")
+            }
           }
         } else {
-          None
+          if (random == 0) {
+            Some("It was good service, just meeting my high expectations.")
+          } else {
+            None
+          }
         }
+      case _ => // 44 - 70
+        if (qualityDelta < -15) {
+          if (random == 0) {
+            Some("Ooof that was an uncomfortable flight!")
+          } else if (random == 1) {
+            Some("Broken WiFi and wouldn't give me refund.")
+          } else {
+            Some("You call this legroom?!")
+          }
+        } else if (qualityDelta > 15) {
+          if (distance < 800) {
+            if (random == 0) {
+              Some("They had snacks even on the short flight!")
+            } else if (random == 1) {
+              Some("Even on the short flight the professionalism shone through!")
+            } else {
+              None
+            }
+          } else if (distance > 6000) {
+            if (random == 0) {
+              Some("Long flight but felt short!")
+            } else if (random == 1) {
+              Some("Great experience!")
+            } else {
+              None
+            }
+          } else {
+            if (random == 0) {
+              Some("Wow everyone was so nice!")
+            } else if (random == 1) {
+              Some("Felt like they went the extra mile!")
+            } else {
+              None
+            }
+          }
+        } else {
+          if (random == 0) {
+            Some("Met expectations.")
+          } else {
+            None
+          }
+        }
+
+
     }
     comment.map { comment =>
       LinkComment(comment, LinkCommentType.SERVICE_QUALITY, qualityDelta > 0)
@@ -392,33 +489,39 @@ object LinkComment {
 
   }
 
-  val airplaneConditionComment = (airplaneCondition : Double, conditionExpectation : Double) => {
-    val delta = airplaneCondition - conditionExpectation
+  val airplaneConditionComment = (airplaneCondition : Double, planeQuality : Double, qualityDelta : Int) => {
+    val planeDelta = airplaneCondition / 100 + planeQuality / 5
     val comment =
-      if (airplaneCondition >= 80 && delta > 20) {
-        Some("I like this fresh smell of new airplane!")
-      } else if (airplaneCondition < 20 && delta < -20) {
-        Some("Looks like this airplane is going to fall apart at any time!")
-      } else if (airplaneCondition < 40 && delta < -10) {
+      if (airplaneCondition >= 85 && qualityDelta > 10) {
+        Some("Love that fresh new airplane smell!")
+      } else if (airplaneCondition < 20 && qualityDelta < -20) {
+        Some("A bulhead collapsed while we were flying! Worst travel experience of my life!")
+      } else if (airplaneCondition < 40 && qualityDelta < -10) {
         Some("Is it safe to fly with this old airplane?")
-      } else if (airplaneCondition < 60 && delta < 0) {
+      } else if (airplaneCondition < 60 && qualityDelta < 0) {
         Some("This airplane has shown signs of age.")
       } else {
         None
       }
 
     comment.map { comment =>
-      LinkComment(comment, LinkCommentType.AIRPLANE_CONDITION, delta > 0)
+      LinkComment(comment, LinkCommentType.AIRPLANE_CONDITION, planeDelta > 1)
     }
   }
 
   val frequencyComment = (frequency : Double, expectedFrequency : Double, duration : Int) => {
     val delta = frequency - expectedFrequency
     val comment =
-      if (delta < -5 && duration < 300) {
-        Some("The flight is not frequent enough!")
-      } else if (delta > 5 && duration < 300) {
-        Some("This flight suits my schedule well")
+      if (delta < -10 && duration < 120) {
+        Some("Really wish this flight ran much much more frequently!")
+      } else if (delta <= - 7 && duration < 120) {
+        Some("I'd pay more if there was another flight daily!")
+      } else if (frequency >= 14 && duration < 120 && delta > 1) {
+        Some("This flight suits my schedule and that's huge!")
+      } else if (frequency >= 21 && delta > 7 && duration < 120) {
+        Some("Love how frequently this runs!")
+      } else if (frequency >= 14 && delta > 1) {
+        Some("This flight fits my schedule.")
       } else {
         None
       }
@@ -431,7 +534,7 @@ object LinkComment {
     val deltaRatio = (duration - expectedDuration).toDouble / expectedDuration
     val comment =
       if (deltaRatio < -0.5) {
-        Some("This flight is speedy!")
+        Some("My time is valuable and I pay extra for speed!")
       } else {
         None
       }
@@ -460,7 +563,7 @@ object LinkComment {
 
 object LinkCommentGroup extends Enumeration {
   type LinkCommentGroup = Value
-  val PRICE, LOYALTY, QUALITY, DURATION, LOUNGE, OTHER = Value
+  val PRICE, LOYALTY, QUALITY, DURATION, FREQUENCY, LOUNGE, OTHER = Value
 }
 
 object LinkCommentType extends Enumeration {
