@@ -4,7 +4,9 @@ import com.patson.data.{AirplaneSource, LinkSource}
 import com.patson.data.airplane.ModelSource
 import com.patson.model._
 import com.patson.model.airplane._
+import com.patson.util.AirlineCache
 import controllers.AuthenticationObject.AuthenticatedAirline
+
 import javax.inject.Inject
 import play.api.libs.json._
 import play.api.mvc.Security.AuthenticatedRequest
@@ -15,8 +17,8 @@ import scala.math.BigDecimal.int2bigDecimal
 
 
 class AirplaneConfigurationApplication @Inject()(cc: ControllerComponents) extends AbstractController(cc) {
+
   implicit object AirplaneConfigurationWrites extends Writes[AirplaneConfiguration] {
-    //case class Loan(airlineId : Int, borrowedAmount : Long, interest : Long, var remainingAmount : Long, creationCycle : Int, loanTerm : Int, var id : Int = 0) extends IdObject
     def writes(configuration: AirplaneConfiguration): JsValue = JsObject(List(
       "id" -> JsNumber(configuration.id),
       "airlineId" -> JsNumber(configuration.airline.id),
@@ -28,19 +30,14 @@ class AirplaneConfigurationApplication @Inject()(cc: ControllerComponents) exten
       ))
   }
 
-  
-
   def getConfigurations(airlineId : Int, modelId : Int) = AuthenticatedAirline(airlineId) { request : AuthenticatedRequest[Any, Airline] =>
     ModelSource.loadModelById(modelId) match {
       case Some(model) =>
         val configurations = AirplaneSource.loadAirplaneConfigurationsByCriteria(List(("airline", airlineId), ("model", modelId)))
-
         Ok(Json.obj("model" -> model, "configurations" -> configurations, "spaceMultipliers" -> Json.obj("economy" -> ECONOMY.spaceMultiplier, "business" -> BUSINESS.spaceMultiplier, "first" -> FIRST.spaceMultiplier), "maxConfigurationCount" -> AirplaneConfiguration.MAX_CONFIGURATION_TEMPLATE_COUNT))
       case None =>
         BadRequest(s"Model $modelId for configuration is not found")
     }
-
-
   }
 
   def getConfiguration(airlineId : Int, configurationId : Int) = AuthenticatedAirline(airlineId) { request : AuthenticatedRequest[Any, Airline] =>
@@ -53,14 +50,20 @@ class AirplaneConfigurationApplication @Inject()(cc: ControllerComponents) exten
   }
   
   def putConfiguration(airlineId : Int, modelId : Int, configurationId : Int, economy : Int, business : Int, first : Int, isDefault : Boolean) = AuthenticatedAirline(airlineId) { implicit request =>
+    val airline = AirlineCache.getAirline(airlineId, fullLoad = true).get
+    println(s"check: ${airline.name} is ${airline.airlineType}")
     if (economy < 0 || business < 0 || first < 0) {
        BadRequest("cannot have negative values for configurations")
+    } else if (airline.airlineType == AirlineType.ULCC && business > 0 || airline.airlineType == AirlineType.ULCC && first > 0) {
+      BadRequest("ULCC airline cannot have business or first class")
+    } else if (airline.airlineType == AirlineType.LUXURY && economy > 0) {
+      BadRequest("Luxury airline cannot have economy class")
     } else {
       ModelSource.loadModelById(modelId) match {
         case Some(model) =>
           if (economy * ECONOMY.spaceMultiplier + business * BUSINESS.spaceMultiplier + first * FIRST.spaceMultiplier > model.capacity) {
             BadRequest("configuration is not within capacity limit!")
-          } else if (economy <= AirplaneConfiguration.MIN_SEATS_PER_CLASS || business <= AirplaneConfiguration.MIN_SEATS_PER_CLASS || first == AirplaneConfiguration.MIN_SEATS_PER_CLASS) {
+          } else if (economy != 0 && economy < AirplaneConfiguration.MIN_SEATS_PER_CLASS || business != 0 && business < AirplaneConfiguration.MIN_SEATS_PER_CLASS || first != 0 && first < AirplaneConfiguration.MIN_SEATS_PER_CLASS) {
             BadRequest(s"must have at least ${AirplaneConfiguration.MIN_SEATS_PER_CLASS} seats per class!")
           } else {
             val existingConfigurations: Map[Int, AirplaneConfiguration] = AirplaneSource.loadAirplaneConfigurationsByCriteria(List(("airline", airlineId), ("model", modelId))).map(config => (config.id, config)).toMap
@@ -121,8 +124,7 @@ class AirplaneConfigurationApplication @Inject()(cc: ControllerComponents) exten
                 //can safely delete the configuration
                 AirplaneSource.deleteAirplaneConfiguration(configuration)
                 Ok(Json.toJson(configuration))
-              case None =>    BadRequest(s"Configuration deletion failed on $configuration, as there's no default configuration !")
-
+              case None => BadRequest(s"Configuration deletion failed on $configuration, as there's no default configuration !")
             }
           }
         }
@@ -147,14 +149,11 @@ class AirplaneConfigurationApplication @Inject()(cc: ControllerComponents) exten
                 LinkUtil.adjustLinksAfterAirplaneConfigurationChange(airplaneId)
                 Ok(Json.toJson(airplane))
               }
-
             case None =>
               BadRequest(s"Cannot update Configuration on airplane $airplaneId as configuration $configurationId is not found")
           }
-
         }
       case None => BadRequest(s"Cannot update Configuration on airplane $airplaneId as it is not found")
     }
-
   }
 }

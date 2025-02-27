@@ -7,7 +7,7 @@ import java.util.{Calendar, Date}
 import scala.collection.mutable.ListBuffer
 import scala.collection.immutable.ListMap
 
-case class Airline(name: String, airlineType: AirlineType.AirlineType = AirlineType.LEGACY, var id : Int = 0) extends IdObject {
+case class Airline(name: String, var airlineType: AirlineType.AirlineType = AirlineType.LEGACY, var id : Int = 0) extends IdObject {
   val airlineInfo = AirlineInfo(0, 0, 0, 0, 0, 0, 0)
   var allianceId : Option[Int] = None
   var bases : List[AirlineBase] = List.empty
@@ -403,7 +403,7 @@ object Airline {
         airline.setBalance(newBalance)
 
         airline.removeCountryCode()
-        airline.setTargetServiceQuality(25)
+        airline.setTargetServiceQuality(30)
         airline.setCurrentServiceQuality(0)
 
         if (resetExtendedInfo) {

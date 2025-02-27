@@ -27,6 +27,7 @@ class AirlineApplication @Inject()(cc: ControllerComponents) extends AbstractCon
       var values = List(
       "id" -> JsNumber(airline.id),
       "name" -> JsString(airline.name),
+      "type" -> JsString(AirlineType.label(airline.airlineType)),
       "balance" -> JsNumber(airline.airlineInfo.balance),
       "reputation" -> JsNumber(BigDecimal(airline.airlineInfo.reputation).setScale(2, BigDecimal.RoundingMode.HALF_EVEN)),
       "fuelTaxRate" -> JsNumber(airline.fuelTaxRate),

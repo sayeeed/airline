@@ -170,6 +170,22 @@ object AirlineSource {
     airlines
   }
 
+  def updateAirlineType(airlineId : Int, airlineType : Int) = {
+    this.synchronized {
+      val connection = Meta.getConnection()
+      try {
+        val updateStatement = connection.prepareStatement("UPDATE " + AIRLINE_TABLE + " SET airline_type = ? WHERE id = ?")
+        updateStatement.setInt(1, airlineType)
+        updateStatement.setInt(2, airlineId)
+        updateStatement.executeUpdate()
+        updateStatement.close()
+        AirlineCache.invalidateAirline(airlineId)
+      } finally {
+        connection.close()
+      }
+    }
+  }
+
   def adjustAirlineBalance(airlineId : Int, delta : Long) = {
 	    this.synchronized {
 	      val connection = Meta.getConnection()
@@ -201,7 +217,8 @@ object AirlineSource {
       }
     }
   }
-  
+
+
   
   def saveAirlineInfo(airline : Airline, updateBalance : Boolean = true) = {
     this.synchronized {
