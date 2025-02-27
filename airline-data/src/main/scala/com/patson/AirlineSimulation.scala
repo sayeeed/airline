@@ -148,10 +148,12 @@ object AirlineSimulation {
         }
         reputationBreakdowns.append(ReputationBreakdown(ReputationType.AIRPORT_LOYALIST_RANKING, reputationByAirportChampions))
 
-        val reputationByTourists = 25 * AirlineGradeTourists.findGrade(airlineStat.tourists).level
+        val airlineTouristBonus = if (airline.airlineType == AirlineType.ULCC) 2 else 1
+        val reputationByTourists = 25 * airlineTouristBonus * AirlineGradeTourists.findGrade(airlineStat.tourists).level
         reputationBreakdowns.append(ReputationBreakdown(ReputationType.TOURISTS, reputationByTourists))
 
-        val reputationByElites = 25 * AirlineGradeElites.findGrade(airlineStat.elites).level
+        val airlineEliteBonus = if (airline.airlineType == AirlineType.LUXURY) 2 else 1
+        val reputationByElites = 25 * airlineEliteBonus * AirlineGradeElites.findGrade(airlineStat.elites).level
         reputationBreakdowns.append(ReputationBreakdown(ReputationType.ELITES, reputationByElites))
 
         val reputationBonusFromAlliance: Double = allianceByAirlineId.get(airline.id) match {

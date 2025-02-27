@@ -7,18 +7,28 @@ import com.patson.util.AirportCache
 
 
 case class AirlineBase(airline : Airline, airport : Airport, countryCode : String, scale : Int, foundedCycle : Int, headquarter : Boolean = false) {
+  private lazy val COST_EXPONENTIAL_BASE = if (airline.airlineType == AirlineType.MEGA_HQ && headquarter) {
+    1.6
+  } else if (airline.airlineType == AirlineType.MEGA_HQ && !headquarter) {
+    1.73
+  } else {
+    1.68
+  }
+
   lazy val getValue : Long = {
     if (scale == 0) {
       0
     } else if (headquarter && scale == 1) { //free to start HQ
       0
     } else {
-      var baseCost = (1000000 + airport.rating.overallRating * 120000).toLong
+      val baseCost = if (airline.airlineType == AirlineType.MEGA_HQ && !headquarter) {
+        (40 * 1000000 + airport.rating.overallRating * 120000).toLong
+      } else {
+        (1000000 + airport.rating.overallRating * 120000).toLong
+      }
       (baseCost * airportTypeMultiplier * airportSizeRatio * Math.pow (COST_EXPONENTIAL_BASE, (scale - 1) )).toLong
     }
   }
-
-  val COST_EXPONENTIAL_BASE = 1.68
 
   lazy val getUpkeep : Long = {
     val adjustedScale = Math.min(12, Math.max(1, scale)) //for non-existing base, calculate as if the base is 1, cap at 12

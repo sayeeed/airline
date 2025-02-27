@@ -1,5 +1,5 @@
 function updateProfiles(profiles) {
-    $('#profiles').find('.profile-section').remove()
+    $('#profiles').find('.option').remove()
     $.each(profiles, function(index, profile) {
         $('#profiles').append(createProfileDiv(profile, index))
     })
@@ -7,7 +7,8 @@ function updateProfiles(profiles) {
 }
 
 function createProfileDiv(profile, profileId) {
-	var $profileDiv = $('<div" class="profile-section" onclick="selectProfile(' + profileId + ', this)"><h2>' + profile.name +'</h2><p class="pb-2">' + profile.description + '</p></div>')
+	var $profileDiv = $('<div" class="option available" onclick="selectProfile(' + profileId + ', this)"><h4>' + profile.name +'</h4><p class="pb-2"><i>' + profile.type.replace("_", " ") + '</i></p><p class="pb-2">' + profile.description + '</p></div>')
+    var $list = $('<ul></ul>').appendTo($profileDiv)
     var $list = $('<ul></ul>').appendTo($profileDiv)
     $list.append('<li class="dot">$' + commaSeparateNumber(profile.cash) + '&nbsp;cash</li>')
     if (profile.airplanes.length > 0) {
@@ -45,8 +46,8 @@ function createProfileDiv(profile, profileId) {
 
 function selectProfile(profileId, profileDiv) {
 	$('#profileId').val(profileId)
-	$(profileDiv).siblings("div").removeClass("selected")
-	$(profileDiv).addClass("selected")
+	$(profileDiv).siblings().removeClass("active")
+	$(profileDiv).addClass("active")
 }
 
 function showAirplaneQuickSummary($trigger, airplane) {

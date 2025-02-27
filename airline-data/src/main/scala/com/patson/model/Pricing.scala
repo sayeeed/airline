@@ -7,10 +7,10 @@ import com.patson.model.FlightCategory.FlightCategory
  */
 object Pricing {
   val modifierBrackets: Map[LinkClass, List[(Int, Double)]] = Map(
-    DISCOUNT_ECONOMY  -> List((400, 0.06), (1000, 0.08), (6000, 0.065), (Int.MaxValue, 0.075)),
-    ECONOMY           -> List((400, 0.11), (1000, 0.084), (6000, 0.075), (Int.MaxValue, 0.08)),
-    BUSINESS          -> List((400, 0.28), (1000, 0.22), (6000, 0.162), (Int.MaxValue, 0.22)),
-    FIRST             -> List((400, 0.92), (1000, 0.28), (6000, 0.26), (Int.MaxValue, 0.498))
+    DISCOUNT_ECONOMY  -> List((400, 0.06), (1000, 0.064), (6000, 0.065), (Int.MaxValue, 0.07)),
+    ECONOMY           -> List((400, 0.11), (1000, 0.069), (6000, 0.074), (Int.MaxValue, 0.09)),
+    BUSINESS          -> List((400, 0.28), (1000, 0.215), (6000, 0.17), (Int.MaxValue, 0.225)),
+    FIRST             -> List((400, 1.24), (1000, 0.305), (6000, 0.41), (Int.MaxValue, 0.55))
   )
   val INTERNATIONAL_PRICE_MULTIPLIER = 1.05
 
@@ -35,7 +35,7 @@ object Pricing {
       price
     }
     
-    (price * 1.12).toInt //increase the standard price by 12%
+    (price * 1.1).toInt //increase the standard price by 10%
   }
   
   def computeStandardPriceForAllClass(distance: Int, flightCategory: FlightCategory.Value) : LinkClassValues = {

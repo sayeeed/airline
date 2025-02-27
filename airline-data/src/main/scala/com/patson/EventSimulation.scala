@@ -103,20 +103,20 @@ object EventSimulation {
   def selectCandidates(allAirports : List[Airport]) : List[Airport] = {
     val previousOlympics = EventSource.loadEvents().filter(_.eventType == EventType.OLYMPICS).sortBy(_.startCycle).dropRight(1) //drop the current one
 
-    val cooldownCountries : List[String] = previousOlympics.takeRight(HOST_COUNTRY_COOLDOWN).map(_.asInstanceOf[Olympics]).map{ olympics =>
+    val cooldownCountries : List[String] = previousOlympics.takeRight(HOST_COUNTRY_COOLDOWN).map(_.asInstanceOf[Olympics]).flatMap { olympics =>
       Olympics.getSelectedAirport(olympics.id).map(_.countryCode)
-    }.flatten
+    }
 
-    val cooldownZones : List[String] = previousOlympics.takeRight(HOST_ZONE_COOLDOWN).map(_.asInstanceOf[Olympics]).map{ olympics =>
+    val cooldownZones : List[String] = previousOlympics.takeRight(HOST_ZONE_COOLDOWN).map(_.asInstanceOf[Olympics]).flatMap { olympics =>
       Olympics.getSelectedAirport(olympics.id).map(_.zone.split("-")(0))
-    }.flatten
+    }
 
-    val previousCanidateAirports: List[Airport] = previousOlympics.takeRight(3).map(_.asInstanceOf[Olympics]).map { olympics =>
+    val previousCanidateAirports: List[Airport] = previousOlympics.takeRight(3).map(_.asInstanceOf[Olympics]).flatMap { olympics =>
       Olympics.getCandidates(olympics.id).filter { airport =>
         !cooldownCountries.contains(airport.countryCode) &&
-        !cooldownZones.contains(airport.zone.split("-")(0))
+          !cooldownZones.contains(airport.zone.split("-")(0))
       }
-    }.flatten.takeRight(PREVIOUS_CANIDATE_AIRPORTS)
+    }.takeRight(PREVIOUS_CANIDATE_AIRPORTS)
 
     val randomizedAirports: List[Airport] = previousCanidateAirports ++ Random.shuffle(allAirports.filter { airport =>
       airport.size >= CANDIDATE_MIN_SIZE &&

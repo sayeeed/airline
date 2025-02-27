@@ -1452,9 +1452,9 @@ function showSpecializationModal() {
             $.each(info.specializations, function(index, specializationsByScale) {
                 $container.append($('<h4 class="m-0">Base Level ' + specializationsByScale.scaleRequirement + '</h4>'))
                 $container.append($('<p><i>Choose any two</i></p>'))
-                var $flexDiv = $('<div class="grid-specialization"></div>').appendTo($container)
+                var $flexDiv = $('<div class="modal-grid-options"></div>').appendTo($container)
                 $.each(specializationsByScale.specializations, function(index, specialization) {
-                    var $specializationDiv = $('<div class="section specialization" style="min-width: 260px; flex:1;"></div>').appendTo($flexDiv)
+                    var $specializationDiv = $('<div class="option" style="min-width: 260px; flex:1;"></div>').appendTo($flexDiv)
                     $specializationDiv.data('id', specialization.id)
                     $specializationDiv.append($('<h4 class="m-0">' + specialization.label + '</h4>'))
                     var $descriptionList = $('<ul></ul>').appendTo($specializationDiv)
@@ -1466,7 +1466,7 @@ function showSpecializationModal() {
                         $specializationDiv.addClass('available')
                         if (!specialization.free) {
                             $specializationDiv.on('click', function() {
-                                var $activeSpecializations = $flexDiv.find('.specialization.active')
+                                var $activeSpecializations = $flexDiv.find('.option.active')
                                 if ($(this).hasClass('active')) {
                                     $(this).removeClass('active')
                                 } else {
@@ -1515,7 +1515,7 @@ function confirmSpecializations() {
         var airlineId = activeAirline.id
         var url = "airlines/" + airlineId + "/bases/" + activeAirportId + "/specializations"
         var selectedSpecializations = []
-        $('#baseSpecializationModal .specialization.active').each(function(index) {
+        $('#baseSpecializationModal .option.active').each(function(index) {
             selectedSpecializations.push($(this).data('id'))
         })
 

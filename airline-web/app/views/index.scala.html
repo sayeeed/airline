@@ -1078,7 +1078,7 @@
 			  <div style="display: flex; flex-flow: row; flex-wrap: wrap; gap: 8px;">
 				  <div class="vertical-group" style="flex-basis : 66%; flex-grow: 1; box-sizing:border-box;">
 					  <div class="section" style="display: flex; flex-wrap: wrap;">
-						  <h2 style="width:100%;"><span class="airportName">Airport Details</span> | <i class="airportCityName"></i>, <i class="airportCountryName"></i></h2>
+						  <h2 style="width:100%; font-size: 16px;"><span class="airportName">Airport Details</span> | <i class="airportCityName"></i>, <i class="airportCountryName"></i></h2>
 						  <p class="flex-row pt-1 inline-icons"><span class="airportCountryFlag"></span> <b class="airportIataIaco"></b> <span id="airportDetailsOpenness"></span></p>
 						  <p style="width:100%;">Airport Rating: <span class="economicRating rating"></span> |
 							  Competition: <span class="competitionRating rating"></span></p>
@@ -1254,7 +1254,7 @@
 				  </div>
 
 				  <div class="section loyalistDetails" style="flex-basis: 33%; flex-grow: 1; box-sizing:border-box;">
-					  <h4>
+					  <h5>
 						  Loyalist Trend
 						  <span class="tooltip">
 								<img class="info svg" src='@routes.Assets.versioned("images/icons/information.svg")'>
@@ -1270,7 +1270,7 @@
 						  </span>
 						  <img src='@routes.Assets.versioned("images/icons/chart-up.png")' class="clickable"
 							   title="View History" onclick="showLoyalistHistoryModal()" style="vertical-align: text-bottom">
-					  </h4>
+					  </h5>
 					  <div>
 						  <div class="loyalistPie" style="height: 160px; width:100%;">
 						  </div>
@@ -5519,9 +5519,9 @@
 
 	  <div id="profilesModal" class="modal">
 		<input type="hidden" id="profileId" name="profileId" value="0"/>
-		  <div class="modal-content" style="max-width : 90vw; width: 100%;">
-			  <h2 style="margin-bottom: 20px">Select your starting profile</h2>
-			  <div id="profiles" class="flex-row flex-wrap justify-center">
+		  <div class="modal-content">
+			  <h4 style="margin-bottom: 20px">Select your airline type & starting profile</h4>
+			  <div id="profiles" class="modal-grid-options modal-grid-options-320">
 
 			  </div>
 			  <div style="text-align: center">
