@@ -1177,7 +1177,7 @@ object AirportFeaturePatcher extends App {
     list += "IKA"
     list -= "RUH" //Saudi
     list += "JED"
-    list -= "OND" //Nambia
+    list -= "OND" //Namibia
     list += "WDH"
     list -= "ZND" //Mali
     list += "NIM"
@@ -1207,6 +1207,7 @@ object AirportFeaturePatcher extends App {
     list += "AQ0" //AQ
     list += "PPT"
     list += "NOU"
+    list += "GOH" //Greenland
 
 
     //now add extra ones for bigger countries

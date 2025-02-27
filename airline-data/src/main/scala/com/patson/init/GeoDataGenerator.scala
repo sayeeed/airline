@@ -45,6 +45,10 @@ object GeoDataGenerator extends App {
       "NL"
     } else if (List("IM", "JE", "GI", "FK", "GG", "SH", "MS", "AI").contains(countryCode)) {
       "GB"
+    } else if (List("GL", "FO").contains(countryCode)) {
+      "DK"
+    } else if (List("UM").contains(countryCode)) {
+      "US"
     } else {
       countryCode
     }
