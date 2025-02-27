@@ -276,6 +276,7 @@ object AirportSizeAdjust {
         //denmark
         "AAL" -> 5,
         "KRP" -> 3,
+        "FAE" -> 4, //Faroe Islands
         //dominican-republic
         "JBQ" -> 3,
         //east-timor
@@ -395,6 +396,8 @@ object AirportSizeAdjust {
         "PDG" -> 5,
         "MDC" -> 5,
         "BIK" -> 3,
+        "KDI" -> 3,
+        "TTE" -> 4,
         //https://en.wikipedia.org/wiki/List_of_the_busiest_airports_in_Iran
         "DEF" -> 3,
         "KSH" -> 4,
@@ -442,6 +445,8 @@ object AirportSizeAdjust {
         "ERS" -> 2,
         //Mayotte
         "DZA" -> 4,
+        //Marshal Islands
+        "KWA" -> 3,
         //https://en.wikipedia.org/wiki/List_of_airports_in_the_Republic_of_Macedonia
         //https://en.wikipedia.org/wiki/List_of_airports_in_Mali
         //https://en.wikipedia.org/wiki/List_of_the_busiest_airports_in_Mexico
