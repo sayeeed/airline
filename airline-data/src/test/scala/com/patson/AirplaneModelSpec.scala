@@ -67,10 +67,10 @@ class AirplaneModelSpec extends WordSpecLike with Matchers with BeforeAndAfterAl
     toAirport.initAirlineBases(List())
     var price = Pricing.computeStandardPriceForAllClass(distance, flightType)
     if (airplaneModel.airplaneType == SUPERSONIC) {
-      price *= 1.6
+      price *= 1.8
     }
     if (linkClass == FIRST || linkClass == FIRST) {
-      price *= 1.25 //assume have lounge etc
+//      price *= 1.25 //assume have lounge etc
     }
     val airline = Airline.fromId(1)
 
@@ -85,7 +85,7 @@ class AirplaneModelSpec extends WordSpecLike with Matchers with BeforeAndAfterAl
     val airplaneConfiguration: AirplaneConfiguration = linkClass match {
       case FIRST => AirplaneConfiguration.first(airline, airplaneModel)
       case BUSINESS => AirplaneConfiguration.business(airline, airplaneModel)
-      case _ => AirplaneConfiguration.default(airline, airplaneModel)
+      case _ => AirplaneConfiguration.economy(airline, airplaneModel)
     }
 
     val link = Link(fromAirport, toAirport, airline, price = price, distance = distance, linkClassValues, rawQuality, duration, frequency)
