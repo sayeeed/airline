@@ -482,7 +482,7 @@
 										</h4>
 										<div class="table-row">
 											<div class="label" style="width:45%">
-													Overall Quality:
+													Quality:
 											</div>
 											<div class="value"><span id="linkQuality"></span><div class="tooltip">
 												<img class="info svg" src='@routes.Assets.versioned("images/icons/information.svg")'>
@@ -542,7 +542,7 @@
 											<div class="value"><span id="linkFuelTax"></span> <div class="tooltip">
 												<img class="info svg" src='@routes.Assets.versioned("images/icons/information.svg")'>
 												<span class="tooltiptext below" style="width: 280px;">
-													<p><b>Fuel tax</b> increases the more reputation your airline has.</p>
+													<p><b>Fuel tax</b> increases as your airline's reputation increases.</p>
 												</span>
 											</div></div>
 										</div>
@@ -665,13 +665,13 @@
 								</div>
 
 								<div class="flex-row py-2">
-									<div style="width:162px"><h5>Direct Demand:</h5></div>
-									<div style="display: flex; align-items: center" class="h-4">
+									<div style="width:162px"><p>Direct Demand:</p></div>
+									<div class="h-4">
 										<span id="planLinkDirectDemand"></span>
 										<div class="tooltip pl-1">
 											<img class="info svg" src='@routes.Assets.versioned("images/icons/information.svg")'>
-											<span class="tooltiptext below directDemandBreakdown" style="width: 200px;">
-												<div class="fromAirport">
+											<span class="tooltiptext below directDemandBreakdown" style="width: 280px;">
+												<div class="fromAirport py-2">
 													<h4>From <span class="airportLabel"></span></h4>
 													<p> Traveler: <span class="travelerDemand"></span></p>
 													<p> Business: <span class="businessDemand"></span></p>
@@ -750,20 +750,39 @@
 									<div class="m-0"><p class="py-1" id="planLFFirst">100%</p></div>
 									<div class="m-0"><p class="py-1" id="planMarkupFirst">100%</p></div>
 								</div>
+								<hr>
+
+								<div class="flex-container-width-third">
+									<div>
+										<p class="pt-2">Current route quality:</p>
+										<div id="planLinkQuality"></div>
+										<p>Set route service level:</p>
+										<div class="pt-2" id="serviceLevelBar" data-empty-icon='@routes.Assets.versioned("images/icons/star-empty.svg")' data-fill-icon='@routes.Assets.versioned("images/icons/star-full.svg")'></div>
+										<input type="hidden" id="planLinkServiceLevel" value="1"/>
+									</div>
+									<div id="planLinkExpectedFromQuality">
+										<p class="strong">From <span class="planFromIata"></span></p>
+										<p><span class="inline-block w-68">first:</span><span class="first scale-75"></span></p>
+										<p><span class="inline-block w-68">business:</span><span class="business scale-75"></span><p>
+										<p><span class="inline-block w-68">economy:</span><span class="economy scale-75"></span></p>
+										<p><span class="inline-block w-68">discount:</span><span class="discount scale-75"></span><p>
+									</div>
+									<div id="planLinkExpectedToQuality">
+										<p class="strong">From <span class="planToIata"></span></p>
+										<p><span class="inline-block w-68">first:</span><span class="first scale-75"></span></p>
+										<p><span class="inline-block w-68">business:</span><span class="business scale-75"></span></p>
+										<p><span class="inline-block w-68">economy:</span><span class="economy scale-75"></span></p>
+										<p><span class="inline-block w-68">discount:</span><span class="discount scale-75"></span></p>
+									</div>
+								</div>
+								<hr>
+
 								<div class="table py-2" style="width: 100%" id="planLinkExtendedDetails">
 									<input type="hidden" id="planLinkFromAirportId"/>
 									<input type="hidden" id="planLinkToAirportId"/>
-									<div class="table-row">
-										<div class="label" style="width:30%">Setup Cost:</div>
-										<div class="value" style="width:70%" id="planLinkCost"></div>
-									</div>
-									<div class="table-row">
-										<div class="label">Estimated Difficulty:</div>
-										<div class="value" id="planLinkEstimatedDifficulty"></div>
-									</div>
 									<div class="table-row" id="planLinkModelRow">
-										<div class="label">Airplane Model (max freq):</div>
-										<div class="value"><select class="select-css" id="planLinkModelSelect" onchange="updatePlanLinkInfoWithModelSelected($(this).val()); updateModelInfo($(this).val())"></select></div>
+										<div class="label" style="width:30%;">Airplane Model (max freq):</div>
+										<div class="value" style="width:70%;"><select class="select-css" id="planLinkModelSelect" onchange="updatePlanLinkInfoWithModelSelected($(this).val()); updateModelInfo($(this).val())"></select></div>
 									</div>
 									<div class="table-row">
 										<div class="label">Flight Duration:</div>
@@ -807,9 +826,9 @@
 												<span>Flight Frequency:</span>
 												<div class="tooltip">
 													<img class="info svg" src='@routes.Assets.versioned("images/icons/information.svg")'>
-													<span class="tooltiptext below">
-														Increase/decrease the flight frequency by selecting/deselecting the airplane icons. <br/>
-														<img data-src='@routes.Assets.versioned("images/clips/flight-frequency.gif")' class="lazyload" alt="">
+													<span style="min-width:280px;" class="tooltiptext below">
+														Increase/decrease the flight frequency by selecting/deselecting the airplane icons. <br/><br/>
+														Higher frequencies increases passenger satisfaction and lowers perceived transfer costs.
 													</span>
 												</div>
 											</p>
@@ -848,14 +867,14 @@
 											</div>
 										</div>
 									</div>
-									<div class="table-row">
-										<p class="label">Route service level:</p>
-										<div class="value">
-											<div id="serviceLevelBar" data-empty-icon='@routes.Assets.versioned("images/icons/star-empty.png")' data-fill-icon='@routes.Assets.versioned("images/icons/star.png")'></div>
-											<p><i>Expected quality from:</i> <a class="planFromIata" onclick="showLinkExpectedQualityModal(true)"></a> | <a class="planToIata" onclick="showLinkExpectedQualityModal(false)"></a></p>
-											<input type="hidden" id="planLinkServiceLevel" value="1"/>
-										</div>
-									</div>
+<!--									<div class="table-row">-->
+<!--										<p class="label">Estimated quality:</p>-->
+<!--										<div class="value">-->
+<!--											-->
+<!--											<p><i>Expected quality from:</i> <a class="planFromIata" onclick="showLinkExpectedQualityModal(true)"></a> | <a class="planToIata" onclick="showLinkExpectedQualityModal(false)"></a></p>-->
+<!--											<input type="hidden" id="planLinkServiceLevel" value="1"/>-->
+<!--										</div>-->
+<!--									</div>-->
 									<div class="table-row">
 										<div class="label">Staff Required:</div>
 										<div class="value" style="">
@@ -863,7 +882,7 @@
 											<span id="linkStaffBreakdownTooltip" class="tooltip">
 												<img class="info svg" src='@routes.Assets.versioned("images/icons/information.svg")'>
 												<span class="tooltiptext alignLeft" style="width: 400px;">
-													<h4 style="margin-bottom: 10px;">Staff Required Breakdown <span class="airlineName"></span></h4>
+													<h4 style="margin-bottom: 12px;">Staff Required Breakdown <span class="airlineName"></span></h4>
 													<div class="table data" style="width: 100%;">
 														<div class="table-row">
 															<div class="label">Flight Type:</div>
@@ -886,11 +905,15 @@
 															<div class="value modifier"></div>
 														</div>
 													</div>
-													<h4 style="margin-top: 10px">Total: <span class="total"></span></h4>
+													<p style="margin-top: 12px">Total: <span class="total"></span></p>
 												</span>
 											</span>
 											<i class="pl-1 planLinkFlightType"></i>
 										</div>
+									</div>
+									<div class="table-row">
+										<div class="label" id="planLinkEstimatedDifficultyLabel">Difficulty & Setup Cost:</div>
+										<div class="value"><span id="planLinkEstimatedDifficulty"></span><span id="planLinkSetupCost"></span></div>
 									</div>
 								</div>
 								<div class="linkRejection warning">
@@ -1888,7 +1911,7 @@
 									<ul class="reputationDetails small"></ul>
 								</div>
 							</div>
-							<h5 class="pt-4">Airline Settings</h5>
+							<h5 class="pt-4"><span class="airlineType"></span> Airline Settings</h5>
 							<p>Employee Quality:
 								<span id="serviceFundingDisplaySpan">
 									<span id="targetServiceQuality"></span>
@@ -3013,9 +3036,15 @@
 					<div id="rivalDetails" class="sidePanel vertical-group" style="display: none;">
 						<div class="section" style="display: flex; flex-wrap: wrap; gap: 8px;">
 							<div style="min-width: 200px; flex: 1;">
-								<h4><span class="airlineName"></span></h4>
+								<h4 class="m-0"><span class="airlineName"></span><span class="airlineGrade"></span></h4>
+								<p class="pb-4"><i class="airlineType"></i></p>
+								<p><span class="airlineSlogan"></span></p>
 
 								<div class="table" style="width: 100%;">
+									<div class="table-row">
+										<div class="label">Alliance:</div>
+										<div class="value alliance"></div>
+									</div>
 									<div class="table-row">
 										<div class="label">Airline Code:</div>
 										<div class="value airlineCode"></div>
@@ -3023,14 +3052,6 @@
 									<div class="table-row">
 										<div class="label">Airline Color:</div>
 										<div class="value"><span class="airlineColorDot"></span></div>
-									</div>
-									<div class="table-row">
-										<div class="label">Grade:</div>
-										<div class="value"><span class="airlineGrade"></span></div>
-									</div>
-									<div class="table-row">
-										<div class="label">Alliance:</div>
-										<div class="value alliance"></div>
 									</div>
 									<div class="table-row formerNameRow">
 										<div class="label">Former Names:</div>

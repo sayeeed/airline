@@ -659,9 +659,7 @@ function refreshLinkDetails(linkId) {
 	    dataType: 'json',
 	    success: function(link) {
 	    	$("#linkFromAirport").attr("onclick", "showAirportDetails(" + link.fromAirportId + ")").html(getCountryFlagImg(link.fromCountryCode, "15px") + link.fromAirportCity + "<i class='pl-1 iata'>" + link.fromAirportCode + "</i>")
-	    	//$("#linkFromAirportExpectedQuality").attr("onclick", "loadLinkExpectedQuality(" + link.fromAirportId + "," + link.toAirportId + "," + link.fromAirportId + ")")
 	    	$("#linkToAirport").attr("onclick", "showAirportDetails(" + link.toAirportId + ")").html(getCountryFlagImg(link.toCountryCode, "15px") + link.toAirportCity + "<i class='pl-1 iata'>" + link.toAirportCode + "</i>")
-	    	//$("#linkToAirportExpectedQuality").attr("onclick", "loadLinkExpectedQuality(" + link.fromAirportId + "," + link.toAirportId + "," + link.toAirportId + ")")
 	    	$("#linkFlightCode").text(link.flightCode)
 	    	if (link.assignedAirplanes && link.assignedAirplanes.length > 0) {
 	    		$('#linkAirplaneModel').text(link.assignedAirplanes[0].airplane.name)
@@ -671,7 +669,7 @@ function refreshLinkDetails(linkId) {
 	    	$("#linkCurrentPrice").html(toLinkClassDiv(link.price, "$"))
 	    	$("#linkDistance").text(link.distance + " km")
 	    	$("#linkDuration").text(toHoursAndMinutes(link.duration).hours + "hr " + toHoursAndMinutes(link.duration).minutes + "min ")
-	    	$("#linkQuality").html(getGradeStarsImgs(Math.round(link.computedQuality / 10)) + " (" + link.computedQuality + ")")
+	    	$("#linkQuality").html(getGradeStarsImgs(Math.min(100, Math.round(link.computedQuality / 10))) + " (" + link.computedQuality + ")")
 	    	$("#linkCurrentCapacity").html(toLinkClassDiv(link.capacity))
 	    	if (link.future) {
 	    	    $("#linkCurrentDetails .future .capacity").html(toLinkClassDiv(link.future.capacity))
@@ -966,11 +964,8 @@ function updatePlanLinkInfo(linkInfo, isRefresh) {
 		$('#planLinkFromAirportEditIcon').hide()
 	}
 	$("#planLinkFromAirportSelect").hide() //do not show the list yet
-	//$('#planLinkFromAirportExpectedQuality').attr("onclick", "loadLinkExpectedQuality(" + linkInfo.fromAirportId + "," + linkInfo.toAirportId + "," + linkInfo.fromAirportId + ")")
 
 	$('#planLinkToAirportName').attr("onclick", "showAirportDetails(" + linkInfo.toAirportId + ")").html(getCountryFlagImg(linkInfo.toCountryCode) + linkInfo.toAirportCity + "<i class='pl-2 iata'>" + linkInfo.toAirportCode + "</i>")
-	//$('#planLinkToAirportExpectedQuality').attr("onclick", "loadLinkExpectedQuality(" + linkInfo.fromAirportId + "," + linkInfo.toAirportId + "," + linkInfo.toAirportId + ")")
-//	$('#planLinkFlightCode').text(linkInfo.flightCode)
     $('.planToIata').text(linkInfo.toAirportCode)
     $('.planFromIata').text(linkInfo.fromAirportCode)
 	$('#planLinkMutualRelationship').html(getCountryFlagImg(linkInfo.fromCountryCode) + " ⇄ " + getCountryFlagImg(linkInfo.toCountryCode) + getCountryRelationshipDescription(linkInfo.mutualRelationship))
@@ -1073,18 +1068,37 @@ function updatePlanLinkInfo(linkInfo, isRefresh) {
 		$("#planLinkCompetitors").append("<div class='table-row data-row'><div style='display: table-cell;'>-</div><div style='display: table-cell;'>-</div><div style='display: table-cell;'>-</div><div style='display: table-cell;'>-</div><div style='display: table-cell;'>-</div></div>")
 	}
 
-	if (tempPath) { //remove previous plan link if it exists
-		removeTempPath()
-	}
+    document.querySelector("#planLinkQuality").innerHTML = getGradeStarsImgs(Math.min(100, Math.round(linkInfo.quality / 10)), 12)
 
-	$('#planLinkCost').text('$' + commaSeparateNumber(linkInfo.cost))
+	const fromQuality = document.getElementById("planLinkExpectedFromQuality")
+	fromQuality.getElementsByClassName("first")[0].innerHTML = getGradeStarsImgs(Math.round(linkInfo.toExpectedQuality.F / 10), 12)
+	fromQuality.getElementsByClassName("business")[0].innerHTML = getGradeStarsImgs(Math.round(linkInfo.toExpectedQuality.J / 10), 12)
+	fromQuality.getElementsByClassName("economy")[0].innerHTML = getGradeStarsImgs(Math.round(linkInfo.toExpectedQuality.Y / 10), 12)
+	fromQuality.getElementsByClassName("discount")[0].innerHTML = getGradeStarsImgs(Math.round(linkInfo.toExpectedQuality.D / 10), 12)
 
-	if (linkInfo.estimatedDifficulty) {
-	    $('#planLinkEstimatedDifficulty').text(linkInfo.estimatedDifficulty.toFixed(2) + " +")
-    } else {
+	const toQuality = document.getElementById("planLinkExpectedToQuality")
+    toQuality.getElementsByClassName("first")[0].innerHTML = getGradeStarsImgs(Math.round(linkInfo.fromExpectedQuality.F / 10), 12)
+    toQuality.getElementsByClassName("business")[0].innerHTML = getGradeStarsImgs(Math.round(linkInfo.fromExpectedQuality.J / 10), 12)
+    toQuality.getElementsByClassName("economy")[0].innerHTML = getGradeStarsImgs(Math.round(linkInfo.fromExpectedQuality.Y / 10), 12)
+    toQuality.getElementsByClassName("discount")[0].innerHTML = getGradeStarsImgs(Math.round(linkInfo.fromExpectedQuality.D / 10), 12)
+
+	if (linkInfo.estimatedDifficulty && linkInfo.cost !== 0) {
+	    $('#planLinkEstimatedDifficultyLabel').text('Difficulty & Setup Cost:')
+	    $('#planLinkEstimatedDifficulty').text(linkInfo.estimatedDifficulty.toFixed(2))
+	    $('#planLinkSetupCost').text(" & $" + commaSeparateNumber(linkInfo.cost))
+    } else if (linkInfo.cost !== 0) {
+        $('#planLinkEstimatedDifficultyLabel').text('Difficulty & Setup Cost:')
         $('#planLinkEstimatedDifficulty').text('-')
+        $('#planLinkSetupCost').text(" & $" + commaSeparateNumber(linkInfo.cost))
+    } else {
+        $('#planLinkEstimatedDifficultyLabel').text('Difficulty:')
+        $('#planLinkEstimatedDifficulty').text('-')
+        $('#planLinkSetupCost').text("")
     }
 
+    if (tempPath) { //remove previous plan link if it exists
+		removeTempPath()
+	}
 	//unhighlight the existing path if any
 	if (selectedLink) {
 	    unhighlightLink(selectedLink)
@@ -1586,7 +1600,7 @@ function addAirplaneRow(container, airplane, frequency) {
     airplaneCell.append(airplaneInspectIcon)
 
     var airplaneRemovalIcon = $('<div class="clickable-no-highlight px-1 py-05" onclick="removeAirplaneFromLink(' + airplane.id + ')"></div>')
-    airplaneRemovalIcon.append($('<img src="assets/images/icons/airplane-minus.png" title="Unassign airplane #' + airplane.id + '">'))
+//    airplaneRemovalIcon.append($('<img src="assets/images/icons/airplane-minus.png" title="Unassign airplane #' + airplane.id + '">'))
     airplaneCell.append(airplaneRemovalIcon)
 
 //    airplaneCell.append($("<span>#" + airplane.id + "</span>"))
@@ -2117,36 +2131,6 @@ function updateLoadedLinks(links) {
 	loadedLinksById = {}
 	$.each(links, function(index, link) {
 		loadedLinksById[link.id] = link
-	});
-}
-
-function showLinkExpectedQualityModal(isFromAirport) {
-	var fromAirportId = $('#planLinkFromAirportId').val()
-	var toAirportId = $('#planLinkToAirportId').val()
-	var queryAirportId
-	if (isFromAirport) {
-		queryAirportId = fromAirportId
-	} else {
-		queryAirportId = toAirportId
-	}
-	var url = "airlines/" + activeAirline.id + "/expectedQuality/" + fromAirportId + "/" + toAirportId + "/" + queryAirportId
-	$('#expectedQualityModal .expectedQualityValue').empty()
-	$.ajax({
-		type: 'GET',
-		url: url,
-	    contentType: 'application/json; charset=utf-8',
-	    dataType: 'json',
-	    success: function(result) {
-	    	$('#expectedQualityModal .expectedQualityValue.firstClass').html(getGradeStarsImgs(Math.round(result.F / 10)))
-	    	$('#expectedQualityModal .expectedQualityValue.businessClass').html(getGradeStarsImgs(Math.round(result.J / 10)))
-	    	$('#expectedQualityModal .expectedQualityValue.economyClass').html(getGradeStarsImgs(Math.round(result.Y / 10)))
-	    	$('#expectedQualityModal .expectedQualityValue.discountClass').html(getGradeStarsImgs(Math.round(result.D / 10)))
-	    	$('#expectedQualityModal').fadeIn(200)
-	    },
-        error: function(jqXHR, textStatus, errorThrown) {
-	            console.log(JSON.stringify(jqXHR));
-	            console.log("AJAX error: " + textStatus + ' : ' + errorThrown);
-	    }
 	});
 }
 

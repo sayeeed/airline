@@ -18,7 +18,9 @@ function generateSimpleImageBar(imageSrc, count) {
 function generateImageBar(imageEmpty, imageFill, count, containerDiv, valueInput, indexToValueFunction, valueToIndexFunction, callback) {
     generateImageBarWithRowSize(imageEmpty, imageFill, count, containerDiv, valueInput, indexToValueFunction, valueToIndexFunction, 10, callback)
 }
-
+/**
+ * used by in setting route service stars & flight frequency
+ **/
 function generateImageBarWithRowSize(imageEmpty, imageFill, count, containerDiv, valueInput, indexToValueFunction, valueToIndexFunction, rowSize, callback) {
 	containerDiv.empty()
 	var images = []
@@ -38,7 +40,7 @@ function generateImageBarWithRowSize(imageEmpty, imageFill, count, containerDiv,
 	
 
 	for (i = 0 ; i < count ; i ++) {
-		var image = $("<img class='button'>")
+		var image = $("<img width='16px' height='auto' class='button'>")
 		image.attr("src", imageEmpty)
 		//image.click({index : i}, updateImageBar)
 
@@ -549,14 +551,14 @@ function padBefore(str, padChar, max) {
 
 function getAirportText(city, airportCode) {
 	if (city) {
-		return city + "(" + airportCode + ")"
+		return city + " (" + airportCode + ")"
 	} else {
 		return airportCode
 	}
 }
 
 function getAirportSpan(airport) {
-    return "<span style='display:inline-flex; align-items: center;'>" + getCountryFlagImg(airport.countryCode) + getAirportText(airport.city, airport.iata) + "</span>"
+    return "<span style='align-items: center;'>" + getCountryFlagImg(airport.countryCode) + getAirportText(airport.city, airport.iata) + "</span>"
 }
 
 function setActiveDiv(activeDiv, callback) {

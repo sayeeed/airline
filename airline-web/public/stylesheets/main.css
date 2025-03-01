@@ -258,6 +258,7 @@ h1, h2, h3, h4, h5, h6, .font-display {
 }
 
 #detailsPanel {
+    margin-bottom: 2rem;
   /*  width: 100%;
     float: left; */
 }
@@ -1089,7 +1090,6 @@ div.future {
 
 .blur {
     filter: blur(9px);
-    /*transform: scale(1.1);*/
 }
 
 /* The Close Button */
@@ -1548,7 +1548,10 @@ small, .small {
     font-size: 10px;
 }
 i, .italic {
-    font-style: italic
+    font-style: italic;
+}
+.strong {
+    font-weight: bold;
 }
 .iata {
     color: currentColor;
@@ -1680,6 +1683,7 @@ i, .italic {
 .h-6 { height: 24px; }
 .h-7 { height: 28px; }
 .h-8 { height: 32px; }
+.w-68 {width: 68px;}
 .min-w-40 { min-width: 10rem; }
 .min-w-52 { min-width: 13rem; }
 .min-w-80 { min-width: 20rem; }
@@ -1695,6 +1699,7 @@ i, .italic {
 .opacity-70 { opacity: 0.7; }
 .opacity-80 { opacity: 0.8; }
 .opacity-90 { opacity: 0.9; }
+.scale-75 { scale: 75%; }
 .list-disc { list-style-type: disc; }
 .text-left { text-align: left; }
 .text-right { text-align: right; }
@@ -1704,6 +1709,9 @@ i, .italic {
 .flex-align-center {
     display: flex;
     align-items: center;
+}
+.inline-block {
+    display: inline-block;
 }
 .flex-row {
     display: flex;
@@ -1782,8 +1790,17 @@ i, .italic {
     font-size: 1em;
     font-weight: 600;
 }
+#planLinkExtendedDetails > .table-row {
+    height: 32px;
+}
+#planLinkExtendedDetails .label {
+    width: 30%
+}
 #planLinkExtendedDetails > .table-row > .value {
-    padding-bottom: 6px;
+}
+div#serviceLevelBar {
+    scale: 1.2;
+    transform: translate(9%, 0);
 }
 .airplaneIcon {
     padding: 1px;
