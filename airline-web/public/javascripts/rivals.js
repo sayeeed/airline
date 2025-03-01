@@ -229,7 +229,9 @@ function toggleRivalLinksTableSortOrder(sortHeader) {
 function updateRivalBasicsDetails(airlineId) {
 	var rival = loadedRivalsById[airlineId]
 	$("#rivalsCanvas .airlineName").text(rival.name)
+	$("#rivalsCanvas .airlineType").text(rival.type + " Airline")
 	$("#rivalsCanvas .airlineCode").text(rival.airlineCode)
+	$("#rivalsCanvas .airlineSlogan").text(rival.slogan)
 	var color = airlineColors[airlineId]
 	if (!color) {
 		$("#rivalsCanvas .airlineColorDot").hide()
