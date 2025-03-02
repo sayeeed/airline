@@ -99,6 +99,7 @@ package object controllers {
         "range" -> JsNumber(airplane.model.range),
         "price" -> JsNumber(airplane.model.price),
         "lifespan" -> JsNumber(airplane.model.lifespan),
+        "airplaneType" -> JsString(airplane.model.airplaneTypeLabel),
         "condition" -> JsNumber(airplane.condition),
         "constructedCycle" -> JsNumber(airplane.constructedCycle),
         "purchasedCycle" ->  JsNumber(airplane.purchasedCycle),

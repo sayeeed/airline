@@ -7,7 +7,18 @@ function updateProfiles(profiles) {
 }
 
 function createProfileDiv(profile, profileId) {
-	var $profileDiv = $('<div" class="option available" onclick="selectProfile(' + profileId + ', this)"><h4>' + profile.name +'</h4><p class="pb-2"><i>' + profile.type.replace("_", " ") + '</i></p><p class="pb-2">' + profile.description + '</p></div>')
+	var $profileDiv = $('<div" class="option available" onclick="selectProfile(' + profileId + ', this)"><h4>' + profile.name +'</h4><p><i>' + profile.type.replace("_", " ") + '</i></p></div>')
+    if (profile.rule.length > 0 && profile.rule[0].length > 0) {
+        const ruleList = document.createElement("ul");
+        ruleList.classList.add("list-disc", "pl-4", "pb-4");
+        profile.rule.forEach((ruleText) => {
+            const listItem = document.createElement("li");
+            listItem.textContent = ruleText;
+            ruleList.appendChild(listItem);
+        });
+        $profileDiv.append(ruleList);
+    }
+    $profileDiv.append('<p class="pb-2">' + profile.description + '</p>')
     var $list = $('<ul></ul>').appendTo($profileDiv)
     var $list = $('<ul></ul>').appendTo($profileDiv)
     $list.append('<li class="dot">$' + commaSeparateNumber(profile.cash) + '&nbsp;cash</li>')

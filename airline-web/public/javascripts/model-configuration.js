@@ -39,7 +39,6 @@ function showAirplaneModelConfigurationsModal(modelConfigurationInfo) {
 
     $("#modelConfigurationModal .modelName").text(model.name)
     $("#modelConfigurationModal .modelCapacity").text(model.capacity)
-    $("#modelConfigurationModal .modelMaxSeats").text(model.maxSeats)
 
     $.each(modelConfigurationInfo.configurations, function(index, configuration) {
         var configurationDiv = $(`<div style='width : 98%; min-height : 130px;' class='config' id='config-${configuration.id}'></div>`)
@@ -50,26 +49,19 @@ function showAirplaneModelConfigurationsModal(modelConfigurationInfo) {
         configurationDiv.attr("ondrop", "onAirplaneIconConfigurationDrop(event, " + configuration.id + ")");
         $("#modelConfigurationModal .configContainer").append(configurationDiv)
 
-        const ComponentAircraftConfig = window.ComponentAircraftConfig;
-        let config = { isValid: true, type: "Airbus A320", economy: 0, business: 0, firstClass: 0,  maxCapacity: 194, maxSeats: 180 }
+        let config = { isValid: true, type: "Airbus A320", economy: 0, business: 0, firstClass: 0,  maxCapacity: 194, isWideBody: false }
         config = modelConfigurationInfo.configurations[index]
         config.name = modelConfigurationInfo.model.name
-//        config.isDefault = modelConfigurationInfo.isDefault
-        config.maxSeats = modelConfigurationInfo.model.maxSeats
+        config.isDefault = modelConfigurationInfo.isDefault
+        const wideBodies = ["Wide-body", "Wide-body XL", "Jumbo", "Jumbo XL"];
+        config.isWideBody = wideBodies.includes(modelConfigurationInfo.model.airplaneType)
         config.maxCapacity = modelConfigurationInfo.model.capacity
         config.original = {economy: config.economy, business: config.business, first: config.first}
         config.airplaneCount = getAssignedAirplanesCount("configurationId", configuration.id, model.id)
         console.log(config)
 
-        new ComponentAircraftConfig({
-            target: document.getElementById(`config-${configuration.id}`),
-            props: {
-                config
-            }
-        });
-
-
-
+        const ComponentAircraftConfig = window.ComponentAircraftConfig;
+        window.initAircraftConfig({ props: { config } });
 
     })
 
@@ -95,7 +87,6 @@ function addAirplaneInventoryDivByConfiguration(configurationDiv, modelId) {
     }
 
     var allAirplanes = $.merge($.merge($.merge([], info.assignedAirplanes), info.availableAirplanes), info.constructingAirplanes)
-    console.log(allAirplanes)
     $.each(allAirplanes, function( key, airplane ) {
         if (airplane.configurationId == configurationId) {
             var airplaneId = airplane.id
