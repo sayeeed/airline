@@ -63,7 +63,7 @@ object Bank {
   def getLoanOptions(principal : Long, annualRate : BigDecimal, currentCycle : Int) = {
       LOAN_TERMS.map { term =>
         val baseAnnualRate = annualRate
-        val DEFAULT_ANNUAL_RATE : Double = 0.14
+        val DEFAULT_ANNUAL_RATE : Double = 0.12
         val annualRateByTerm = ( ( ( DEFAULT_ANNUAL_RATE - baseAnnualRate ) / (WEEKS_PER_YEAR * 20) ) * term + baseAnnualRate )
         Loan(airlineId = 0, principal = principal, annualRate = annualRateByTerm, creationCycle = currentCycle, lastPaymentCycle = currentCycle, term = term)
       }

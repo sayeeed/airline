@@ -806,6 +806,7 @@ class LinkApplication @Inject()(cc: ControllerComponents) extends AbstractContro
         val directDemand = directTravelerDemand + directBusinessDemand + directTouristDemand
 
         val cost = if (existingLink.isEmpty) Computation.getLinkCreationCost(fromAirport, toAirport) else 0
+        val quality = if (existingLink.isEmpty) 0 else existingLink.get.computedQuality()
         val flightNumber = if (existingLink.isEmpty) LinkApplication.getNextAvailableFlightNumber(request.user) else existingLink.get.flightNumber
         val flightCode = LinkUtil.getFlightCode(request.user, flightNumber)
 
@@ -819,15 +820,38 @@ class LinkApplication @Inject()(cc: ControllerComponents) extends AbstractContro
             None
           }
 
+        var fromExpectedQuality = Json.obj()
+        val expectedFromQualities = LinkUtil.findExpectedQuality(fromAirportId, toAirportId, fromAirportId)
+        expectedFromQualities match {
+          case Some(classes) => {
+            LinkClass.values.foreach { linkClass: LinkClass =>
+              fromExpectedQuality += (linkClass.code -> JsNumber(classes(linkClass)))
+            }
+          }
+          case None => NotFound
+        }
+        var toExpectedQuality = Json.obj()
+        val expectedToQualities = LinkUtil.findExpectedQuality(toAirportId, fromAirportId, toAirportId)
+        expectedToQualities match {
+          case Some(classes) => {
+            LinkClass.values.foreach { linkClass: LinkClass =>
+              toExpectedQuality += (linkClass.code -> JsNumber(classes(linkClass)))
+            }
+          }
+          case None => NotFound
+        }
 
 
-        var resultObject = Json.obj("fromAirportId" -> fromAirport.id,
+
+        var resultObject = Json.obj(
+          "fromAirportId" -> fromAirport.id,
           "fromAirportName" -> fromAirport.name,
           "fromAirportCode" -> fromAirport.iata,
           "fromAirportCity" -> fromAirport.city,
           "fromAirportLatitude" -> fromAirport.latitude,
           "fromAirportLongitude" -> fromAirport.longitude,
           "fromCountryCode" -> fromAirport.countryCode,
+          "fromExpectedQuality" -> fromExpectedQuality,
           "toAirportId" -> toAirport.id,
           "toAirportName" -> toAirport.name,
           "toAirportCode" -> toAirport.iata,
@@ -835,6 +859,8 @@ class LinkApplication @Inject()(cc: ControllerComponents) extends AbstractContro
           "toAirportLatitude" -> toAirport.latitude,
           "toAirportLongitude" -> toAirport.longitude,
           "toCountryCode" -> toAirport.countryCode,
+          "toExpectedQuality" -> toExpectedQuality,
+          "quality" -> quality,
           "flightCode" -> flightCode,
           "mutualRelationship" -> relationship,
           "affinity" -> Computation.constructAffinityText(fromAirport.zone, toAirport.zone, fromAirport.countryCode, toAirport.countryCode,  relationship, affinity),

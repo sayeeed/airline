@@ -363,6 +363,7 @@ function updateAirlineDetails() {
 //            addTooltipHtml(infoIcon, reputationHtml, {'width' : '350px'})
 
             $('#officeCanvas .airlineName').text(airline.name)
+            $('#officeCanvas .airlineType').text(airline.type)
             cancelAirlineRename()
             if (isPremium()) {
                 if (airline.renameCooldown) {
