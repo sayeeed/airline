@@ -1700,6 +1700,8 @@ i, .italic {
 .opacity-80 { opacity: 0.8; }
 .opacity-90 { opacity: 0.9; }
 .scale-75 { scale: 75%; }
+.rotate-90 { rotate: 90deg}
+.-rotate-90 { rotate: -90deg}
 .list-disc { list-style-type: disc; }
 .text-left { text-align: left; }
 .text-right { text-align: right; }
@@ -1862,3 +1864,5 @@ div#serviceLevelBar {
     translate: 0 -22rem;
   }
 }
+/* airplane config */
+.chart-container.svelte-16dxm5m{height:100%;display:flex;flex-direction:column}.empty-chart.svelte-16dxm5m{display:flex;justify-content:center;align-items:center;height:180px;border-radius:4px;color:#333}.svg-btn.svelte-udovpc.svelte-udovpc{margin:0 2px;background:none;color:inherit;border:none;padding:0;font:inherit;cursor:pointer;width:24px;height:20px;transition:opacity .2s}.svg-btn.svelte-udovpc.svelte-udovpc:hover:enabled{opacity:.4}.svg-btn.svelte-udovpc svg.svelte-udovpc{width:auto;height:100%}label.svelte-udovpc.svelte-udovpc{width:72px;text-transform:capitalize}input.svelte-udovpc.svelte-udovpc{width:44px}.inputs.svelte-udovpc.svelte-udovpc{display:flex;flex-direction:column;padding:8px 0 4px;gap:2px}.inputs.svelte-udovpc div.svelte-udovpc{display:flex;align-items:baseline}.inputs.svelte-udovpc input.svelte-udovpc{margin:4px 0 0}.planeDiagram.svelte-udovpc.svelte-udovpc{display:flex;flex-direction:column;justify-content:flex-start;border:1px solid #ccc;overflow:hidden;padding:0 8px 0 16px;border-radius:80px 40px 40px 80px}.seat-group.svelte-udovpc.svelte-udovpc{display:flex;flex-wrap:wrap;flex-direction:column;justify-content:end;align-content:start;width:auto;height:100%}.seat-group.top.svelte-udovpc.svelte-udovpc{padding:0;justify-content:end}.seat-group.center.svelte-udovpc.svelte-udovpc{padding:0;justify-content:center}.seat-group.bottom.svelte-udovpc.svelte-udovpc{padding:0;justify-content:start}.group-business.svelte-udovpc.svelte-udovpc{margin:0 6px;display:flex;flex-direction:column;flex-wrap:wrap;height:100%;align-content:start}.top.svelte-udovpc .group-business.svelte-udovpc{justify-content:end}.center.svelte-udovpc .group-business.svelte-udovpc{justify-content:center}.bottom.svelte-udovpc .group-business.svelte-udovpc{justify-content:start}.seat.svelte-udovpc.svelte-udovpc{flex:0 0 auto;box-sizing:border-box;min-width:4px;min-height:6px;border:.5px solid #222;margin:.5px 0 .5px 4px}.economy.svelte-udovpc.svelte-udovpc{background-color:#deb887;width:4px;height:6px}.business.svelte-udovpc.svelte-udovpc{background-color:silver;width:4px;height:9px;margin:1px 0 1px 5px}.first.svelte-udovpc.svelte-udovpc{background-color:gold;width:9px;height:11px;margin:1px 0 1px 3px}.aisle.svelte-udovpc.svelte-udovpc{flex:0 0 auto;height:7px;width:100%;background-color:#daa520;opacity:.15}
