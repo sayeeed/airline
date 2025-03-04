@@ -170,13 +170,13 @@ function calcFreq(airplane, distance) {
     if (airplane.range < distance) {
         return "-"
     }
-    const maxFlightMinutes = 4 * 24 * 60;
+    const maxFlightMinutes = 4.5 * 24 * 60;
     const flightTime = calcFlightTime(airplane, distance);
     return Math.floor(maxFlightMinutes / ((flightTime + airplane.turnaroundTime) * 2));
 }
 
 function calcCostPerPax(airplane, distance) {
-    const maxFlightMinutes = 4 * 24 * 60;
+    const maxFlightMinutes = 4.5 * 24 * 60;
     const flightTime = calcFlightTime(airplane, distance);
     const frequency = Math.floor(maxFlightMinutes / ((flightTime + airplane.turnaroundTime) * 2));
     const aircraftFlightTime = frequency * 2 * (flightTime + airplane.turnaroundTime);
@@ -187,37 +187,48 @@ function calcCostPerPax(airplane, distance) {
     const decayRate = 100 / (airplane.lifespan * 3) * (1 + 2 * planeUtilisation);
     const depreciationRate = Math.floor(airplane.price * (decayRate / 100) * utilisation);
 
-    const fuelCost = calcFuelBurn(airplane, distance) * 0.08;
+    const FUEL_UNIT_COST = 88 * 0.08
+    const fuelCost = calcFuelBurn(airplane, distance) * FUEL_UNIT_COST;
 
     const cost = (fuelCost * frequency + depreciationRate) / (airplane.capacity * frequency);
     return cost;
 }
 
-function calcFlightTime(airplane, distance){
-    const min = Math.min;
-    const max = Math.max;
-    const speed = airplane.speed * (airplane.airplaneType.toUpperCase() == "SUPERSONIC" ? 1.5 : 1);
-    const a = min(distance, 300);
-    const b = min(max(0, distance-a), 400);
-    const c = min(max(0, distance-(a+b)), 400);
-    const d = max(0, distance-(a+b+c));
-    //prop
-    const x = min(distance, 250);
-    const y = min(max(0, distance-x), 350);
-    const z = max(0, distance-(x+y));
-    const time_flight = airplane.airplaneType.toUpperCase() == "PROP" ? x / min(speed, 425) + y / min(speed, 550) + z / speed : a / min(speed, 350) + b / min(speed, 500) + c / min(speed, 700) + d / speed;
-    return time_flight * 60;
+function calcFlightTime(airplaneModel, distance) {
+  let timeToCruise;
+  switch (airplaneModel.airplaneType.toUpperCase()) {
+    case "PROPELLER_SMALL":
+      timeToCruise = 5;
+      break;
+    case "PROPELLER_MEDIUM":
+      timeToCruise = 8;
+      break;
+    case "SMALL":
+      timeToCruise = 14;
+      break;
+    case "REGIONAL":
+      timeToCruise = 20;
+      break;
+    case "MEDIUM":
+    case "MEDIUM_XL":
+      timeToCruise = 28;
+      break;
+    case "HELICOPTER":
+    case "AIRSHIP":
+      timeToCruise = 0;
+      break;
+    default:
+      timeToCruise = 40;
+  }
+
+  return timeToCruise + distance * 60 / airplaneModel.speed;
 }
 
-function calcFuelBurn(airplane, distance){
+function calcFuelBurn(airplane, totalSeats, distance){
+    const loadFactor = 0.75 + 0.25 * totalSeats / airplane.capacity
     const flightTime = calcFlightTime(airplane, distance);
-    const distanceFactor = 0.5 + 0.05 * Math.pow(flightTime / 60, 1.4)
-    const ascentTimes = {
-      "HELICOPTER": 0,
-      "PROP": 18
-    };
-    const ascendTime = ascentTimes[airplane.airplaneType.toUpperCase()] || Math.min(50, flightTime / 3 * 2);
-    const fuelBurn = parseInt((ascendTime * airplane.fuelBurn * 4.75 + (flightTime - ascendTime) * airplane.fuelBurn) * distanceFactor);
+    const distanceFactor = 1 + 0.1 * Math.pow(flightTime / 60, 1.34 * loadFactor);
+    const fuelBurn = airplane.capacity * distanceFactor * (airplane.ascentBurn * loadFactor + airplane.cruiseBurn * distance / 800);
     return fuelBurn;
 }
 

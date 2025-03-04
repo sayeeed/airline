@@ -17,7 +17,7 @@ import java.util.concurrent.ThreadLocalRandom
 object LinkSimulation {
 
 
-  val FUEL_UNIT_COST = OilPrice.DEFAULT_UNIT_COST * 92 //for easier flight monitoring, let's make it the default unit price here
+  val FUEL_UNIT_COST = OilPrice.DEFAULT_UNIT_COST * 88 //for easier flight monitoring, let's make it the default unit price here
   val CREW_UNIT_COST = 6.75
   val CREW_BASE_COST = 300
 
@@ -213,7 +213,7 @@ object LinkSimulation {
 
     val fuelCost = flightLink.getAssignedModel() match {
       case Some(model) =>
-        val loadFactor = 0.75 + 0.25 * flightLink.getTotalSoldSeats.toDouble / flightLink.capacity.totalwithSeatSize
+        val loadFactor = 0.7 + 0.3 * flightLink.getTotalSoldSeats.toDouble / flightLink.capacity.totalwithSeatSize
         val distanceFactor = 1 + 0.1 * Math.pow(flightLink.duration.toDouble / 60, 1.34 * loadFactor)
         val fuelCost = FUEL_UNIT_COST * model.capacity * distanceFactor * (model.ascentBurn * loadFactor + model.cruiseBurn * link.distance / 800)
 
