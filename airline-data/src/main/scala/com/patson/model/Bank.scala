@@ -13,7 +13,7 @@ object Bank {
   val MIN_LOAN_AMOUNT = 10000
   val MAX_LOAN_AMOUNT : Long = 10000000000L //10b max
   val LOAN_REAPPLY_MIN_INTERVAL = 2
-  val DEFAULT_ANNUAL_RATE = 0.14
+  val DEFAULT_ANNUAL_RATE = 0.12
   def getMaxLoan(airlineId : Int) : LoanReply = {
     val existingLoans = BankSource.loadLoansByAirline(airlineId)
     
@@ -54,19 +54,22 @@ object Bank {
     val currentCycle = CycleSource.loadCycle()
     BankSource.loadLoanInterestRateByCycle(currentCycle) match {
       case Some(currentRate) =>
-        getLoanOptions(principal, currentRate.annualRate, currentCycle)
+        getLoanOptions(principal, currentRate.annualRate.toDouble, currentCycle)
       case None =>
         List.empty[Loan]
     }
   }
 
-  def getLoanOptions(principal : Long, annualRate : BigDecimal, currentCycle : Int) = {
+  def getLoanOptions(principal : Long, baseAnnualRate : Double, currentCycle : Int) = {
       LOAN_TERMS.map { term =>
-        val baseAnnualRate = annualRate
-        val DEFAULT_ANNUAL_RATE : Double = 0.12
         val annualRateByTerm = ( ( ( DEFAULT_ANNUAL_RATE - baseAnnualRate ) / (WEEKS_PER_YEAR * 20) ) * term + baseAnnualRate )
         Loan(airlineId = 0, principal = principal, annualRate = annualRateByTerm, creationCycle = currentCycle, lastPaymentCycle = currentCycle, term = term)
       }
+  }
+
+  def getLoan(airlineId : Int, principal : Long, rate : Double, currentCycle : Int, years : Int): Loan = {
+    val term = years * 52
+    Loan(airlineId = airlineId, principal = principal, annualRate = rate, creationCycle = currentCycle, lastPaymentCycle = currentCycle, term = term)
   }
 
   case class LoanReply(maxLoan : Long, rejectionOption : Option[String])

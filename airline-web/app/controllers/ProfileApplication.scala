@@ -17,7 +17,7 @@ import scala.collection.mutable.ListBuffer
 class ProfileApplication @Inject()(cc: ControllerComponents) extends AbstractController(cc) {
   implicit object ProfileWrites extends Writes[Profile] {
     def writes(profile: Profile): JsValue = {
-      var result =Json.obj(
+      var result = Json.obj(
         "name" -> profile.name,
         "type" -> profile.airlineType,
         "difficulty" -> profile.difficulty,
@@ -27,10 +27,9 @@ class ProfileApplication @Inject()(cc: ControllerComponents) extends AbstractCon
         "quality" -> profile.quality,
         "airplanes" -> profile.airplanes,
         "reputation" -> profile.reputation,
-        "airportText" -> profile.airport.displayText)
-      profile.loan.foreach { loan =>
-        result = result + ("loan" -> Json.toJson(loan)(new LoanWrites(CycleSource.loadCycle())))
-      }
+        "airportText" -> profile.airport.displayText,
+        "loan" -> Json.toJson(profile.loan)(new LoanWrites(CycleSource.loadCycle()))
+      )
       result
     }
   }
@@ -70,7 +69,7 @@ class ProfileApplication @Inject()(cc: ControllerComponents) extends AbstractCon
     }
   }
 
-  val BASE_INTEREST_RATE = 0.08
+  val BASE_INTEREST_RATE = 0.04 //because of how interest is adjusted for long term loans, this will
 
   def generateProfiles(airline : Airline, airport : Airport) : List[Profile] = {
     val difficulty = airport.rating.overallDifficulty
@@ -94,7 +93,7 @@ class ProfileApplication @Inject()(cc: ControllerComponents) extends AbstractCon
         reputation = 20,
         cash = capital * 2,
         airport = airport,
-        loan = Some(Bank.getLoanOptions((capital).toInt, BASE_INTEREST_RATE / 2, CycleSource.loadCycle()).last.copy(airlineId = airline.id))
+        loan = Bank.getLoan(airline.id, (capital / 2.5).toInt, BASE_INTEREST_RATE, CycleSource.loadCycle(), 10)
       )
       profiles.append(beginnerProfile)
     }
@@ -105,7 +104,7 @@ class ProfileApplication @Inject()(cc: ControllerComponents) extends AbstractCon
       description = "You and the bank are betting big that there's money in commercial aviation! Plan carefully but make bold moves to thrive in this brave new world!",
       cash = (capital * 2.5).toInt,
       airport = airport,
-      loan = Some(Bank.getLoanOptions((capital * 2).toInt, BASE_INTEREST_RATE, CycleSource.loadCycle()).last.copy(airlineId = airline.id))
+      loan = Bank.getLoan(airline.id, (capital * 2).toInt, BASE_INTEREST_RATE, CycleSource.loadCycle(), 20)
     )
     profiles.append(loanProfile)
 
@@ -115,12 +114,12 @@ class ProfileApplication @Inject()(cc: ControllerComponents) extends AbstractCon
         name = "Revival of past glory",
         airlineType = AirlineType.LEGACY,
         description = "A once great airline now saddled with debt and aging airplanes. Can you turn this airline around?",
-        cash = (capital * 4.6).toInt - largeAirplanes.map(_.value).sum,
+        cash = (capital * 4.8).toInt - largeAirplanes.map(_.value).sum,
         airport = airport,
         reputation = 30,
-        quality = 0,
+        quality = 35,
         airplanes = largeAirplanes,
-        loan = Some(Bank.getLoanOptions((capital * 4).toInt, BASE_INTEREST_RATE, CycleSource.loadCycle()).last.copy(airlineId = airline.id))
+        loan = Bank.getLoan(airline.id, (capital * 4).toInt, BASE_INTEREST_RATE, CycleSource.loadCycle(), 20)
       )
       profiles.append(largeAirplaneProfile)
     }
@@ -132,7 +131,7 @@ class ProfileApplication @Inject()(cc: ControllerComponents) extends AbstractCon
       rule = List("Upgrading & upkeep your HQ base is much cheaper", "Upgrading & upkeep on all other bases is more expensive"),
       cash = (capital * 3).toInt + difficulty * BONUS_PER_DIFFICULTY_POINT, //receive double bonus for starting in small airport
       airport = airport,
-      loan = Some(Bank.getLoanOptions((capital * 2).toInt, BASE_INTEREST_RATE / 2, CycleSource.loadCycle()).last.copy(airlineId = airline.id))
+      loan = Bank.getLoan(airline.id, (capital * 1.75).toInt, BASE_INTEREST_RATE / 2, CycleSource.loadCycle(), 15)
     )
     profiles.append(megaHQ)
 
@@ -144,12 +143,13 @@ class ProfileApplication @Inject()(cc: ControllerComponents) extends AbstractCon
         difficulty = "Hard",
         description = "Time to pack in the masses!",
         rule = List("You can never add business or first class!","2x reputation from tourist track","Base crew costs are 25% lower"),
-        cash = (capital * 3.25).toInt - ULCCAirplanes.map(_.value).sum,
+        cash = (capital * 3.5).toInt - ULCCAirplanes.map(_.value).sum,
         airport = airport,
         reputation = 20,
         quality = 0,
         airplanes = ULCCAirplanes,
-        loan = Some(Bank.getLoanOptions((capital * 2.5).toInt, BASE_INTEREST_RATE, CycleSource.loadCycle()).last.copy(airlineId = airline.id)))
+        loan = Bank.getLoan(airline.id, (capital * 2.25).toInt, BASE_INTEREST_RATE, CycleSource.loadCycle(), 15)
+      )
       profiles.append(cheapAirplaneProfile)
     }
 
@@ -166,7 +166,8 @@ class ProfileApplication @Inject()(cc: ControllerComponents) extends AbstractCon
         reputation = 25,
         quality = 90,
         airplanes = fancyAirplanes,
-        loan = Some(Bank.getLoanOptions((capital * 2).toInt, BASE_INTEREST_RATE, CycleSource.loadCycle()).last.copy(airlineId = airline.id)))
+        loan = Bank.getLoan(airline.id, (capital * 2).toInt, BASE_INTEREST_RATE, CycleSource.loadCycle(), 15)
+      )
       profiles.append(fancyAirplaneProfile)
     }
 
@@ -206,9 +207,7 @@ class ProfileApplication @Inject()(cc: ControllerComponents) extends AbstractCon
         profile.airplanes.foreach(_.assignDefaultConfiguration())
         AirplaneSource.saveAirplanes(profile.airplanes)
 
-        profile.loan.foreach { loan =>
-          BankSource.saveLoan(loan)
-        }
+        BankSource.saveLoan(profile.loan)
 
         airline.setInitialized(true)
         AirlineSource.saveAirlineInfo(airline, true)
