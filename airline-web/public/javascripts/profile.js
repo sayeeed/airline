@@ -7,7 +7,7 @@ function updateProfiles(profiles) {
 }
 
 function createProfileDiv(profile, profileId) {
-	var $profileDiv = $('<div" class="option available" onclick="selectProfile(' + profileId + ', this)"><h4>' + profile.name +'</h4><p><i>' + profile.type.replace("_", " ") + '</i></p></div>')
+	var $profileDiv = $('<div" class="option available" onclick="selectProfile(' + profileId + ', this)"><h4>' + profile.name +'</h4><p><i>' + profile.difficulty + ' Difficulty</i></p></div>')
     if (profile.rule.length > 0 && profile.rule[0].length > 0) {
         const ruleList = document.createElement("ul");
         ruleList.classList.add("list-disc", "pl-4", "pb-4");

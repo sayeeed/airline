@@ -18,10 +18,6 @@ import scala.util.Random
 
 object NegotiationUtil {
   val MAX_ASSIGNED_DELEGATE = 11
-  val FREE_LINK_THRESHOLD = 5 //for newbie
-  val FREE_LINK_FREQUENCY_THRESHOLD = 5
-  val FREE_LINK_DIFFICULTY_THRESHOLD = 10
-  val FREE_LINK_MAX_DISTANCE = 2000
   val GREAT_SUCCESS_THRESHOLD = 0.95 // 5%
 
   def negotiate(info: NegotiationInfo, delegateCount: Int): NegotiationResult = {
@@ -33,10 +29,7 @@ object NegotiationUtil {
     NegotiationResult(1 - odds, threshold)
   }
 
-
-
   val NO_NEGOTIATION_REQUIRED = NegotiationInfo(List (), List (), List (), List (), 0, 0, 0, Map(0 -> 1))
-
 
   val normalizedCapacity : LinkClassValues => Double = (capacity : LinkClassValues) => {
     capacity(ECONOMY) * ECONOMY.spaceMultiplier + capacity(BUSINESS) * BUSINESS.spaceMultiplier + capacity(FIRST) * FIRST.spaceMultiplier
@@ -369,15 +362,6 @@ object NegotiationUtil {
     val fromAirportRequirementValue = fromRequirementBase * (1 - totalFromDiscount)
     val toAirportRequirementValue = toRequirementBase * (1 - totalToDiscount)
     val finalRequirementValue = fromAirportRequirementValue + toAirportRequirementValue
-
-    //check for freebie bonus
-    if (airlineLinks.length < FREE_LINK_THRESHOLD &&
-      newFrequency <= FREE_LINK_FREQUENCY_THRESHOLD &&  //to prevent many small increase
-      finalRequirementValue < FREE_LINK_DIFFICULTY_THRESHOLD &&
-      newLink.distance <= FREE_LINK_MAX_DISTANCE
-    ) {
-      return NegotiationUtil.NO_NEGOTIATION_REQUIRED.copy(remarks = Some(s"No negotiation for first $FREE_LINK_THRESHOLD routes of freq <= $FREE_LINK_FREQUENCY_THRESHOLD, shorter than $FREE_LINK_MAX_DISTANCE km, and difficulty < $FREE_LINK_DIFFICULTY_THRESHOLD."))
-    }
 
     NegotiationInfo(fromAirportRequirements, toAirportRequirements, fromAirportDiscounts, toAirportDiscounts, totalFromDiscount, finalToDiscountValue = totalToDiscount, finalRequirementValue, computeOdds(finalRequirementValue, Math.min(MAX_ASSIGNED_DELEGATE, airline.getDelegateInfo.availableCount)))
   }
