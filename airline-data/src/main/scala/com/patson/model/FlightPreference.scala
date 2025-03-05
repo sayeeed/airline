@@ -115,7 +115,7 @@ abstract class FlightPreference(homeAirport : Airport) {
       } else {
         priceSensitivity
       }
-    val sfBuffer = 0.02
+    val sfBuffer = 0.03
     1 - sfBuffer + deltaFromStandardPrice * priceSensitivityModifier / standardPrice
   }
 
