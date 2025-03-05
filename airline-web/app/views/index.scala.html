@@ -858,6 +858,10 @@
 										</div>
 									</div>
 									<div class="table-row">
+										<div class="label" id="planLinkEstimatedDifficultyLabel">Difficulty:</div>
+										<div class="value" id="planLinkEstimatedDifficulty"></div>
+									</div>
+									<div class="table-row">
 										<div class="label">Capacity (Y/J/F):</div>
 										<div class="value">
 											<span id="planLinkCapacity"></span>
@@ -868,14 +872,6 @@
 											</div>
 										</div>
 									</div>
-<!--									<div class="table-row">-->
-<!--										<p class="label">Estimated quality:</p>-->
-<!--										<div class="value">-->
-<!--											-->
-<!--											<p><i>Expected quality from:</i> <a class="planFromIata" onclick="showLinkExpectedQualityModal(true)"></a> | <a class="planToIata" onclick="showLinkExpectedQualityModal(false)"></a></p>-->
-<!--											<input type="hidden" id="planLinkServiceLevel" value="1"/>-->
-<!--										</div>-->
-<!--									</div>-->
 									<div class="table-row">
 										<div class="label">Staff Required:</div>
 										<div class="value" style="">
@@ -912,9 +908,9 @@
 											<i class="pl-1 planLinkFlightType"></i>
 										</div>
 									</div>
-									<div class="table-row">
-										<div class="label" id="planLinkEstimatedDifficultyLabel">Difficulty & Setup Cost:</div>
-										<div class="value"><span id="planLinkEstimatedDifficulty"></span><span id="planLinkSetupCost"></span></div>
+									<div class="table-row" id="planLinkSetupCostRow" style="display:none;">
+										<div class="label">Setup Cost:</div>
+										<div class="value" id="planLinkSetupCost"></div>
 									</div>
 								</div>
 								<div class="linkRejection warning">
@@ -3004,6 +3000,7 @@
 						<div class="section tight">
 							<div style="height: 20px;">
 								<input type="checkbox" id="hideInactive" onchange="toggleHideInactive(this.checked)" checked/><span class="label">Hide Inactive Airlines</span>
+								<input type="checkbox" id="hideNonPlayerAirlines" onchange="toggleHideNonPlayerAirlines(this.checked)"/><span class="label">Hide Non-Player Airlines</span>
 								<span id="rivalIdSortButton" data-sort-property="id" data-sort-order="descending" class="button adminActions" title="Sort by created date"
 									  onclick="toggleRivalsTableSortOrder($(this))" style="vertical-align: text-bottom">
 									<img src='@routes.Assets.versioned("images/icons/clock-frame.png")'>
@@ -5845,11 +5842,11 @@
   <link rel="preconnect" href="https://p.typekit.net" crossorigin />
   <link rel="preload" href="https://p.typekit.net" crossorigin>
   <link rel="stylesheet" href="https://use.typekit.net/plw0ulw.css">
-  <script src='@routes.Assets.versioned("javascripts/main.js")'></script>
-  <script defer src='@routes.Assets.versioned("javascripts/airport.js")'></script>
+  <script src='@routes.Assets.versioned("javascripts/main.js?=1")'></script>
+  <script defer src='@routes.Assets.versioned("javascripts/airport.js?=1")'></script>
   <script src='@routes.Assets.versioned("javascripts/airport-asset.js")'></script>
-  <script src='@routes.Assets.versioned("javascripts/airplane.js")'></script>
-  <script src='@routes.Assets.versioned("javascripts/model-configuration.js")'></script>
+  <script src='@routes.Assets.versioned("javascripts/airplane.js?=1")'></script>
+  <script src='@routes.Assets.versioned("javascripts/model-configuration.js?=1")'></script>
   <script src='@routes.Assets.versioned("javascripts/airline.js")'></script>
   <script src='@routes.Assets.versioned("javascripts/link-history.js")'></script>
   <script src='@routes.Assets.versioned("javascripts/delegate.js")'></script>
@@ -5887,7 +5884,7 @@
   <script src='@routes.Assets.versioned("javascripts/ui-theme.js")'></script>
   <script src='@routes.Assets.versioned("javascripts/table-utils.js")'></script>
 
-  <script src='@routes.Assets.versioned("javascripts/aircraft-config.umd.js")' defer></script>
+  <script src='@routes.Assets.versioned("javascripts/aircraft-config.umd.js?=1")' defer></script>
   <link rel="stylesheet" type="text/css" href='@routes.Assets.versioned("stylesheets/index-CKPGaino.css")'>
 
 

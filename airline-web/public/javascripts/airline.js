@@ -75,6 +75,11 @@ function refreshTopBar(airline) {
 	refreshTopBarDelegates(airline)
 }
 
+/**
+ * @value {number} 1-10
+ * @width {number} in px
+ * @returns {html} 5 stars, either full, half, or empty
+ **/
 function getGradeStarsImgs(value, width = 16) {
     const adjusted = Math.max(value, 0)
 	const halfStar = adjusted % 2
@@ -669,7 +674,7 @@ function refreshLinkDetails(linkId) {
 	    	$("#linkCurrentPrice").html(toLinkClassDiv(link.price, "$"))
 	    	$("#linkDistance").text(link.distance + " km")
 	    	$("#linkDuration").text(toHoursAndMinutes(link.duration).hours + "hr " + toHoursAndMinutes(link.duration).minutes + "min ")
-	    	$("#linkQuality").html(getGradeStarsImgs(Math.min(100, Math.round(link.computedQuality / 10))) + " (" + link.computedQuality + ")")
+	    	$("#linkQuality").html(getGradeStarsImgs(Math.min(10, Math.round(link.computedQuality / 10))) + " (" + link.computedQuality + ")")
 	    	$("#linkCurrentCapacity").html(toLinkClassDiv(link.capacity))
 	    	if (link.future) {
 	    	    $("#linkCurrentDetails .future .capacity").html(toLinkClassDiv(link.future.capacity))
@@ -1068,33 +1073,30 @@ function updatePlanLinkInfo(linkInfo, isRefresh) {
 		$("#planLinkCompetitors").append("<div class='table-row data-row'><div style='display: table-cell;'>-</div><div style='display: table-cell;'>-</div><div style='display: table-cell;'>-</div><div style='display: table-cell;'>-</div><div style='display: table-cell;'>-</div></div>")
 	}
 
-    document.querySelector("#planLinkQuality").innerHTML = getGradeStarsImgs(Math.min(100, Math.round(linkInfo.quality / 10)), 12)
+    document.querySelector("#planLinkQuality").innerHTML = getGradeStarsImgs(Math.min(10, Math.round(linkInfo.quality / 10)), 12)
 
-	const fromQuality = document.getElementById("planLinkExpectedFromQuality")
+	const fromQuality = document.getElementById("planLinkExpectedToQuality")
 	fromQuality.getElementsByClassName("first")[0].innerHTML = getGradeStarsImgs(Math.round(linkInfo.toExpectedQuality.F / 10), 12)
 	fromQuality.getElementsByClassName("business")[0].innerHTML = getGradeStarsImgs(Math.round(linkInfo.toExpectedQuality.J / 10), 12)
 	fromQuality.getElementsByClassName("economy")[0].innerHTML = getGradeStarsImgs(Math.round(linkInfo.toExpectedQuality.Y / 10), 12)
 	fromQuality.getElementsByClassName("discount")[0].innerHTML = getGradeStarsImgs(Math.round(linkInfo.toExpectedQuality.D / 10), 12)
 
-	const toQuality = document.getElementById("planLinkExpectedToQuality")
+	const toQuality = document.getElementById("planLinkExpectedFromQuality")
     toQuality.getElementsByClassName("first")[0].innerHTML = getGradeStarsImgs(Math.round(linkInfo.fromExpectedQuality.F / 10), 12)
     toQuality.getElementsByClassName("business")[0].innerHTML = getGradeStarsImgs(Math.round(linkInfo.fromExpectedQuality.J / 10), 12)
     toQuality.getElementsByClassName("economy")[0].innerHTML = getGradeStarsImgs(Math.round(linkInfo.fromExpectedQuality.Y / 10), 12)
     toQuality.getElementsByClassName("discount")[0].innerHTML = getGradeStarsImgs(Math.round(linkInfo.fromExpectedQuality.D / 10), 12)
 
-	if (linkInfo.estimatedDifficulty && linkInfo.cost !== 0) {
-	    $('#planLinkEstimatedDifficultyLabel').text('Difficulty & Setup Cost:')
+	if (linkInfo.estimatedDifficulty) {
 	    $('#planLinkEstimatedDifficulty').text(linkInfo.estimatedDifficulty.toFixed(2))
-	    $('#planLinkSetupCost').text(" & $" + commaSeparateNumber(linkInfo.cost))
-    } else if (linkInfo.cost !== 0) {
-        $('#planLinkEstimatedDifficultyLabel').text('Difficulty & Setup Cost:')
-        $('#planLinkEstimatedDifficulty').text('-')
-        $('#planLinkSetupCost').text(" & $" + commaSeparateNumber(linkInfo.cost))
     } else {
-        $('#planLinkEstimatedDifficultyLabel').text('Difficulty:')
         $('#planLinkEstimatedDifficulty').text('-')
-        $('#planLinkSetupCost').text("")
     }
+
+     if (linkInfo.cost !== 0) {
+        $('#planLinkSetupCostRow').show()
+        $('#planLinkSetupCost').text("$" + commaSeparateNumber(linkInfo.cost))
+     }
 
     if (tempPath) { //remove previous plan link if it exists
 		removeTempPath()
@@ -1600,7 +1602,7 @@ function addAirplaneRow(container, airplane, frequency) {
     airplaneCell.append(airplaneInspectIcon)
 
     var airplaneRemovalIcon = $('<div class="clickable-no-highlight px-1 py-05" onclick="removeAirplaneFromLink(' + airplane.id + ')"></div>')
-//    airplaneRemovalIcon.append($('<img src="assets/images/icons/airplane-minus.png" title="Unassign airplane #' + airplane.id + '">'))
+    airplaneRemovalIcon.append($('<img src="assets/images/icons/airplane-minus.png" title="Unassign airplane #' + airplane.id + '">'))
     airplaneCell.append(airplaneRemovalIcon)
 
 //    airplaneCell.append($("<span>#" + airplane.id + "</span>"))
@@ -1612,7 +1614,7 @@ function addAirplaneRow(container, airplane, frequency) {
         }
     })
     if (sharedLinkCount > 0) {
-        airplaneCell.append($('<img src="assets/images/icons/information.svg" class="px-1 py-05 info svg" title="Shared with ' + sharedLinkCount + ' other route(s)">'))
+//        airplaneCell.append($('<img src="assets/images/icons/information.svg" class="px-1 py-05 info svg" title="Shared with ' + sharedLinkCount + ' other route(s)">'))
     }
 
     if (!airplane.isReady) {

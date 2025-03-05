@@ -7,10 +7,10 @@ import com.patson.model.FlightCategory.FlightCategory
  */
 object Pricing {
   val modifierBrackets: Map[LinkClass, List[(Int, Double)]] = Map(
-    DISCOUNT_ECONOMY  -> List((400, 0.07), (1000, 0.069), (6000, 0.065), (Int.MaxValue, 0.07)),
-    ECONOMY           -> List((400, 0.11), (1000, 0.073), (6000, 0.078), (Int.MaxValue, 0.09)),
-    BUSINESS          -> List((400, 0.28), (1000, 0.217), (6000, 0.17), (Int.MaxValue, 0.225)),
-    FIRST             -> List((400, 1.23), (1000, 0.296), (6000, 0.42), (Int.MaxValue, 0.55))
+    DISCOUNT_ECONOMY  -> List((400, 0.08), (1000, 0.071), (6000, 0.06), (Int.MaxValue, 0.07)),
+    ECONOMY           -> List((400, 0.12), (1000, 0.076), (6000, 0.07), (Int.MaxValue, 0.09)),
+    BUSINESS          -> List((400, 0.28), (1000, 0.212), (6000, 0.16), (Int.MaxValue, 0.23)),
+    FIRST             -> List((400, 1.22), (1000, 0.292), (6000, 0.42), (Int.MaxValue, 0.56))
   )
   val INTERNATIONAL_PRICE_MULTIPLIER = 1.05
 

@@ -1792,6 +1792,10 @@ i, .italic {
     font-size: 1em;
     font-weight: 600;
 }
+#linkCurrentDetails {
+    flex-basis: 250px;
+    width: 250px;
+}
 #planLinkExtendedDetails > .table-row {
     height: 32px;
 }

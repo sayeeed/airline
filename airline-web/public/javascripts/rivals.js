@@ -2,6 +2,7 @@ var loadedRivals = []
 var loadedRivalsById = {}
 var loadedRivalLinks = []
 var hideInactive = true
+var rivalsHideNonPlayerAirlines = false
 
 function showRivalsCanvas(selectedAirline) {
 	setActiveDiv($("#rivalsCanvas"))
@@ -13,6 +14,12 @@ function showRivalsCanvas(selectedAirline) {
 
 function toggleHideInactive(flagValue) {
     hideInactive = flagValue
+    var selectedSortHeader = $('#rivalsTableSortHeader .table-header .cell.selected')
+    updateRivalsTable(selectedSortHeader.data('sort-property'), selectedSortHeader.data('sort-order'), null)
+}
+
+function toggleHideNonPlayerAirlines(flagValue) {
+    rivalsHideNonPlayerAirlines = flagValue
     var selectedSortHeader = $('#rivalsTableSortHeader .table-header .cell.selected')
     updateRivalsTable(selectedSortHeader.data('sort-property'), selectedSortHeader.data('sort-order'), null)
 }
@@ -58,11 +65,19 @@ function updateRivalsTable(sortProperty, sortOrder, selectedAirline) {
 	rivalsTable.children("div.table-row").remove()
 
 	//filter if necessary
-	var displayRivals
-	if (hideInactive) {
+	var displayRivals;
+	if (hideInactive && rivalsHideNonPlayerAirlines) {
+    	    displayRivals = loadedRivals.filter(function(rival) {
+                  return rival.loginStatus < 3 && rival.type != "Non-Player" || rival.id == selectedAirline
+            });
+	} else if (hideInactive) {
 	    displayRivals = loadedRivals.filter(function(rival) {
-                                    	    		  return rival.loginStatus < 3 || rival.id == selectedAirline
-                                    	    	});
+              return rival.loginStatus < 3 || rival.id == selectedAirline
+        });
+    } else if (rivalsHideNonPlayerAirlines) {
+        displayRivals = loadedRivals.filter(function(rival) {
+              return rival.type != "Non-Player"
+        });
 	} else {
 	    displayRivals = loadedRivals
     }
