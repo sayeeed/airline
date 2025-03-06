@@ -1,5 +1,7 @@
 package com.patson.model
 
+import com.patson.model.FlightCategory.FlightCategory
+
 /**
  * Cost base model
  */
@@ -18,7 +20,7 @@ object Pricing {
   }
   def computeStandardPrice(distance: Int, flightCategory: FlightCategory.Value, linkClass: LinkClass) : Int = {
     var remainDistance = distance
-    var price = 20.0
+    var price = 15.0
     for (priceBracket <- modifierBrackets(linkClass) if(remainDistance > 0)) {
       if (priceBracket._1 >= remainDistance) {
         price += remainDistance * priceBracket._2

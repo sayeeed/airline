@@ -6,8 +6,10 @@ import scala.collection.mutable.ListBuffer
 
 object AirportSizeAdjust {
   //https://en.wikipedia.org/wiki/List_of_busiest_airports_by_passenger_traffic
-  //orderd per 2023 stats
-  //top 5 = level 10; top 6-15 = level 9; top 16-50 = level 8
+  //orderd per 2024 stats top 10; 2023 elsewhere
+  //level 10 = top 10
+  //level 9 >= ~ 36m pax
+  //level 8 >= ~ 20m pax
   //level 7 >= ~ 10m pax
   //level 6 >= ~ 2m pax
   //level 5 >= ~ 1m pax
@@ -15,59 +17,59 @@ object AirportSizeAdjust {
         //top 5
         "ATL" -> 10,
         "DXB" -> 10,
-        "DFW" -> 10,
-        "LHR" -> 10,
         "HND" -> 10,
-        //top 6-15
+        "LHR" -> 10,
+        "DFW" -> 10,
+        //level 9
         "DEN" -> 9,
-        "IST" -> 9,
-        "LAX" -> 9,
-        "ORD" -> 9,
-        "DEL" -> 8,//should be a 9 but it gets too big
-        "CGK" -> 9,
-        "CDG" -> 9,
         "CAN" -> 9,
-        "JFK" -> 9,
-        "AMS" -> 9,
-        //top 16-40 = 8; minus some USA airports
-        "MAD" -> 8,
-        "FRA" -> 9,
-        "SIN" -> 8,
-        "MCO" -> 8,
-        "LAS" -> 8,
-        "ICN" -> 8,
+        "IST" -> 9,
         "PVG" -> 9,
-        "CLT" -> 8,
-        "PEK" -> 8,
-        "SZX" -> 8,
-        "MIA" -> 8,
-        "BKK" -> 8,
-        "BOM" -> 8,
-        "SEA" -> 8,
-        "SFO" -> 8,
+        "ORD" -> 9,
+        "CDG" -> 9,
+        "AMS" -> 9,
+        "FRA" -> 9,
+        "MAD" -> 9,
+        "LAX" -> 9,
+        "JFK" -> 9,
+        "PEK" -> 9,
+        "DEL" -> 8,//should be a 9 but it gets too big
+        "ICN" -> 9,
+        "SIN" -> 9,
+        "SZX" -> 9,
+        "CGK" -> 9,
+        //level 8; minus some USA airports
         "BCN" -> 8,
+        "FCO" -> 8,
+        "MUC" -> 8,
+        "DOH" -> 8,
+        "JED" -> 8,
+        "RUH" -> 8,
+        "CAI" -> 8,
+        "MEX" -> 8,
+        "GRU" -> 8,
+        "LAS" -> 8,
+        "SEA" -> 8,
+        "MIA" -> 8,
+        "SFO" -> 8,
+        "MCO" -> 7,
         "PHX" -> 8,
         "MEX" -> 8,
         "KUL" -> 8,
-        "DOH" -> 8,
         "MNL" -> 8,
         "YYZ" -> 8,
         "TFU" -> 8,
         "CKG" -> 8,
-        "JED" -> 8,
         "KMG" -> 8,
         "XIY" -> 8,
         "GRU" -> 8,
         "HGH" -> 8,
         "SGN" -> 8,
-        //https://www.oag.com/south-east-asia-aviation-flight-data
-        "HKG" -> 7,
+        "HKG" -> 8,
         "TPE" -> 7,
         //https://en.wikipedia.org/wiki/List_of_the_busiest_airports_in_Europe
         //2023, up to 10m pax, excluding "discount" airports
         "LGW" -> 7, //should be 8
-        "FCO" -> 8,
-        "MUC" -> 8,
         "SVO" -> 7,
         "LIS" -> 7,
         "DUB" -> 7,
@@ -109,13 +111,11 @@ object AirportSizeAdjust {
         "MDE" -> 7,
         "AEP" -> 5,
         //https://en.wikipedia.org/wiki/List_of_the_busiest_airports_in_the_Middle_East
-        "RUH" -> 7,
         "AUH" -> 7,
         "TLV" -> 7,
         "KWI" -> 7,
         "MCT" -> 7,
         //https://en.wikipedia.org/wiki/List_of_the_busiest_airports_in_Africa
-        "CAI" -> 8,
         "JNB" -> 7,
         "CPT" -> 7,
         "CMN" -> 7,
@@ -191,7 +191,7 @@ object AirportSizeAdjust {
         //bermuda
         "BDA" -> 6,
         //https://en.wikipedia.org/wiki/List_of_the_busiest_airports_in_Brazil
-        "SDU" -> 5,
+        "SDU" -> 6,
         "CNF" -> 6,
         "REC" -> 6,
         "POA" -> 5,
@@ -205,6 +205,7 @@ object AirportSizeAdjust {
         "NVT" -> 4,
         "IGU" -> 4,
         "UNA" -> 3,
+        "CFB" -> 3,
         //https://en.wikipedia.org/wiki/List_of_airports_in_Cameroon
         "DLA" -> 4,
         //https://en.wikipedia.org/wiki/List_of_the_busiest_airports_in_Canada
@@ -275,6 +276,7 @@ object AirportSizeAdjust {
         //denmark
         "AAL" -> 5,
         "KRP" -> 3,
+        "FAE" -> 4, //Faroe Islands
         //dominican-republic
         "JBQ" -> 3,
         //east-timor
@@ -304,6 +306,7 @@ object AirportSizeAdjust {
         "LEJ" -> 5,
         "BRE" -> 4,
         "LBC" -> 3,
+        "MHG" -> 3,
         //finland
         "RVN" -> 4,
         //https://en.wikipedia.org/wiki/List_of_the_busiest_airports_in_Greece
@@ -316,7 +319,8 @@ object AirportSizeAdjust {
         //https://en.wikipedia.org/wiki/List_of_airports_in_Guinea
         //https://en.wikipedia.org/wiki/List_of_airports_in_Guatemala
         //https://en.wikipedia.org/wiki/List_of_airports_in_Honduras
-        "TGU" -> 5,
+        "TGU" -> 4,
+        "SAP" -> 5,
         //https://en.wikipedia.org/wiki/List_of_airports_in_Haiti
         "CAP" -> 3,
         //https://en.wikipedia.org/wiki/List_of_airports_in_Jamaica
@@ -330,7 +334,10 @@ object AirportSizeAdjust {
         "KIX" -> 6,
         "KOJ" -> 5,
         "OKD" -> 4,
+        "MSJ" -> 3,
+        "HSG" -> 3,
         "TKS" -> 3,
+        "IWJ" -> 3,
         "NKM" -> 2,
         //https://en.wikipedia.org/wiki/List_of_airports_in_Kazakhstan
         "PLX" -> 3,
@@ -343,6 +350,7 @@ object AirportSizeAdjust {
         //https://en.wikipedia.org/wiki/List_of_airports_in_North_Korea
         "FNJ" -> 4,
         //https://en.wikipedia.org/wiki/List_of_the_busiest_airports_in_India
+        "BOM" -> 8,
         "BLR" -> 7,
         "HYD" -> 7,
         "MAA" -> 7,
@@ -388,6 +396,8 @@ object AirportSizeAdjust {
         "PDG" -> 5,
         "MDC" -> 5,
         "BIK" -> 3,
+        "KDI" -> 3,
+        "TTE" -> 4,
         //https://en.wikipedia.org/wiki/List_of_the_busiest_airports_in_Iran
         "DEF" -> 3,
         "KSH" -> 4,
@@ -435,6 +445,8 @@ object AirportSizeAdjust {
         "ERS" -> 2,
         //Mayotte
         "DZA" -> 4,
+        //Marshal Islands
+        "KWA" -> 3,
         //https://en.wikipedia.org/wiki/List_of_airports_in_the_Republic_of_Macedonia
         //https://en.wikipedia.org/wiki/List_of_airports_in_Mali
         //https://en.wikipedia.org/wiki/List_of_the_busiest_airports_in_Mexico
@@ -445,16 +457,18 @@ object AirportSizeAdjust {
         "BJX" -> 5,
         "SJD" -> 5,
         "CJS" -> 5,
+        "CUL" -> 5,
+        "HMO" -> 5,
+        "QRO" -> 5,
+        "OAX" -> 5,
         "LAP" -> 4,
         "CUU" -> 4,
         "HUX" -> 4,
-        "OAX" -> 4,
         "TGZ" -> 4,
         "TQO" -> 4,
         //downgrade
         "PBC" -> 3,
         "TLC" -> 3,
-        "QRO" -> 4,
         "MLM" -> 4,
         "CVJ" -> 2,
         //https://en.wikipedia.org/wiki/List_of_airports_in_Mongolia
@@ -528,10 +542,12 @@ object AirportSizeAdjust {
         "BIO" -> 6,
         "VIT" -> 3,
         "EAS" -> 3,
-        "LEU" -> 2,
+        "LEU" -> 3,
         //https://en.wikipedia.org/wiki/List_of_airports_in_Somalia
         "HGA" -> 3,
         "MGQ" -> 3,
+        "GGR" -> 3,
+        "BSA" -> 2,
         //https://en.wikipedia.org/wiki/List_of_South_African_airports_by_passenger_movements
         "DUR" -> 6,
         "HLA" -> 4,
@@ -544,13 +560,16 @@ object AirportSizeAdjust {
         "MQP" -> 3,
         "PTG" -> 3,
         //https://en.wikipedia.org/wiki/List_of_the_busiest_airports_in_South_Korea
-        "CJU" -> 7,
+        "CJU" -> 6,
         "PUS" -> 7,
+        "USN" -> 3,
+        "RSU" -> 3,
         //https://en.wikipedia.org/wiki/List_of_airports_in_El_Salvador
         //sweden
         "MMX" -> 5,
         "NYO" -> 4,
         "ORB" -> 3,
+        "AGH" -> 3,
         "BMA" -> 5,
         //switzerland
         "BRN" -> 3,
@@ -614,7 +633,8 @@ object AirportSizeAdjust {
         //up to 10m pax
         "EWR" -> 7, //should be 8
         "IAH" -> 7, //should be 8
-        "BOS" -> 7, //should be 8
+        "BOS" -> 7,
+        "CLT" -> 7,
         "FLL" -> 7,
         "MSP" -> 7,
         "DTW" -> 7,
@@ -626,6 +646,7 @@ object AirportSizeAdjust {
         "TPA" -> 7,
         "AUS" -> 7,
         "IAD" -> 7,
+        "BNA" -> 7,
         //metro NYC
         "LGA" -> 6,
         "SWF" -> 3,
@@ -652,6 +673,7 @@ object AirportSizeAdjust {
         "BMI" -> 3,
         "MLI" -> 4,
         "MSN" -> 5,
+        "LAF" -> 3,
         //metro SF
         "STS" -> 3,
         "SMF" -> 6,
@@ -743,6 +765,7 @@ object AirportSizeAdjust {
         "PGD" -> 4,
         "MEI" -> 2,
         "DAB" -> 4,
+        "SFB" -> 3,
         "MLB" -> 3,
         "LAL" -> 3,
         "OPF" -> 1,

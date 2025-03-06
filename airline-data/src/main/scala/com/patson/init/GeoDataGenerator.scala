@@ -39,7 +39,7 @@ object GeoDataGenerator extends App {
       "AU"
 //    } else if (List("NU", "CK").contains(countryCode)) {
 //      "NZ"
-    } else if (List("PM", "WF", "GF", "GP", "MF", "MQ", "BL", "RE", "NC", "PF").contains(countryCode)) {
+    } else if (List("PM", "WF", "GF", "GP", "MF", "MQ", "PM", "BL", "RE", "NC", "PF").contains(countryCode)) {
       "FR"
     } else if (List("BQ").contains(countryCode)) {
       "NL"
@@ -47,6 +47,8 @@ object GeoDataGenerator extends App {
       "GB"
     } else if (List("GL", "FO").contains(countryCode)) {
       "DK"
+    } else if (List("UM").contains(countryCode)) {
+      "US"
     } else {
       countryCode
     }
@@ -141,7 +143,7 @@ object GeoDataGenerator extends App {
               patchRunways.foreach { patchRunway =>
                 list.find(_.code.equals(patchRunway.code)) match {
                   case Some(duplicate) =>
-//                    println(s"Skipping patch runways for $iata as same code for runway $duplicate is already found for $patchRunway!")
+                    println(s"Skipping patch runways for $iata as same code for runway $duplicate is already found for $patchRunway!")
                   case None =>
                     list += patchRunway
                 }
