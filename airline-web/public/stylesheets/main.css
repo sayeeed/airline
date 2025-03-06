@@ -969,8 +969,7 @@ li.row, div.table-row {
     height: min-content;
 }
 
-.table.data .table-row div,
-.table.padded .table-row div{
+.table.data .table-row div {
 	padding: 6px 4px;
 }
 
@@ -1575,12 +1574,6 @@ i, .italic {
 }
 .text-xs {
     font-size: 0.7rem
-}
-.text-white {
-    color: white;
-}
-.text-grey {
-    color: dimgrey;
 }
 .text-underline {
     text-decoration: underline;
