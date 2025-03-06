@@ -1,14 +1,16 @@
 package com.patson.model
 
+import com.patson.model.FlightCategory.FlightCategory
+
 /**
  * Cost base model
  */
 object Pricing {
   val modifierBrackets: Map[LinkClass, List[(Int, Double)]] = Map(
     DISCOUNT_ECONOMY  -> List((400, 0.08), (1000, 0.071), (6000, 0.06), (Int.MaxValue, 0.07)),
-    ECONOMY           -> List((400, 0.16), (1000, 0.074), (6000, 0.07), (Int.MaxValue, 0.09)),
-    BUSINESS          -> List((400, 0.28), (1000, 0.209), (6000, 0.15), (Int.MaxValue, 0.23)),
-    FIRST             -> List((400, 1.22), (1000, 0.289), (6000, 0.41), (Int.MaxValue, 0.56))
+    ECONOMY           -> List((400, 0.12), (1000, 0.076), (6000, 0.07), (Int.MaxValue, 0.09)),
+    BUSINESS          -> List((400, 0.28), (1000, 0.212), (6000, 0.16), (Int.MaxValue, 0.23)),
+    FIRST             -> List((400, 1.22), (1000, 0.292), (6000, 0.42), (Int.MaxValue, 0.56))
   )
   val INTERNATIONAL_PRICE_MULTIPLIER = 1.05
 
@@ -18,7 +20,7 @@ object Pricing {
   }
   def computeStandardPrice(distance: Int, flightCategory: FlightCategory.Value, linkClass: LinkClass) : Int = {
     var remainDistance = distance
-    var price = 20.0
+    var price = 15.0
     for (priceBracket <- modifierBrackets(linkClass) if(remainDistance > 0)) {
       if (priceBracket._1 >= remainDistance) {
         price += remainDistance * priceBracket._2
