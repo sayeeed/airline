@@ -101,11 +101,13 @@ object Computation {
     val USA = List("US", "PR", "VI", "GU", "AS", "MP", "MH", "PW", "FM") //US & COFA Pacific
     val GB = List("GB", "TC", "KY", "VG", "BM")
     val ANZAC = List("AU", "NZ", "CK", "NU")
+    val CN = List("CN", "MO", "HK")
     if (fromAirport.countryCode == toAirport.countryCode ||
       ECAA.contains(fromAirport.countryCode) && ECAA.contains(toAirport.countryCode) ||
       USA.contains(fromAirport.countryCode) && USA.contains(toAirport.countryCode) ||
       GB.contains(fromAirport.countryCode) && GB.contains(toAirport.countryCode) ||
-      ANZAC.contains(fromAirport.countryCode) && ANZAC.contains(toAirport.countryCode)
+      ANZAC.contains(fromAirport.countryCode) && ANZAC.contains(toAirport.countryCode) ||
+      CN.contains(fromAirport.countryCode) && CN.contains(toAirport.countryCode)
     ){
       FlightCategory.DOMESTIC
     } else {

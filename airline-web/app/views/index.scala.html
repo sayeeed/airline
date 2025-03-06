@@ -4705,14 +4705,13 @@
 		  </div>
 		  <div class="negotiationInfo flex">
 			  <div class="flex-row py-4">
-				  <h4 style="width: 50%; display: flex; align-items: center;">Negotiation Difficulty:&nbsp;
+				  <p class="text-lg strong">Negotiation Difficulty:&nbsp;
 					  <span class="negotiationDifficultyTotal"></span>
 					  <img class="clickable info svg" src='@routes.Assets.versioned("images/icons/information.svg")' onmouseover="$('#negotiationDifficultyModal').fadeIn(500)">
 					  <span class="error">
 						  <img class="clickable" src='@routes.Assets.versioned("images/icons/24px/cross-circle.png")' onmouseover="$('#negotiationDifficultyModal').fadeIn(500)" style="display: hidden;">
 					  </span>
-				  </h4>
-				  <h4 style="margin-left: auto;">Delegates<span class="delegatesTooltip"><img class="info svg" src='@routes.Assets.versioned("images/icons/information.svg")'></span></h4>
+				  </p>
 			  </div>
 			  <div class="glow error">
 				  Too hard! Reduce frequency, change airport or improve relationship first.<br/>
@@ -4825,8 +4824,8 @@
                   </div>
               </div>
               <!-- discounts total-->
-              <div class="pt-2">
-                  <div style="width: 48%; float:left" class="negotiationDiscountTotal table fromAirport">
+              <div class="pt-2 flex-container-width-half">
+                  <div class="negotiationDiscountTotal table padded fromAirport">
                       <div class="table-header">
                           <div class="cell" style="width: 80%"></div>
                           <div class="cell" style="width: 20%"></div>
@@ -4836,7 +4835,7 @@
                           <div class="cell"><span class="total"></span></div>
                       </div>
                   </div>
-                  <div style="width: 48%; float:right" class="negotiationDiscountTotal table toAirport">
+                  <div class="negotiationDiscountTotal table padded toAirport">
                       <div class="table-header">
                           <div class="cell" style="width: 80%"></div>
                           <div class="cell" style="width: 20%;"></div>
@@ -4846,11 +4845,10 @@
                           <div class="cell"><span class="total"></span></div>
                       </div>
                   </div>
-                  <div style="clear: both;"></div>
               </div>
               <div class="remarks">Discount is capped at 80%</div>
 
-			  <h4 style="margin-top: 10px">Total difficulty: <span class="negotiationDifficultyTotal"></span></h4>
+			  <p class="py-6 strong text-lg">Total difficulty: <span class="negotiationDifficultyTotal"></span></p>
 		  </div>
 	  </div>
 
@@ -5889,7 +5887,6 @@
 
 
 	<audio id="christmasMusic" preload="none" loop>
-<!--	    <source src='@routes.Assets.versioned("music/silent-night.mp3")' type="audio/mp3" />-->
 		<source src='@routes.Assets.versioned("music/joy-to-the-world.mp3")' type="audio/mp3" />
 	</audio>
 
@@ -5897,7 +5894,6 @@
 
     <script src='https://maps.googleapis.com/maps/api/js?v=weekly&key=@configuration.get[String]("google.mapKey")&libraries=geometry,drawing,visualization&callback=initMap'>
 	</script>
-<!-- 	<script src="https://apis.google.com/js/platform.js"></script> -->
   <script src='/assets/firework/fscreen.js'></script>
   <script src='/assets/firework/stage.js'></script>
   <script src='/assets/firework/my-math.js'></script>

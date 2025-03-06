@@ -329,7 +329,7 @@ object LinkSimulation {
       if (link.rawQuality <= 20) {
         -5 //selling food & credit cards :)
       } else if (link.rawQuality <= 40) {
-        0
+        -1
       } else if (link.rawQuality <= 60) {
         4
       } else if (link.rawQuality <= 80) {
@@ -337,9 +337,14 @@ object LinkSimulation {
       } else {
         15
       }
-    val isLuxurySpecialist = if (link.airline.airlineType == AirlineType.LUXURY || link.airline.airlineType == AirlineType.NOSTALGIA || link.airline.airlineType == AirlineType.BEGINNER) 0.7 else 1
+    val airlineTypeMultipler = link.airline.airlineType match {
+      case AirlineType.LUXURY => 0.8
+      case AirlineType.BEGINNER => 0.8
+      case AirlineType.NOSTALGIA => 0.8
+      case _ => 1.0
+    }
 
-    val costPerPassenger = classMultiplier * durationCostPerHour * isLuxurySpecialist * link.duration.toDouble / 60
+    val costPerPassenger = classMultiplier * durationCostPerHour * airlineTypeMultipler * link.duration.toDouble / 60
     (costPerPassenger * soldSeats).toInt
   }
 

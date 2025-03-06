@@ -4,6 +4,8 @@ version := "1.0-SNAPSHOT"
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
+Assets / pipelineStages := Seq(digest)
+
 scalaVersion := "2.13.11"
 
 libraryDependencies ++= Seq(
@@ -25,9 +27,6 @@ libraryDependencies ++= Seq(
 
 // https://mvnrepository.com/artifact/org.elasticsearch.client/elasticsearch-rest-client
 libraryDependencies += "org.elasticsearch.client" % "elasticsearch-rest-high-level-client" % "7.17.21"
-
-
-
 
 resolvers += "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases"
 
