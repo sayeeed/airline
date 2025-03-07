@@ -17,8 +17,8 @@ import java.util.concurrent.ThreadLocalRandom
 object LinkSimulation {
 
 
-  val FUEL_UNIT_COST = OilPrice.DEFAULT_UNIT_COST * 97 //for easier flight monitoring, let's make it the default unit price here
-  val FUEL_DISTANCE_FACTOR = 1.38
+  val FUEL_UNIT_COST = OilPrice.DEFAULT_UNIT_COST * 92 //for easier flight monitoring, let's make it the default unit price here
+  val FUEL_DISTANCE_FACTOR = 1.4
   val CREW_UNIT_COST = 6.75
   val CREW_BASE_COST = 300
 
@@ -329,7 +329,7 @@ object LinkSimulation {
       if (link.rawQuality <= 20) {
         -5 //selling food & credit cards :)
       } else if (link.rawQuality <= 40) {
-        0
+        -1
       } else if (link.rawQuality <= 60) {
         4
       } else if (link.rawQuality <= 80) {
@@ -337,9 +337,14 @@ object LinkSimulation {
       } else {
         15
       }
-    val isLuxurySpecialist = if (link.airline.airlineType == AirlineType.LUXURY || link.airline.airlineType == AirlineType.NOSTALGIA || link.airline.airlineType == AirlineType.BEGINNER) 0.7 else 1
+    val airlineTypeMultipler = link.airline.airlineType match {
+      case AirlineType.LUXURY => 0.7
+      case AirlineType.BEGINNER => 0.7
+      case AirlineType.NOSTALGIA => 0.7
+      case _ => 1.0
+    }
 
-    val costPerPassenger = classMultiplier * durationCostPerHour * isLuxurySpecialist * link.duration.toDouble / 60
+    val costPerPassenger = classMultiplier * durationCostPerHour * airlineTypeMultipler * link.duration.toDouble / 60
     (costPerPassenger * soldSeats).toInt
   }
 

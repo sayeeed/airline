@@ -9,7 +9,6 @@ import com.patson.model.{LinkNegotiationDelegateTask, _}
 import com.patson.model.airplane._
 import com.patson.model.negotiation.LinkNegotiationDiscount
 import com.patson.util.{AirportCache, ChampionUtil, CountryCache}
-import controllers.NegotiationDiscountType.{ALLIANCE_BASE, BASE, BELOW_CAPACITY, COUNTRY_RELATIONSHIP, LOYALTY, MAIDEN_INTERNATIONAL, NEW_AIRLINE, OVER_CAPACITY, PREVIOUS_NEGOTIATION}
 
 import scala.collection.mutable.ListBuffer
 import scala.math.BigDecimal.RoundingMode
@@ -19,6 +18,7 @@ import scala.util.Random
 object NegotiationUtil {
   val MAX_ASSIGNED_DELEGATE = 11
   val GREAT_SUCCESS_THRESHOLD = 0.95 // 5%
+  val STARTUP_MAX_REPUTATION = 50
 
   def negotiate(info: NegotiationInfo, delegateCount: Int): NegotiationResult = {
     val odds = info.odds.get(delegateCount) match {
@@ -93,7 +93,7 @@ object NegotiationUtil {
       val multiplier = getRequirementMultiplier(flightCategory)
 
       if (newFrequency > maxFrequency) {
-        requirements.append(NegotiationRequirement(EXCESSIVE_FREQUENCY, (newFrequency - maxFrequency) * multiplier, s"Excessive frequency $newFrequency is over your base level($baseLevel) frequency threshold $maxFrequency for"))
+        requirements.append(NegotiationRequirement(EXCESSIVE_FREQUENCY, (newFrequency - maxFrequency) * multiplier, s"Excessive frequency: $newFrequency is over your level $baseLevel base's $maxFrequency frequency threshold"))
       }
     }
 
@@ -181,16 +181,15 @@ object NegotiationUtil {
     }
 
     if (flightCategory == FlightCategory.INTERNATIONAL) {
-      val airport = newLink.to
-      val country = CountryCache.getCountry(airport.countryCode).get
-      airline.getCountryCode().foreach { homeCountryCode =>
-        if (homeCountryCode != airport.countryCode) {
-          var baseForeignAirline = (12 - country.openness) * 0.5
-          if (existingLinkOption.isDefined) { //cheaper if it's already established
-            baseForeignAirline = baseForeignAirline * 0.5
-          }
-          requirements.append(NegotiationRequirement(FOREIGN_AIRLINE, baseForeignAirline, "Foreign Airline"))
+      val airlineCounty = airline.getCountryCode().get
+      if (airlineCounty != newLink.to.countryCode) {
+        val toCountry = CountryCache.getCountry(newLink.to.countryCode).get
+        val fromCountry = CountryCache.getCountry(newLink.from.countryCode).get
+        var foreignAirlinePenalty = (12 - toCountry.openness) * 0.25 + (12 - fromCountry.openness) * 0.25
+        if (existingLinkOption.isDefined) { //cheaper if it's already established
+          foreignAirlinePenalty = foreignAirlinePenalty * 0.5
         }
+        requirements.append(NegotiationRequirement(FOREIGN_AIRLINE, foreignAirlinePenalty, "Foreign Airline"))
       }
     }
 
@@ -199,6 +198,14 @@ object NegotiationUtil {
         val gatewayCost = 0.5
         requirements.append(NegotiationRequirement(GATEWAY, gatewayCost, "Tough Gateway Airport Negotiation"))
       case None =>
+    }
+
+    if (airline.getReputation() < STARTUP_MAX_REPUTATION) {
+      val requirementTotal = requirements.foldLeft(0.0)((sum, requirement) => sum + requirement.value)
+      val adjustment = -1 * Math.pow(requirementTotal, 0.7) + 1
+      if (adjustment <= -1) {
+        requirements.append(NegotiationRequirement(STARTUP, adjustment, s"Startup Vigor – better at negotiation while under ${STARTUP_MAX_REPUTATION} reputation"))
+      }
     }
 
     existingLinkOption match {
@@ -443,25 +450,11 @@ object NegotiationUtil {
 //  def getFactors : Map[NegotationFactor.Value, Double] = factors.toMap
 //}
 
-//object NegotationFactor extends Enumeration {
-//  type NegotationFactor = Value
-//  val COUNTRY_RELATIONSHIP, EXISTING_LINKS, INITIAL_LINKS, DECREASE_CAPACITY, INCREASE_CAPACITY, OTHER = Value
-//
-//  def description(factor : NegotationFactor) =  factor match {
-//    case COUNTRY_RELATIONSHIP => "Country Relationship"
-//    case EXISTING_LINKS => "Existing Routes by other Airlines"
-//    case INITIAL_LINKS => "Bonus for smaller Airlines"
-//    case INCREASE_CAPACITY => "Increase Capacity"
-//    case DECREASE_CAPACITY => "Decrease Capacity"
-//    case OTHER => "Unknown"
-//  }
-//}
-
 case class NegotiationInfo(fromAirportRequirements : List[NegotiationRequirement], toAirportRequirements : List[NegotiationRequirement], fromAirportDiscounts : List[NegotiationDiscount], toAirportDiscounts : List[NegotiationDiscount], finalFromDiscountValue : Double, finalToDiscountValue : Double, finalRequirementValue : Double, odds : Map[Int, Double], remarks : Option[String] = None)
 
 object NegotiationRequirementType extends Enumeration {
   type NegotiationRequirementType = Value
-  val FROM_COUNTRY_RELATIONSHIP, TO_COUNTRY_RELATIONSHIP, EXISTING_COMPETITION, NEW_LINK, UPDATE_LINK, INCREASE_CAPACITY, UPSIZE_GATE, INCREASE_FREQUENCY, LACK_COUNTRY_TITLE, EXCESSIVE_FREQUENCY, LOW_LOAD_FACTOR, FOREIGN_AIRLINE, NON_GATEWAY, GATEWAY, STAFF_CAP, BAD_MUTUAL_RELATIONSHIP, OTHER = Value
+  val NEW_LINK, UPDATE_LINK, INCREASE_CAPACITY, UPSIZE_GATE, INCREASE_FREQUENCY, LACK_COUNTRY_TITLE, EXCESSIVE_FREQUENCY, LOW_LOAD_FACTOR, FOREIGN_AIRLINE, GATEWAY, STAFF_CAP, BAD_MUTUAL_RELATIONSHIP, STARTUP, OTHER = Value
 }
 
 object NegotiationDiscountType extends Enumeration {
@@ -473,6 +466,7 @@ case class NegotiationRequirement(requirementType : NegotiationRequirementType.V
 }
 
 abstract class NegotiationDiscount(val adjustmentType : NegotiationDiscountType.Value, val value : Double) {
+  import controllers.NegotiationDiscountType._
   def description(airport : Airport) =  adjustmentType match {
     case COUNTRY_RELATIONSHIP => s"Country Relationship with ${airport.countryCode}"
     case BELOW_CAPACITY => s"${airport.displayText} is under capacity"
