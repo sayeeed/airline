@@ -51,11 +51,11 @@ class AirplaneModelSpec extends WordSpecLike with Matchers with BeforeAndAfterAl
       case REGIONAL => (FlightCategory.DOMESTIC, 6)
       case MEDIUM => (FlightCategory.DOMESTIC, 7)
       case MEDIUM_XL => (FlightCategory.DOMESTIC, 7)
-      case LARGE => (FlightCategory.INTERNATIONAL, 8)
-      case EXTRA_LARGE => (FlightCategory.INTERNATIONAL, 8)
-      case JUMBO => (FlightCategory.INTERNATIONAL, 8)
-      case JUMBO_XL => (FlightCategory.INTERNATIONAL, 8)
-      case SUPERSONIC => (FlightCategory.INTERNATIONAL, 8)
+      case LARGE => (FlightCategory.DOMESTIC, 8)
+      case EXTRA_LARGE => (FlightCategory.DOMESTIC, 8)
+      case JUMBO => (FlightCategory.DOMESTIC, 8)
+      case JUMBO_XL => (FlightCategory.DOMESTIC, 8)
+      case SUPERSONIC => (FlightCategory.DOMESTIC, 8)
       case _ => (FlightCategory.DOMESTIC, 8)
     }
     val duration = Computation.calculateDuration(airplaneModel, distance)
@@ -69,8 +69,10 @@ class AirplaneModelSpec extends WordSpecLike with Matchers with BeforeAndAfterAl
     if (airplaneModel.airplaneType == SUPERSONIC) {
       price *= 1.8
     }
-    if (linkClass == FIRST || linkClass == FIRST) {
-//      price *= 1.25 //assume have lounge etc
+    if (linkClass == FIRST) {
+      price *= 1.3 //assume have lounge etc
+    } else if (linkClass == BUSINESS) {
+      price *= 1.25
     }
     val airline = Airline.fromId(1)
 

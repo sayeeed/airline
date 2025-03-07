@@ -316,10 +316,6 @@ class AirlineApplication @Inject()(cc: ControllerComponents) extends AbstractCon
             }
           }
         }
-        //it should first has link to it
-//        if (LinkSource.loadFlightLinksByAirlineId(airline.id).find(link => link.from.id == airport.id || link.to.id == airport.id).isEmpty) {
-//          return Some("No active flight route operated by your airline flying to this city yet")
-//        }
 
         //check title
         targetBase.allowAirline(airline) match {
@@ -348,7 +344,6 @@ class AirlineApplication @Inject()(cc: ControllerComponents) extends AbstractCon
     if (delegatesAssignedToThisCountry.length < requiredDelegates) {
       return Some(s"Cannot build/upgrade this base. Require $requiredDelegates delegate(s) assigned to ${CountryCache.getCountry(targetBase.countryCode).get.name} but only ${delegatesAssignedToThisCountry.length} assigned")
     }
-
 
     return None
   }
@@ -514,7 +509,6 @@ class AirlineApplication @Inject()(cc: ControllerComponents) extends AbstractCon
   def putBase(airlineId : Int, airportId : Int) = AuthenticatedAirline(airlineId) { request =>
     if (request.body.isInstanceOf[AnyContentAsJson]) {
       val inputBase = request.body.asInstanceOf[AnyContentAsJson].json.as[AirlineBase]
-      //todo validate the user is the same
       val airline = request.user
 
       if (inputBase.airline.id != airline.id) {
