@@ -1,6 +1,6 @@
 package controllers
 
-import com.patson.{AirportSimulation, LinkSimulation}
+import com.patson.{AirportSimulation, DemandGenerator, LinkSimulation}
 import com.patson.data._
 import com.patson.model.Scheduling.{TimeSlot, TimeSlotStatus}
 import com.patson.model.airplane.Airplane
@@ -552,7 +552,6 @@ class Application @Inject()(cc: ControllerComponents, val configuration: play.ap
         ("maxFrequency" -> maxFrequencyJson) +
         ("baseStaffCapacity" -> JsNumber(AirlineBase.getOfficeStaffCapacity(scale, false))) +
         ("headquartersStaffCapacity" -> JsNumber(AirlineBase.getOfficeStaffCapacity(scale, true)))
-
       scaleProgressionResult = scaleProgressionResult.append(perScaleResult)
     }
 
@@ -568,16 +567,26 @@ class Application @Inject()(cc: ControllerComponents, val configuration: play.ap
     }
     val linkClassJson = Json.toJson(linkClasses)
 
-    var linkValues = Json.obj(
+    val linkPrice = Json.obj(
+      "highIncomeRatioForBoost" -> JsNumber(DemandGenerator.HIGH_INCOME_RATIO_FOR_BOOST),
+      "priceDiscountPlusMultiplier" -> JsNumber(DemandGenerator.PRICE_DISCOUNT_PLUS_MULTIPLIER),
+      "priceLastMinMultiplier" -> JsNumber(DemandGenerator.PRICE_LAST_MIN_MULTIPLIER),
+      "priceLastMinDealMultiplier" -> JsNumber(DemandGenerator.PRICE_LAST_MIN_DEAL_MULTIPLIER),
+    )
+
+    val linkAircraft = Json.obj(
       "fuelCost" -> JsNumber(LinkSimulation.FUEL_UNIT_COST),
       "maxFlightMin" -> JsNumber(Airplane.MAX_FLIGHT_MINUTES),
       "conditionBad" -> JsNumber(Airplane.BAD_CONDITION),
       "conditionCritical" -> JsNumber(Airplane.CRITICAL_CONDITION)
     )
-    linkValues
 
-
-    var result = Json.obj("scaleProgression" -> scaleProgressionResult, "classValues" -> linkClassJson, "linkValues" -> linkValues)
+    val result = Json.obj(
+      "baseScaleProgression" -> scaleProgressionResult,
+      "linkPrice" -> linkPrice,
+      "linkClassValues" -> linkClassJson,
+      "linkAircraft" -> linkAircraft
+    )
     Ok(result)
   }
 
