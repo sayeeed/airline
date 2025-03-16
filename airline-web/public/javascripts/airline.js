@@ -1475,7 +1475,7 @@ function updatePlanLinkInfoWithModelSelected(newModelId, assignedModelId, isRefr
 //		thisModelPlanLinkInfo.airplanes.sort(sortByProperty('airplane.condition', true))
 //		thisModelPlanLinkInfo.airplanes = sortPreserveOrder(thisModelPlanLinkInfo.airplanes, 'frequency', false) //higher frequency first
 
-		$('#planLinkAirplaneSelect').data('badConditionThreshold', thisModelPlanLinkInfo.badConditionThreshold)
+		$('#planLinkAirplaneSelect').data('badConditionThreshold', gameConstants.linkAircraft.conditionBad)
 
 		thisModelPlanLinkInfo.airplanes.sort(function(a, b) {
 		    var result = b.frequency - a.frequency

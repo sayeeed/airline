@@ -142,7 +142,6 @@ class LinkApplication @Inject()(cc: ControllerComponents) extends AbstractContro
       val jsObject = JsObject(List(
       "modelId" -> JsNumber(modelPlanLinkInfo.model.id),
       "modelName" -> JsString(modelPlanLinkInfo.model.name),
-      "badConditionThreshold" -> JsNumber(Airplane.BAD_CONDITION),
       "capacity" -> JsNumber(modelPlanLinkInfo.model.capacity),
       "duration" -> JsNumber(modelPlanLinkInfo.duration),
       "flightMinutesRequired" -> JsNumber(modelPlanLinkInfo.flightMinutesRequired),

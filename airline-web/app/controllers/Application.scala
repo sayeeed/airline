@@ -109,29 +109,6 @@ class Application @Inject()(cc: ControllerComponents, val configuration: play.ap
     }
   }
 
-
-
-
-
-   
-//  object SimpleLinkWrites extends Writes[Link] {
-//    def writes(link: Link): JsValue = {
-//      JsObject(List(
-//      "id" -> JsNumber(link.id),    
-//      "airlineId" -> JsNumber(link.airline.id)))
-//    }
-//  }
- 
-  
-  case class AirportSlotData(airlineId: Int, slotCount: Int)
-  val airportSlotForm = Form(
-    mapping(
-      "airlineId" -> number,
-      "slotCount" -> number
-    )(AirportSlotData.apply)(AirportSlotData.unapply)
-  )
-  
-  
   
   def index = Action {
     implicit lazy val config = configuration
@@ -158,11 +135,11 @@ class Application @Inject()(cc: ControllerComponents, val configuration: play.ap
        case Some(airport) =>
          var result = Json.toJson(airport).asInstanceOf[JsObject]
          //find links going to this airport too, send simplified data
-         val links = LinkSource.loadFlightLinksByFromAirport(airportId, LinkSource.ID_LOAD) ++ LinkSource.loadFlightLinksByToAirport(airportId, LinkSource.ID_LOAD)
-         val linkCountJson = links.groupBy { _.airline.id }.foldRight(Json.obj()) { 
-           case((airlineId, links), foldJson) => foldJson + (airlineId.toString() -> JsNumber(links.length)) 
-         }
-         result = result + ("linkCounts" -> linkCountJson)
+//         val links = LinkSource.loadFlightLinksByFromAirport(airportId, LinkSource.ID_LOAD) ++ LinkSource.loadFlightLinksByToAirport(airportId, LinkSource.ID_LOAD)
+//         val linkCountJson = links.groupBy { _.airline.id }.foldRight(Json.obj()) {
+//           case((airlineId, links), foldJson) => foldJson + (airlineId.toString() -> JsNumber(links.length))
+//         }
+//         result = result + ("linkCounts" -> linkCountJson)
 
          if (image) {
            val cityImageUrl = GoogleImageUtil.getCityImageUrl(airport);
@@ -227,7 +204,7 @@ class Application @Inject()(cc: ControllerComponents, val configuration: play.ap
         val flightsToThisAirport = LinkStatisticsSource.loadLinkStatisticsByToAirport(airportId, LinkStatisticsSource.SIMPLE_LOAD)
         val departureOrArrivalFlights = flightsFromThisAirport.filter { _.key.isDeparture} ++ flightsToThisAirport.filter { _.key.isDestination }
         val connectionFlights = flightsFromThisAirport.filterNot { _.key.isDeparture} ++ flightsToThisAirport.filterNot { _.key.isDestination }
-        
+
         val flightDepartureByAirline = flightsFromThisAirport.groupBy { _.key.airline }
         val flightDestinationByAirline = flightsToThisAirport.groupBy { _.key.airline }
         
