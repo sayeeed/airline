@@ -23,7 +23,7 @@ object DemandGenerator {
   val MIN_DISTANCE = 175 //does not apply to islands
   val HIGH_INCOME_RATIO_FOR_BOOST = 0.7 //at what percent of high income does demand change
   val PRICE_DISCOUNT_PLUS_MULTIPLIER = 1.05 //multiplier on base price
-  val PRICE_LAST_MIN_MULTIPLIER = 1.11
+  val PRICE_LAST_MIN_MULTIPLIER = 1.12
   val PRICE_LAST_MIN_DEAL_MULTIPLIER = 0.9
 //  val launchDemandFactor : Double = if (CycleSource.loadCycle() <= 1) 1.0 else Math.min(1, (45 + CycleSource.loadCycle().toDouble / 24) / 100)
   val launchDemandFactor : Double = 1.0
@@ -442,7 +442,7 @@ object DemandGenerator {
         appealPreference(homeAirport, BUSINESS, 1.0, loungeLevelRequired = 2, loyaltyRatio = 1.25, weight = 1),
         lastMinutePreference(homeAirport, BUSINESS, PRICE_LAST_MIN_MULTIPLIER, loungeLevelRequired = 0, weight = 1),
         appealPreference(homeAirport, FIRST, 1.0, loungeLevelRequired = 2, weight = 1),
-        appealPreference(homeAirport, FIRST, 1.0, loungeLevelRequired = 4, loyaltyRatio = 1.15, weight = 1),
+        appealPreference(homeAirport, FIRST, 1.0, loungeLevelRequired = 3, loyaltyRatio = 1.15, weight = 1),
         appealPreference(homeAirport, FIRST, 1.0, loungeLevelRequired = 3, loyaltyRatio = 1.25, weight = 1),
         lastMinutePreference(homeAirport, FIRST, PRICE_LAST_MIN_MULTIPLIER, loungeLevelRequired = 1, weight = 1),
       ),

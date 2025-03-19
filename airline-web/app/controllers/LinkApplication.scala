@@ -1668,7 +1668,7 @@ object LinkApplication {
         val priceMultiplier = {
           if (preferenceType == FlightPreferenceType.LAST_MINUTE) DemandGenerator.PRICE_LAST_MIN_MULTIPLIER
           else if (preferenceType == FlightPreferenceType.LAST_MINUTE_DEAL) DemandGenerator.PRICE_LAST_MIN_DEAL_MULTIPLIER
-          else if (passengerType == DISCOUNT_ECONOMY) DemandGenerator.PRICE_DISCOUNT_PLUS_MULTIPLIER / 2 //not exactly right but close enough
+//          else if (passengerType == DISCOUNT_ECONOMY) DemandGenerator.PRICE_DISCOUNT_PLUS_MULTIPLIER / 3 //not exactly right but close enough
           else 1
         }
         toDemandDetailsJson = toDemandDetailsJson.append(Json.obj(
