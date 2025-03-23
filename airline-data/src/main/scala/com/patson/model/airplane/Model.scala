@@ -107,6 +107,13 @@ case class Model(name : String, family : String = "", capacity : Int, quality : 
 
 object Model {
   val BUY_RELATIONSHIP_THRESHOLD = 0
+  val TIME_TO_CRUISE_PROPELLER_SMALL = 5
+  val TIME_TO_CRUISE_PROPELLER_MEDIUM = 8
+  val TIME_TO_CRUISE_SMALL = 14
+  val TIME_TO_CRUISE_REGIONAL = 20
+  val TIME_TO_CRUISE_MEDIUM = 28
+  val TIME_TO_CRUISE_HELICOPTER = 0
+  val TIME_TO_CRUISE_OTHER = 40
 
   def fromId(id : Int) = {
     val modelWithJustId = Model("Unknown", "Unknown", 0, 0, 0, 0, 0, 0, 0, 0, 0, Manufacturer("Unknown", countryCode = ""), runwayRequirement = 0)
