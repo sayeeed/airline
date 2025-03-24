@@ -855,8 +855,11 @@ div.section div.section {
 .modal-content p {
 	margin-bottom: 8px;
 }
-	
-	
+
+.modal-content .table {
+    margin-bottom: 1rem;
+}
+
 .googleMapButton {
 	box-shadow: rgba(0, 0, 0, 0.298039) 0px 1px 4px -1px;
 	border-radius: 2px;

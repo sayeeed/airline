@@ -452,7 +452,7 @@ case class Airport(iata : String, icao : String, name : String, latitude : Doubl
       if (this.hasFeature(AirportFeatureType.ISOLATED_TOWN)) {
         -12 //remote subsidy
       } else {
-        size
+        size - 1
       }
 
     soldSeats * perSeat
