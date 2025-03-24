@@ -518,7 +518,7 @@ class Application @Inject()(cc: ControllerComponents, val configuration: play.ap
   def getGameRules() = Action {
     //todo add: constants for fuel formula, deprecation, etc (but not things that may become airline specific)
     var scaleProgressionResult = Json.arr()
-    (1 to 15).map { scale =>
+    (1 to 18).map { scale =>
       var perScaleResult = Json.obj("scale" -> scale)
       var maxFrequencyJson = Json.obj()
       FlightCategory.values.foreach { group =>

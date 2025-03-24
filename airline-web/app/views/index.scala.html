@@ -1178,10 +1178,10 @@
 									  <div class="tooltip">
 										  <img class="info svg" src='@routes.Assets.versioned("images/icons/information.svg")'>
 										  <span class="tooltiptext alignLeft" style="width: 400px;">
-										<p><b>Gini coefficient</b> is a common measure of inequality. In-game,
-											population, income, and inequality is applied to determine how much of
-											each airport is low, middle, and extremely-high income.</p>
-									</span>
+											  <p><b>Gini coefficient</b> is a common measure of inequality. In-game,
+												population, income, and inequality is applied to determine how much of
+												each airport is low, middle, and extremely-high income.</p>
+										  </span>
 									  </div>
 								  </div>
 								  <div class="i-value">
@@ -1190,15 +1190,18 @@
 							  </div>
 						  </div>
 					  </div>
-					  <div id="airportBaseDetails" class="section"
-						   style="box-sizing:border-box; margin-left: 0; margin-right: 0; margin-bottom:0px;">
-						  <h4 id="airportBaseDetailsHeading" class="pb-2">Your Airline <span
-								  id="airportDetailsBaseType">Headquarters</span>
-						  </h4>
+					  <div id="airportBaseDetails" class="section m-0" style="box-sizing:border-box;">
+						  <h4 id="airportBaseDetailsHeading" class="pb-2">Your Airline Headquarters</h4>
 						  <div class="item-grid" id="airportBaseIsBase">
 							  <div class="item">
 								  <div class="i-label">Upkeep Costs</div>
-								  <div class="i-value"><span id="airportDetailsBaseUpkeep"></span></div>
+								  <div class="i-value">
+									  <span id="airportDetailsBaseUpkeep"></span>
+									  <span class="tooltip" onmouseover="showBaseUpkeepModal()">
+										  <img class="info svg" src='@routes.Assets.versioned("images/icons/information.svg")'>
+										  <span class="tooltiptext below" style="width: 400px;"></span>
+									  </span>
+								  </div>
 							  </div>
 							  <div class="item">
 								  <div class="i-label">Regulatory status</div>
@@ -1221,14 +1224,14 @@
 								  <div class="i-label">Facilities</div>
 								  <div class="i-value" id="airportDetailsFacilities"></div>
 							  </div>
-							  <div class="item">
+							  <!-- <div class="item">
 								  <div class="i-label upgradeCostLabel">Upgrade Cost</div>
 								  <div class="i-value" id="airportDetailsBaseUpgradeCost"></div>
 							  </div>
 							  <div class="item">
 								  <div class="i-label">Base Upkeep after upgrade</div>
 								  <div class="i-value" id="airportDetailsBaseUpgradeUpkeep"></div>
-							  </div>
+							  </div> -->
 							  <div class="item">
 								  <div class="i-label">Airport Loyalty
 										<img src='@routes.Assets.versioned("images/icons/gear.png")' class="clickable campaignGear"
@@ -1250,12 +1253,10 @@
 								  <div class="i-label">Staff required / capacity</div>
 								  <div class="i-value" style="display: flex; align-items: center;">
 									  <span id="airportDetailsStaff"></span>
-									  <span class="tooltip"
-											onmouseover="showBaseDetailsModal()">
-									<img class="info svg" src='@routes.Assets.versioned("images/icons/information.svg")'>
-									<span class="tooltiptext below alignLeft" style="width: 400px;">
-									</span>
-							  </span>
+									  <span class="tooltip" onmouseover="showBaseDetailsModal()">
+										  <img class="info svg" src='@routes.Assets.versioned("images/icons/information.svg")'>
+										  <span class="tooltiptext below alignLeft" style="width: 400px;"></span>
+									  </span>
 								  </div>
 							  </div>
 						  </div>
@@ -2031,7 +2032,7 @@
 								<h4>Milestones</h4>
 								<div class="flex-container-width-third py-2">
 									<div>
-										<h5>Passenger Km</h5>
+										<h5 id="paxKM">Passenger Km</h5>
 										<div style="width: 150px;justify-content: space-between;" class="flex-row py-1">
 											<div class="font-mono text-sm flex-center">
 												50 thousand<img height="16" id="m-pax1" class="pl-1" src="/assets/images/icons/cross.png"></div><div style="color:gold;display: flex;flex-direction: row;" class="">15 <img height="16" src="/assets/images/icons/reputation.svg">
@@ -2054,7 +2055,7 @@
 										</div>
 									</div>
 									<div>
-										<h5>Countries Served</h5>
+										<h5 id="countriesServed">Countries Served</h5>
 										<div style="width: 120px;justify-content: space-between;" class="flex-row py-1">
 											<div class="font-mono text-sm flex-center">
 												15<img height="16" id="m-country1" class="pl-1" src="/assets/images/icons/cross.png"></div><div style="color:gold;display: flex;flex-direction: row;" class="">15 <img height="16" src="/assets/images/icons/reputation.svg">
@@ -2077,7 +2078,7 @@
 										</div>
 									</div>
 									<div>
-										<h5>Aircraft Types</h5>
+										<h5 id="aircraftTypes">Aircraft Types</h5>
 										<div style="width: 120px;justify-content: space-between;" class="flex-row py-1">
 											<div class="font-mono text-sm flex-center">
 												4<img height="16" id="m-aircraft1" class="pl-1" src="/assets/images/icons/cross.png"></div><div style="color:gold;display: flex;flex-direction: row;" class="">5 <img height="16" src="/assets/images/icons/reputation.svg">
@@ -2448,29 +2449,29 @@
 								</div>
 							</div>
                         </div>
-						<div class="section">
-							<h4>Airport Assets</h4>
-							<div class="table data" style="width: 100%;">
-								<div class="table-header">
-									<div class="cell" style="width: 15%">Airport</div>
-									<div class="cell" style="width: 40%">Asset</div>
-									<div class="cell" style="width: 10%">Level</div>
-									<div class="cell" style="width: 20%">Profit</div>
-									<div class="cell" style="width: 15%">Margin</div>
-								</div>
-							</div>
-							<div style="max-height: 250px; overflow: auto;">
-								<div class="table data assetList" style="width: 100%; max-height: 200px; overflow-y: auto;">
-									<div class="table-header">
-										<div class="cell" style="width: 15%; border-bottom: none;"></div>
-										<div class="cell" style="width: 40%; border-bottom: none;"></div>
-										<div class="cell" style="width: 10%; border-bottom: none;"></div>
-										<div class="cell" style="width: 20%; border-bottom: none;"></div>
-										<div class="cell" style="width: 15%; border-bottom: none;"></div>
-									</div>
-								</div>
-							</div>
-						</div>
+<!--						<div class="section">-->
+<!--							<h4>Airport Assets</h4>-->
+<!--							<div class="table data" style="width: 100%;">-->
+<!--								<div class="table-header">-->
+<!--									<div class="cell" style="width: 15%">Airport</div>-->
+<!--									<div class="cell" style="width: 40%">Asset</div>-->
+<!--									<div class="cell" style="width: 10%">Level</div>-->
+<!--									<div class="cell" style="width: 20%">Profit</div>-->
+<!--									<div class="cell" style="width: 15%">Margin</div>-->
+<!--								</div>-->
+<!--							</div>-->
+<!--							<div style="max-height: 250px; overflow: auto;">-->
+<!--								<div class="table data assetList" style="width: 100%; max-height: 200px; overflow-y: auto;">-->
+<!--									<div class="table-header">-->
+<!--										<div class="cell" style="width: 15%; border-bottom: none;"></div>-->
+<!--										<div class="cell" style="width: 40%; border-bottom: none;"></div>-->
+<!--										<div class="cell" style="width: 10%; border-bottom: none;"></div>-->
+<!--										<div class="cell" style="width: 20%; border-bottom: none;"></div>-->
+<!--										<div class="cell" style="width: 15%; border-bottom: none;"></div>-->
+<!--									</div>-->
+<!--								</div>-->
+<!--							</div>-->
+<!--						</div>-->
 
 						<div class="section">
 							<h4>Airplane Livery
@@ -5481,14 +5482,30 @@
 	  <div id="baseDetailsModal" class="modal">
 		  <div class="modal-content"  style="width : 400px;">
 			  <span class="close" onclick="closeModal($(this).closest('.modal'))">&times;</span>
-			  <h4 style="margin-bottom: 10px;">Base Details</h4>
-			  <p>As you level up your base, you have more staff to handle more flights at higher frequencies.</p>
+			  <h4 style="margin-bottom: 10px;">Base Frequency</h4>
+			  <p>As you level up your base, you have more capability to handle more flights at higher frequencies.</p>
 			  <div class="table data scaleDetails" style="width: 100%;">
 				  <div class="table-header">
 					  <div class="cell" style="width: 15%;"><p>Scale</p></div>
 					  <div class="cell" style="width: 25%;"><p>Staff Cap<br><small>HQ / base</small></p></div>
 					  <div class="cell" data-group="INTERNATIONAL" style="width: 30%;"><p>Int'l Freq</p></div>
 					  <div class="cell" data-group="DOMESTIC" style="width: 30%;"><p>Domestic Freq</p></div>
+				  </div>
+			  </div>
+			  <div class="groupRemarks">
+			  </div>
+		  </div>
+	  </div>
+
+	  <div id="baseUpkeepModal" class="modal">
+		  <div class="modal-content"  style="width : 400px;">
+			  <span class="close" onclick="closeModal($(this).closest('.modal'))">&times;</span>
+			  <h4 style="margin-bottom: 10px;">Base Upkeep</h4>
+			  <div class="table data scaleDetails" style="width: 100%;">
+				  <div class="table-header">
+					  <div class="cell" style="width: 30%;"><p>Scale</p></div>
+					  <div class="cell" data-group="upkeep" style="width: 35%;"><p>Upkeep Cost</p></div>
+					  <div class="cell" data-group="build" style="width: 35%;"><p>Build Cost</p></div>
 				  </div>
 			  </div>
 			  <div class="groupRemarks">
