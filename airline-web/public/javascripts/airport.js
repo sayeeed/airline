@@ -1538,6 +1538,7 @@ function showGenericTransitModal() {
         $row = $('<div class="table-row" style="width: 100%"></div>')
         $row.append($('<div class="cell">' + transit.toAirportText + '</div>'))
         $row.append($('<div class="cell" align="right">' + commaSeparateNumber(transit.toAirportPopulation) + '</div>'))
+        $row.append($('<div class="cell" align="right">' + commaSeparateNumber(transit.distance) + 'km</div>'))
         $row.append($('<div class="cell capacity" align="right">' + commaSeparateNumber(transit.capacity) + '</div>'))
         $row.append($('<div class="cell" align="right">' + commaSeparateNumber(transit.passenger) + '</div>'))
 
