@@ -2381,16 +2381,16 @@
 							</div>
 		<!--          		end cashflow sheet -->
 							<div style="width : 100%; display: none;" id="airlineStatsSheet" class="sheet">
-								<div id="airlineStatsChart" style="width: 100%; height: 300px; margin: 0 auto;"></div>
+								<div id="airlineStatsChart" style="width: 100%; height: 700px; margin: 0 auto;"></div>
 							</div>
 						</div>
 	<!-- 					end statements -->
-						<div class="section" style="width: 100%; display: flex;">
-							<h4>Settings</h4>
 
-							<div class="button" onclick="promptConfirm('Reset all tutorials?', setSkipTutorial, false)">Reset Tutorials</div>
-
-							<div class="table-row">
+						<div class="section" style="width: 100%;">
+							<h4>Airline Settings</h4>
+							<div class="item-grid py-4">
+								<div class="button" style="width: 120px;" onclick="promptConfirm('Reset all tutorials?', setSkipTutorial, false)">Reset Tutorials</div>
+								<div class="table-row">
 								<div class="cell label">Airline Code:</div>
 								<div class="cell value">
 									<span id="airlineCodeDisplaySpan">
@@ -2404,13 +2404,13 @@
 									</span>
 								</div>
 							</div>
-							<div class="table-row airlineColor">
+								<div class="table-row airlineColor">
 								<div class="cell label">Color:</div>
 								<div class="cell value">
 									<input type="color" class="picker">
 								</div>
 							</div>
-							<div class="table-row">
+								<div class="table-row">
 								<div class="cell label">Logo:</div>
 								<div class="cell value">
 									<span style="display: flex; align-items: center">
@@ -2420,7 +2420,7 @@
 									</span>
 								</div>
 							</div>
-
+							</div>
 						</div>
 
 					</div>
@@ -2589,7 +2589,7 @@
                                 <li class="label dot">Reputation and Loyalty will be kept</li>
                             </ul>
                             <div class='button resetAirline rebuild' onclick='promptConfirm("Rebuild Airline?", resetAirline, true)'>Rebuild Airline</div>
-                            <h4>Declare bankruptcy<img src='@routes.Assets.versioned("images/icons/heart-break.png")'/></h4>
+                            <h4 class="pt-4">Declare bankruptcy<img src='@routes.Assets.versioned("images/icons/heart-break.png")'/></h4>
                             <ul>
                                 <li class="label dot">Reset to initial game start</li>
                             </ul>

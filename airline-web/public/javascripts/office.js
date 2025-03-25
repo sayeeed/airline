@@ -342,7 +342,7 @@ function updateAirlineDetails() {
                     breakdownList.append("<li>" + breakdown.description + ": <span class='rep-value'>" + breakdown.value.toFixed(2) + "</span></li>")
                 }
             })
-			document.getElementById("aircraftTypes").innerText = `${airline.fleetSize ?? 0} Aircraft Types`;
+			document.getElementById("aircraftTypes").innerText = `${airline.fleetTypes ?? 0} Aircraft Types`;
 			document.getElementById("countriesServed").innerText = `${airline.countriesServed ?? 0} Countries Served`;
 			document.getElementById("paxKM").innerText = `Passenger KM`;
             const milestoneValue = updateMilestones(airline.reputationBreakdowns.breakdowns)

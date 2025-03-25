@@ -334,9 +334,9 @@ class AirlineApplication @Inject()(cc: ControllerComponents) extends AbstractCon
         targetBase.allowAirline(airline) match {
           case Left(requiredTitle) =>
             if (airport.isGateway()) {
-              return Some(s"Can only build hub in this gateway airport when your airline attain ${Title.description(requiredTitle)} with this country")
+              return Some(s"Can only build base in this gateway airport when your airline attains ${Title.description(requiredTitle)}.")
             } else {
-              return Some(s"Can only build hub in this non-gateway airport when your airline attain ${Title.description(requiredTitle)} with this country")
+              return Some(s"Can only build base in this non-gateway airport when your airline attains ${Title.description(requiredTitle)}.")
             }
           case Right(_) => //ok
         }
