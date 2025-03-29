@@ -1,6 +1,6 @@
 package com.patson
 
-import com.patson.DemandGenerator.{Demand, MIN_DISTANCE, computeBaseDemandBetweenAirports}
+import com.patson.DemandGenerator.{Demand, MIN_DISTANCE, computeBaseDemandBetweenAirports, computeDemandBetweenAirports}
 import com.patson.data.{AirportSource, CountrySource}
 import com.patson.model.{PassengerType, _}
 import org.scalatest.{Matchers, WordSpecLike}
@@ -12,6 +12,16 @@ import scala.collection.mutable.ListBuffer
 class DemandGeneratorSpec extends WordSpecLike with Matchers {
 
   "generateDemand".must {
+    "isolatedAirportTest".in {
+      val fromAirport = AirportSource.loadAirportByIata("TER", true).get
+      val toAirport = AirportSource.loadAirportByIata("PDL", true).get
+      val distance = Computation.calculateDistance(fromAirport, toAirport)
+      val relationship = CountrySource.getCountryMutualRelationships().getOrElse((fromAirport.countryCode, toAirport.countryCode), 0)
+      val affinity = Computation.calculateAffinityValue(fromAirport.zone, toAirport.zone, relationship)
+      val demand = computeDemandBetweenAirports(fromAirport, toAirport, affinity, distance)
+      println(demand)
+      assert(demand.total > 0)
+    }
     "find top 10 destinations for each airport".in {
       val airports = AirportSource.loadAllAirports(fullLoad = false, loadFeatures = true).filter(_.popMiddleIncome > 0)
       val countryRelationships = CountrySource.getCountryMutualRelationships()

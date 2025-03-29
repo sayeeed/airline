@@ -209,8 +209,8 @@ object GenericTransitGenerator {
   )
 
   def main(args : Array[String]) : Unit = {
-//    generateGenericTransit()
     LinkSource.deleteLinksByCriteria(List(("transport_type", TransportType.GENERIC_TRANSIT.id)))
+    generateGenericTransit()
     Await.result(actorSystem.terminate(), Duration.Inf)
   }
 
@@ -234,7 +234,7 @@ object GenericTransitGenerator {
     for (airport <- airports) {
       val range = {
         if (List("CDG", "IST", "ATL", "DEN", "DFW", "ORD", "SFO", "NRT", "PEK", "ICN", "PVG", "SYD").contains(airport.iata)) 240
-        else if (List("MEX", "BLR", "HYD", "BOM", "MUC", "TFU", "YYZ", "YVR", "YYC", "YUL", "LAS", "BOS", "SEA", "PHX", "MSP", "FCO", "NCE", "FRA", "ARN", "LHR", "MAN", "MXP", "WAW").contains(airport.iata)) 160
+        else if (List("MEX", "BLR", "HYD", "BOM", "MUC", "TFU", "YYZ", "YVR", "YYC", "YUL", "LAS", "BOS", "SEA", "PHX", "MSP", "FCO", "NCE", "BCN", "FRA", "ARN", "LHR", "MAN", "MXP", "WAW").contains(airport.iata)) 160
         else if (airport.size >= 6) 105
         else 65
       }

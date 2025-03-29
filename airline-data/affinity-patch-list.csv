@@ -161,7 +161,7 @@ ARU,Latifundia Legacy
 ASB,LNG
 ASB,Oil
 ASF,Gazprom
-ASI,GB Atlantic
+ASI,Commonwealth Binds
 ASP,Spirituality
 ASP,Spirituality
 ASR,CPG & Retail
@@ -174,6 +174,7 @@ ATL,Caribbean Vacay x2|
 ATL,CPG & Retail
 ATL,Defense
 ATL,Logistics NAC
+ATL,Back office
 ATQ,|CA|Punjabi
 ATQ,Agriculture
 ATQ,Cotton
@@ -212,7 +213,7 @@ BAR,Rice
 BAV,Aluminum
 BAV,Coal CN
 BAV,Rare earths
-BBI,IT
+BBI,Back office
 BBK,Gemstones
 BCN,|ES|Ecuadorian
 BCN,Textiles
@@ -281,6 +282,7 @@ BJA,|FR|Algerian x2
 BJR,|ZA|Ethiopian
 BJX,Footwear
 BJX,Textiles
+BKI,Korean Vacay x2|
 BKI,Offshore oil
 BKI,Spices / Tropical Ag
 BKK,|TH|Chinese
@@ -301,6 +303,7 @@ BLR,|OM|Kannada
 BLR,Software
 BLR,Sunni|
 BLR,Telco
+BLR,Back office
 BLZ,Tea
 BMI,Academia
 BMO,Rare earth
@@ -329,6 +332,7 @@ BOG,Coffee
 BOG,Colonial ties bind
 BOG,Horticulture
 BOG,Logistics LATAM
+BOG,Back office
 BOH,Healthcare
 BOI,Forestry
 BOI,Healthcare
@@ -482,11 +486,11 @@ CDG,|FR|Moroccan
 CDG,|FR|Polish
 CDG,Automotive
 CDG,Banking
-CDG,Life sciences
 CDG,Software
 CEB,Appliances
 CEB,Chinese Tourism|
 CEB,Electronics
+CEB,Back office
 CEC,Forestry
 CEE,Gazprom
 CEE,Paper & Furniture
@@ -505,6 +509,7 @@ CGJ,Copper
 CGK,|ID|Chinese
 CGK,|ID|Tamil
 CGK,|NL|Indonesian
+CGK,|SR|Indonesian
 CGK,Coffee
 CGK,CPG & Retail
 CGK,Tea
@@ -581,7 +586,6 @@ CMH,|US|Jalisco & Michoacán
 CMH,|US|Somali
 CMH,Academia
 CMH,Logistics NAC
-CMH,Semiconductors
 CMH,US Finance
 CMI,Academia
 CMI,Coal
@@ -614,12 +618,14 @@ COK,|SA|Malayali
 COK,Indian Ocean Fishing
 COK,Petrochemicals
 COK,Rare earths
-COK,IT
 COK,Spices / Tropical Ag
+COK,Back office
 COR,Agribusiness
 COR,CPG & Retail
 COR,Loves Florianopolis x2|
 COR,Ranching
+COV,Logistics EU Med
+COV,Mediterranean Ag
 CPD,Oil Fracking
 CPE,Pemex
 CPH,|DK|Turkish
@@ -634,12 +640,14 @@ CPR,Coal
 CPT,Logistics MEA
 CPT,Mediterranean Ag
 CPT,Viticulture
+CPT,Back office
 CRK,|IE|Filipino
 CRK,|IT|Filipino
 CRK,|US|Filipino
 CRK,CPG & Retail
 CRK,Dark economy
 CRK,Electronics
+CRK,Back office
 CRL,Healthcare
 CRP,Hispanic|
 CRP,Offshore oil
@@ -686,6 +694,7 @@ CWB,Appliances
 CWB,Dairy
 CWB,UFOs
 CXR,Chinese Tourism|
+CXR,Korean Vacay x2|
 CXR,Russian Vacay Destination x2|
 CXR,Seafood
 CYI,Oil Refining
@@ -703,6 +712,7 @@ DAD,|JP|Vietnamese
 DAD,|US|Vietnamese
 DAD,Appliances
 DAD,Drug trafficking
+DAD,Korean Vacay x2|
 DAD,Seafood
 DAL,Aerospace
 DAL,Arctic Oil
@@ -751,6 +761,7 @@ DHA,Oil
 DIB,Oil
 DIK,Oil Fracking
 DIL,Offshore oil
+DLA,Logistics MEA
 DLA,Offshore oil
 DLC,Marine
 DLC,Seafood
@@ -787,6 +798,7 @@ DOY,Sinopec
 DPS,|ID|Chinese
 DPS,|ID|Tamil
 DPS,|NL|Indonesian
+DPS,|SR|Indonesian
 DPS,Chinese Tourism|
 DPS,Loves Bali x2|
 DPS,Offshore oil
@@ -821,6 +833,8 @@ DUB,Golf
 DUB,High finance
 DUB,US Finance
 DUB,Whiskey
+DUB,Back office
+DUB,Back office
 DUD,Academia
 DUR,|ZA|Ethiopian
 DUR,Agribusiness
@@ -969,7 +983,6 @@ FOC,Footwear
 FOC,Logistics APAC
 FOR,Petrobras
 FOR,Textiles
-FRA,New energy
 FRA,|DE|Serbian
 FRA,|DE|Turkish
 FRA,Global Logistics
@@ -977,6 +990,7 @@ FRA,High finance
 FRA,Industrial automation
 FRA,Loves Arctic|
 FRA,Loves Bolzano x2|
+FRA,New energy
 FRA,Pharma
 FRU,Agriculture
 FSD,Grain Belt
@@ -987,16 +1001,18 @@ FSP,Atlantic Fishing
 FSP,Loves French Antilles
 FSZ,Appliances
 FSZ,Heavy industry
-FUK,Appliances
+FUK,|JP|Korean
 FUK,Electronics
+FUK,Industrial automation
+FUK,Software
 FUO,Appliances
 FUO,Automotive
 FUO,Electronics
 FUO,Petrochemicals
 FWA,Academia
-GAU,Tea
 GAU,Agriculture
 GAU,Sunni|
+GAU,Tea
 GAY,Spirituality
 GBB,Agriculture
 GBB,Cotton
@@ -1179,7 +1195,7 @@ HLA,Gold
 HLD,Coal CN
 HLD,Ranching
 HLD,Rare earths
-HLE,GB Atlantic
+HLE,Commonwealth Binds
 HLN,Forestry
 HLZ,Agribusiness
 HLZ,Dairy
@@ -1194,9 +1210,9 @@ HND,|PE|Nikkei
 HND,|US|Nikkei
 HND,Automotive
 HND,Industrial automation
+HND,New energy
 HND,Semiconductors
 HND,Telco
-HND,New energy
 HNL,|US|Filipino
 HNL,|US|Nikkei
 HNL,|US|Samoan
@@ -1257,6 +1273,7 @@ HYD,|CA|Telugu
 HYD,Pharma
 HYD,Shia|
 HYD,Software
+HYD,Back office
 HYN,Rice
 HYN,Tea
 IAD,|US|Ethiopian
@@ -1275,6 +1292,7 @@ IAH,|US|Pakistani
 IAH,|US|Vietnamese
 IAH,Equinor
 IAH,ExxonMobil
+IAH,Hispanic|
 IAH,Oil
 IAH,Petrochemicals
 IAH,Software
@@ -1363,6 +1381,7 @@ ITM,Electronics
 ITM,Industrial automation
 ITO,PIF|
 IWD,Maple Syrup
+IWK,Defense
 IWK,Petrochemicals
 IXA,Paper & Furniture
 IXB,Tea
@@ -1443,8 +1462,8 @@ JRA,High finance
 JRB,Banking
 JRB,Banking
 JRB,High finance
-JRG,Coal
 JRG,Aluminum
+JRG,Coal
 JRO,Coffee
 JRO,Nordic / Lutheran|
 JRO,Ranching
@@ -1493,6 +1512,7 @@ KHI,|UK|Pakistani
 KHI,|US|Pakistani
 KHI,Banking
 KHI,Textiles
+KHI,Back office
 KHK,NIOC
 KHN,Aerospace
 KHN,Cotton
@@ -1558,6 +1578,7 @@ KRK,|IE|Polish
 KRK,|US|Polish
 KRK,Software
 KRK,Steel
+KRK,Back office
 KRL,PetroChina
 KRO,Rosneft
 KRR,|RU|Armenian
@@ -1576,6 +1597,7 @@ KTA,LNG
 KTA,Offshore oil
 KTM,Spirituality
 KTN,Arctic Fishing
+KTT,Loves Arctic|
 KTW,Automotive
 KTW,Heavy industry
 KUA,Bauxite
@@ -1701,7 +1723,7 @@ LGW,|UK|Nigerian
 LGW,|UK|Polish
 LGW,Automotive
 LGW,Banking
-LGW,GB Atlantic
+LGW,Commonwealth Binds
 LGW,Healthcare
 LHE,|AE|Pakistani
 LHE,|SA|Pakistani
@@ -1709,12 +1731,14 @@ LHE,|UK|Pakistani
 LHE,|US|Pakistani
 LHE,Dairy
 LHE,Footwear
+LHE,Back office
 LHR,|GB|Indian
 LHR,|UK|Nigerian
 LHR,|UK|Pakistani
 LHR,Academia
 LHR,Bengali|
 LHR,Bureaucracy
+LHR,Commonwealth Binds
 LHR,High finance
 LHR,Oil
 LHR,Software
@@ -1817,6 +1841,7 @@ MAN,|UK|Polish
 MAN,Bengali|
 MAN,Heavy industry
 MAN,Pharma
+MAN,Back office
 MAO,Amazonia
 MAO,Appliances
 MAO,Drug trafficking
@@ -1831,7 +1856,6 @@ MAR,Latifundia Legacy
 MAR,PDVSA
 MB1,Academia
 MBA,Logistics MEA
-MBA,Oil
 MBJ,Caribbean Vacay x2|
 MCH,Latifundia Legacy
 MCI,|US|Jalisco & Michoacán
@@ -1881,7 +1905,6 @@ MEL,Copper
 MEL,Footie Traffic x2
 MEL,Logistics APAC
 MEL,Pharma
-MEL,Wind energy
 MEM,Agribusiness
 MEM,Global Logistics
 MEM,Logistics NAC
@@ -1905,6 +1928,7 @@ MGA,Ranching
 MGQ,|NO|Somali
 MGQ,|US|Somali
 MGZ,Gemstones
+MHD,Pilgrimage x2|
 MHG,Wind energy
 MHT,|US|Irish American
 MIA,|CU|Cuban x2
@@ -1962,7 +1986,7 @@ MPL,Viticulture
 MPM,Aluminum
 MPM,Logistics MEA
 MPM,Lusophone|
-MPN,GB Atlantic
+MPN,Commonwealth Binds
 MQF,Rosneft
 MQL,Coal
 MQL,Viticulture
@@ -2009,6 +2033,7 @@ MUC,Automotive
 MUC,Dairy
 MUC,Industrial automation
 MUC,Semiconductors
+MUH,Italian|
 MUN,PDVSA
 MUX,Cotton
 MVD,Latifundia Legacy
@@ -2049,6 +2074,7 @@ NAN,Surfing
 NAP,|BR|Italian
 NAP,|US|Italian
 NAP,Agribusiness
+NAS,Commonwealth Binds
 NAS,High finance
 NAT,Petrobras
 NBE,|FR|Tunisian x2
@@ -2056,8 +2082,8 @@ NBO,|KE|Gujarati
 NBO,Geothermal
 NBO,Horticulture
 NBO,Logistics MEA
-NBO,Ranching
 NBO,Tea
+NBO,Back office
 NCE,|FR|Serbian
 NCE,Horticulture
 NCE,Viticulture
@@ -2082,6 +2108,8 @@ NGO,Wind energy
 NGS,Heavy industry
 NGS,Marine
 NIM,Uranium
+NJF,Pilgrimage x2|
+NJF,Shia|
 NKG,|AU|Chinese
 NKG,|CA|Chinese
 NKG,|ID|Chinese
@@ -2198,6 +2226,7 @@ ONT,Mediterranean Ag
 OOL,Surfing
 OPO,Viticulture
 OPS,Latifundia Legacy
+OPT,Back office
 ORB,|SE|Iraqi
 ORD,|US|Chinese
 ORD,|US|Indian
@@ -2230,7 +2259,7 @@ ORY,|FR|Serbian
 ORY,|FR|Tunisian x2
 ORY,Academia
 ORY,Aerospace
-ORY,Banking
+ORY,Life sciences
 ORY,Textiles
 OSL,|NO|Somali
 OSL,Aluminum
@@ -2285,6 +2314,8 @@ PEK,Space
 PEN,|MY|Malayali
 PEN,|MY|Tamil
 PEN,Electronics
+PEN,Semiconductors
+PEN,Back office
 PER,|AU|Chinese
 PER,|AU|Indian
 PER,Bauxite
@@ -2319,6 +2350,7 @@ PHX,Copper
 PHX,Logistics NAC
 PHX,Renewables
 PHX,Semiconductors
+PHX,Back office
 PIA,Healthcare
 PIA,Heavy industry
 PIT,Academia
@@ -2354,7 +2386,6 @@ PLZ,Surfing
 PMC,Seafood
 PMG,Drug trafficking
 PMI,Loves Mallorca x2|
-PMI,Mediterranean Ag
 PMO,|AU|Italian
 PMO,|BR|Italian
 PMO,|US|Italian
@@ -2409,6 +2440,7 @@ PUB,Hispanic|
 PUB,Wind energy
 PUJ,Caribbean Vacay x2|
 PUJ,Drug trafficking
+PUN,Back office
 PUQ,Viticulture
 PUS,|JP|Korean
 PUS,|US|Korean
@@ -2523,6 +2555,7 @@ RUH,Logistics MEA
 RUH,Petrochemicals
 RUT,Dairy
 RVE,Latifundia Legacy
+RVN,Loves Arctic|
 RVN,Santa
 SAB,PDVSA
 SAF,Hispanic|
@@ -2553,6 +2586,7 @@ SBA,Academia
 SBA,Defense
 SBA,Mediterranean Ag
 SBA,Offshore oil
+SBA,SoCal NoCal
 SBD,|US|Guerrero & Oaxaca
 SBD,SoCal NoCal
 SBH,Loves French Antilles
@@ -2629,13 +2663,13 @@ SHA,|TH|Chinese
 SHA,|US|Chinese
 SHA,Aerospace
 SHA,Chinese Tourism|
-SHA,Pharma
 SHA,New energy
+SHA,Pharma
 SHA,Semiconductors
 SHA,Steel
 SHE,Chinese Tourism|
-SHE,Paper & Furniture
 SHE,New energy
+SHE,Paper & Furniture
 SHE,Steel
 SHJ,|AE|Malayali
 SHJ,Logistics MEA
@@ -2664,6 +2698,7 @@ SJC,Semiconductors
 SJC,SoCal NoCal
 SJC,Software
 SJO,Spices / Tropical Ag
+SJO,Back office
 SJT,Cotton
 SJU,Logistics LATAM
 SJU,Logistics NAC
@@ -2707,7 +2742,6 @@ SNA,|US|Samoan
 SNA,|US|Vietnamese
 SNA,Academia
 SNA,Defense
-SNA,Hispanic|
 SNA,SoCal NoCal
 SNN,|US|Irish American
 SNN,Dairy
@@ -2715,6 +2749,7 @@ SNP,Arctic Fishing
 SOF,Agribusiness
 SOF,Loves Kavala x2|
 SOF,Software
+SOF,Back office
 SON,Seafood
 SOQ,Nickel
 SOU,UFOs
@@ -2726,6 +2761,7 @@ SRE,Zinc-lead
 SSA,Latifundia Legacy
 SSA,Offshore oil
 SSA,Petrobras
+SSG,Oil
 SSH,Russian Vacay Destination x2|
 STL,CPG & Retail
 STL,Healthcare
@@ -2738,8 +2774,8 @@ STN,Life sciences
 STR,|DE|Serbian
 STR,Automotive
 STR,Loves Bolzano x2|
-STR,Renewables
 STR,Pharma
+STR,Renewables
 STS,|US|Guerrero & Oaxaca
 STS,Geothermal
 STS,SoCal NoCal
@@ -2752,10 +2788,12 @@ STW,Defense RU
 SUB,|ID|Chinese
 SUB,|ID|Tamil
 SUB,|NL|Indonesian
+SUB,|SR|Indonesian
 SUB,Logistics APAC
 SUB,Nickel
 SUB,Oil
 SUB,Oil Refining
+SUB,Back office
 SUJ,Appliances
 SUV,Seafood
 SVC,Copper
@@ -2784,6 +2822,7 @@ SXR,Sunni|
 SYD,|AU|Chinese
 SYD,|AU|Greek
 SYD,|AU|Indian
+SYD,|AU|Samoan
 SYD,|AU|Vietnamese
 SYD,Banking
 SYD,Footie Traffic x2
@@ -2817,8 +2856,9 @@ TAO,|TH|Chinese
 TAO,|US|Chinese
 TAO,Appliances
 TAO,Chinese Tourism|
+TAO,CPG & Retail
+TAO,Electronics
 TAO,Marine
-TAO,Seafood
 TAS,Logistics CIS
 TAS,Textiles
 TBS,Logistics EU Med
@@ -2867,7 +2907,7 @@ TIF,|US|Pakistani
 TIJ,Drug trafficking
 TIO,Dark economy
 TIR,|CA|Telugu
-TIR,Venkateswara Temple
+TIR,Spirituality
 TIV,Mediterranean Marine
 TKD,Offshore oil
 TKG,Geothermal
@@ -2890,6 +2930,7 @@ TLV,|US|Jewish
 TLV,Defense
 TLV,Diamonds
 TLV,Horticulture
+TLV,Semiconductors
 TLV,Software
 TLY,Taiga
 TMC,Nickel
@@ -2914,6 +2955,7 @@ TPA,Golf
 TPA,Healthcare
 TPA,Logistics NAC
 TPA,Software
+TPA,Back office
 TPE,Electronics
 TPE,HK Taiwan Kinship|
 TPE,Semiconductors
@@ -2941,6 +2983,7 @@ TRZ,|AE|Tamil
 TRZ,|ID|Tamil
 TRZ,|MY|Tamil
 TRZ,Offshore oil
+TRZ,Back office
 TSA,Semiconductors
 TSE,Gazprom
 TSE,PetroChina
@@ -3112,8 +3155,8 @@ WUH,Chinese Tourism|
 WUH,Cotton
 WUH,Sinopec
 WUX,Chinese Tourism|
-WUX,Pharma
 WUX,New energy
+WUX,Pharma
 WUX,Textiles
 WVB,Uranium
 WXN,Aluminum
@@ -3188,8 +3231,8 @@ YKM,|US|Jalisco & Michoacán
 YKS,Diamonds
 YKS,Gold
 YLW,Gold
-YLW,Viticulture
 YLW,Spirituality
+YLW,Viticulture
 YMJ,Uranium
 YMK,Gazprom
 YMM,Nickel

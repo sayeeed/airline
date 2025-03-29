@@ -67,6 +67,7 @@ object AirportSizeAdjust {
         "SGN" -> 8,
         "HKG" -> 8,
         "TPE" -> 7,
+        "BKK" -> 7,
         //https://en.wikipedia.org/wiki/List_of_the_busiest_airports_in_Europe
         //2023, up to 10m pax, excluding "discount" airports
         "LGW" -> 7, //should be 8

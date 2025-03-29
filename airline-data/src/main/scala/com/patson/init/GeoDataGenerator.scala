@@ -171,9 +171,9 @@ object GeoDataGenerator extends App {
           (tokens(0),tokens(1))
         }.toList
 //      println(airportZoneList)
-      println("setting zones via country-data-2022.csv")
+      println("setting zones via country-data.csv")
       //csv = country-code,country-name,openness,gini,nominal-to-real-conversion-ratio,(5)zone,group1,lang1,group2,lang2,lang3
-      val countryZoneMap = scala.io.Source.fromFile("country-data-2022.csv").getLines().map(_.split(",", -1)).map { tokens =>
+      val countryZoneMap = scala.io.Source.fromFile("country-data.csv").getLines().map(_.split(",", -1)).map { tokens =>
         val innerString = List(
           if (tokens(5).isEmpty) "" else tokens(5),
           if (tokens(6).isEmpty) "" else tokens(6),
@@ -297,7 +297,7 @@ object GeoDataGenerator extends App {
 
         val airportWeights = validAirports.foldRight(List[(Airport, Int)]()) {
           case (Tuple2(airport, distance), airportWeightList) =>
-            val thisAirportWeight = (if (distance <= 25) 40 else if (distance <= 50) 25 else if (distance <= 100) 12 else if (distance <= 200) 2 else 1) * airport.size * airport.size
+            val thisAirportWeight = (if (distance <= 25) 50 else if (distance <= 50) 30 else if (distance <= 100) 16 else if (distance <= 200) 2 else 1) * airport.size * airport.size
             (airport, thisAirportWeight) :: airportWeightList
         }.sortBy(_._2).takeRight(3) //take the largest 3
 
@@ -321,13 +321,13 @@ object GeoDataGenerator extends App {
 
     println()
     //country-code,country-name,openness,gini,nominal-to-real-conversion-ratio,zone,group1,group2,lang1,lang2,lang3
-    println("loading country-data-2022.csv")
+    println("loading country-data.csv")
 
-    val nominalToRealRatioMap = scala.io.Source.fromFile("country-data-2022.csv").getLines().map(_.split(",", -1)).map { tokens =>
+    val nominalToRealRatioMap = scala.io.Source.fromFile("country-data.csv").getLines().map(_.split(",", -1)).map { tokens =>
       (tokens(0), if (tokens(4).isEmpty) 1.1 else tokens(4).toDouble)
     }.toMap
 
-    val giniMap = scala.io.Source.fromFile("country-data-2022.csv").getLines().map(_.split(",", -1)).map { tokens =>
+    val giniMap = scala.io.Source.fromFile("country-data.csv").getLines().map(_.split(",", -1)).map { tokens =>
       (tokens(0), if (tokens(3).isEmpty) 39.0 else tokens(3).toDouble)
     }.toMap
 
@@ -353,7 +353,7 @@ object GeoDataGenerator extends App {
       } else if (population == 0) {
         airport
       } else {
-        val nominalToRealRatio = nominalToRealRatioMap.getOrElse(airport.countryCode, 1.2)
+        val nominalToRealRatio = nominalToRealRatioMap.getOrElse(airport.countryCode, 1.0)
         val normalizedIncome = Math.max(1000, (power / population * nominalToRealRatio).toInt)
         /**
          * Inelegantly adding more inequality here to poor countries (except IN & ZA output is already very high) to create peaks in key cities
@@ -367,9 +367,9 @@ object GeoDataGenerator extends App {
         val nationalCenters = List("ALA","TAS","IKA","KHI","DEL","BOM","PEK","PVG","FNJ","ICN","GMP","HND","NRT","KIX","ITM","KUL","SGN","CGK","DPS","YYZ","YVR","SFO","MIA","FLL","PBI","MAD","BCN","LIS","LHR","LGW","LTN","EDI","CDG","ORY","CPH","ARN","FCO","CIA","MXP","BGY","LIN","BUD","ACC","KGL","LUN","MPM","NBO")
 
         val gini = if (normalizedIncome <= 4000 && airport.countryCode != "IN" && airport.countryCode != "ZA") {
-            giniMap.getOrElse(airport.countryCode, 69.0) + 14 //need to account for global inequality? output is better this way
+            giniMap.getOrElse(airport.countryCode, 69.0) + 17 //need to account for global inequality? output is better this way
           } else if (normalizedIncome <= 9000 && population <= 8_000_000 && airport.countryCode != "IN" && airport.countryCode != "ZA" ) {
-            giniMap.getOrElse(airport.countryCode, 69.0) + 8
+            giniMap.getOrElse(airport.countryCode, 69.0) + 12
           } else if (normalizedIncome < 6000 && population > 8_000_000 && airport.countryCode != "IN" && airport.countryCode != "ZA") {
             giniMap.getOrElse(airport.countryCode, 69.0) + 9
           } else if (normalizedIncome < 9000 && population > 8_000_000 && airport.countryCode != "IN" && airport.countryCode != "ZA") {
@@ -410,15 +410,13 @@ object GeoDataGenerator extends App {
             ((elitePop + 99) * 1.5).toInt
           } else if (elitePop > 0 && elitePop < 100 && underRepresentedCountries.contains(airport.countryCode)) {
             Math.min((population * 0.6).toInt, Math.max(Random.nextInt(10) * 10, elitePop * 5))
-          } else if (elitePop > 0 && elitePop < 10) {
-            10
-          } else if(elitePop <= 1) {
+          } else if ( elitePop < 10) {
             0
           } else {
             elitePop
           }
 
-        val middleIncomePop = Math.max(0, -1 * elitePopAdjusted + Computation.populationAboveThreshold(normalizedIncome, population.toInt, gini, 30_000))
+        val middleIncomePop = Math.max(0, -1 * elitePopAdjusted + Computation.populationAboveThreshold(normalizedIncome, population.toInt, gini, 31_500))
         val airportCopy = airport.copy(baseIncome = normalizedIncome , basePopulation = population, popMiddleIncome = middleIncomePop, popElite = elitePopAdjusted)
         //YIKE copy here does not copy everything, we need to manually look up what does updateAirport/saveAirport do and clone stuff here...
         airportCopy.setRunways(airport.getRunways())
@@ -451,7 +449,6 @@ object GeoDataGenerator extends App {
       (resultLonInDegree, 2 * lonInDegree - resultLonInDegree)
     }
     //val d = Math.acos(Math.sin(lat) * Math.sin(lat) + Math.cos(lat) * Math.cos(lat) * Math.cos(unknown - lon)) * 6371 //=ACOS(SIN(Lat1)*SIN(Lat2)+COS(Lat1)*COS(Lat2)*COS(Lon2-Lon1))*6371
-
   }
 
   case class CsvAirport(airport : Airport, csvAirportId : Int, scheduledService : Boolean)
@@ -524,49 +521,13 @@ object GeoDataGenerator extends App {
       (countryCode, name)
     }.toMap
 
-    val giniMap = scala.io.Source.fromFile("country-data-2022.csv").getLines().map(_.split(",", -1)).map { tokens =>
+    val giniMap = scala.io.Source.fromFile("country-data.csv").getLines().map(_.split(",", -1)).map { tokens =>
       (tokens(0), if(tokens(3).isEmpty) 39.0 else tokens(3).toDouble)
     }.toMap
 
-    val opennessMap = scala.io.Source.fromFile("country-data-2022.csv").getLines().map(_.split(",", -1)).map { tokens =>
+    val opennessMap = scala.io.Source.fromFile("country-data.csv").getLines().map(_.split(",", -1)).map { tokens =>
       (tokens(0), if(tokens(2).isEmpty) 4 else tokens(2).toInt)
     }.toMap
-
-//    val opennessMap : Map[String, Int] = scala.io.Source.fromFile("openness.csv").getLines().map(_.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)", -1)).map { tokens =>
-//      val trimmedTokens = tokens.map { token : String =>
-//        if (token.startsWith("\"") && token.endsWith("\"")) {
-//          token.substring(1, token.length() - 1)
-//        } else {
-//          token
-//        }
-//      }
-//
-//      val countryCode3 = trimmedTokens(1)
-//      val opennessRanking : Option[Int] =
-//        trimmedTokens.drop(4).reverse.find { token => !token.isEmpty() } match {
-//          case Some(rankingString) =>
-//            try {
-//              Some(rankingString.toInt)
-//            } catch {
-//              case _ : NumberFormatException => None //ok just ignore
-//            }
-//          case None => None
-//        }
-//      codeMap.get(countryCode3) match {
-//        case Some(countryCode2) =>
-//          val opennessValue = opennessRanking.fold(0) { opennessRankingValue =>
-//            if (opennessRankingValue > 200) {
-//              0
-//            } else {
-//              (200 - opennessRankingValue) / 20 + 1
-//            }
-//          }
-//          Some((countryCode2, opennessValue))
-//        case None =>
-//          //println("cannot find matching country code for " + countryCode3)
-//          None
-//      }
-//    }.flatten.toMap
 
     val countries = ArrayBuffer[Country]()
     println(airportsByCountry)
