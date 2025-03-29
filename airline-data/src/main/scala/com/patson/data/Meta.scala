@@ -175,7 +175,7 @@ object Meta {
     statement.close()
     
 
-    statement = connection.prepareStatement("CREATE TABLE " + AIRLINE_TABLE + "( id INTEGER PRIMARY KEY AUTO_INCREMENT, name VARCHAR(256), is_generated TINYINT(1))")
+    statement = connection.prepareStatement("CREATE TABLE " + AIRLINE_TABLE + "( id INTEGER PRIMARY KEY AUTO_INCREMENT, name VARCHAR(256), airline_type TINYINT(1))")
     statement.execute()
     statement.close()
     
@@ -370,7 +370,6 @@ object Meta {
       "quality INTEGER, " +
       "duration INTEGER, " +
       "frequency INTEGER," +
-      "flight_type TINYINT," +
       "flight_number INTEGER," +
       "airplane_model SMALLINT," +
       "from_country CHAR(2)," +
@@ -416,6 +415,7 @@ object Meta {
       "sold_seats_first INTEGER, " +
       "quality SMALLINT, " +
       "fuel_cost INTEGER, " +
+      "fuel_tax INTEGER, " +
       "crew_cost INTEGER, " +
       "airport_fees INTEGER, " +
       "inflight_cost INTEGER, " +
@@ -435,7 +435,6 @@ object Meta {
       "frequency SMALLINT, " +
       "duration SMALLINT, " +
       "transport_type TINYINT, " +
-      "flight_type TINYINT, " +
       "flight_number SMALLINT, " +
       "airplane_model SMALLINT, " +
       "raw_quality SMALLINT, " +
@@ -555,9 +554,9 @@ object Meta {
       "name VARCHAR(256), " +
       "family VARCHAR(256), " +
       "capacity INTEGER, " +
-      "max_seats INTEGER, " +
       "quality INTEGER, " +
-      "fuel_burn INTEGER, " +
+      "ascent_burn DOUBLE, " +
+      "cruise_burn DOUBLE, " +
       "speed INTEGER, " +
       "fly_range INTEGER, " +
       "price INTEGER, " +
@@ -790,6 +789,7 @@ object Meta {
       "revenue LONG, " +
       "expense LONG," +
       "stock_price DOUBLE," +
+      "total_value LONG," +
       "period INTEGER," +
       "cycle INTEGER," +
       "PRIMARY KEY (airline, period, cycle)" +
@@ -809,6 +809,7 @@ object Meta {
       "ticket_revenue LONG," +
       "airport_fee LONG," +
       "fuel_cost LONG," +
+      "fuel_tax LONG," +
       "crew_cost LONG," +
       "inflight_cost LONG," +
       "delay_compensation LONG," +
@@ -833,6 +834,8 @@ object Meta {
       "expense LONG, " +
       "capital_gain LONG," +
       "create_link LONG," +
+      "prize LONG," +
+      "buy_back LONG," +
       "period INTEGER," +
       "cycle INTEGER," +
       "PRIMARY KEY (airline, period, cycle)" +
@@ -852,7 +855,6 @@ object Meta {
       "expense LONG, " +
       "loan_interest LONG," +
       "base_upkeep LONG," +
-      "dividends LONG," +
       "advertisement LONG," +
       "lounge_upkeep LONG, " +
       "lounge_cost LONG, " +
@@ -2052,10 +2054,18 @@ object Meta {
     statement = connection.prepareStatement("CREATE TABLE " + AIRLINE_STATISTICS_TABLE + "(" +
       "airline INTEGER, " +
       "cycle INTEGER, " +
+      "period INTEGER, " +
       "tourists INTEGER, " +
       "elites INTEGER, " +
       "business INTEGER, " +
       "total INTEGER, " +
+      "alliance_assists INTEGER, " +
+      "rask DOUBLE, " +
+      "cask DOUBLE, " +
+      "satisfaction DOUBLE, " +
+      "load_factor DOUBLE, " +
+      "on_time DOUBLE, " +
+      "hub_dominance DOUBLE, " +
       "PRIMARY KEY (airline, cycle)," +
       "FOREIGN KEY(airline) REFERENCES " + AIRLINE_TABLE + "(id) ON DELETE CASCADE ON UPDATE CASCADE" +
       ")")
@@ -2333,9 +2343,55 @@ object Meta {
     statement.close()
   }
 
+  def createNotes(connection : Connection): Unit = {
+
+    var statement = connection.prepareStatement("DROP TABLE IF EXISTS " + NOTES_AIRLINE_TABLE)
+    statement.execute()
+    statement.close()
+    statement = connection.prepareStatement("DROP TABLE IF EXISTS " + NOTES_AIRPORT_TABLE)
+    statement.execute()
+    statement.close()
+    statement = connection.prepareStatement("DROP TABLE IF EXISTS " + NOTES_LINK_TABLE)
+    statement.execute()
+    statement.close()
+
+    statement = connection.prepareStatement("CREATE TABLE " + NOTES_AIRLINE_TABLE + "(" +
+      "airline INTEGER PRIMARY KEY, " +
+      "notes TEXT, " +
+      "FOREIGN KEY(airline) REFERENCES " + AIRLINE_TABLE + "(id) ON DELETE CASCADE ON UPDATE NO ACTION" +
+      ")"
+    )
+    statement.execute()
+    statement.close()
+    statement = connection.prepareStatement("CREATE TABLE " + NOTES_AIRPORT_TABLE + "(" +
+      "link INTEGER PRIMARY KEY, " +
+      "airline INTEGER, " +
+      "notes TEXT, " +
+      "FOREIGN KEY(link) REFERENCES " + AIRLINE_TABLE + "(id) ON DELETE CASCADE ON UPDATE NO ACTION" +
+      "FOREIGN KEY(airline) REFERENCES " + AIRLINE_TABLE + "(id) ON DELETE CASCADE ON UPDATE NO ACTION" +
+      ")"
+    )
+    statement.execute()
+    statement.close()
+    statement = connection.prepareStatement("CREATE TABLE " + NOTES_LINK_TABLE + "(" +
+      "airport INTEGER, " +
+      "airline INTEGER, " +
+      "notes TEXT, " +
+      "PRIMARY KEY (airport, airline)," +
+      "FOREIGN KEY(airport) REFERENCES " + AIRPORT_TABLE + "(id) ON DELETE CASCADE ON UPDATE NO ACTION" +
+      "FOREIGN KEY(airline) REFERENCES " + AIRLINE_TABLE + "(id) ON DELETE CASCADE ON UPDATE NO ACTION" +
+      ")"
+    )
+    statement.execute()
+    statement.close()
 
 
-  def isTableExist(connection : Connection, tableName : String): Boolean = {
+  }
+
+
+
+
+    def isTableExist(connection : Connection, tableName : String): Boolean = {
     val tables = connection.getMetaData.getTables(null, null, tableName, null)
     tables.next()
   }

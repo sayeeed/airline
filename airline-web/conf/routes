@@ -10,6 +10,8 @@ GET		/chat						controllers.ChatApplication.chatSocket
 #Web Socket management
 GET		/wsWithActor						controllers.WebsocketApplication.wsWithActor
 
+GET		 /game/constants			  controllers.Application.getGameRules()
+
 POST	 /login							  controllers.UserApplication.login
 POST	 /logout						  controllers.UserApplication.logout
 #GET	 	 /login							  controllers.UserApplication.login
@@ -26,8 +28,6 @@ GET	 	 /airports/:airportId/loyalist-data	        controllers.Application.getAir
 GET	 	 /airports/:airportId/departures/:dayOfWeek/:hour/:minute controllers.Application.getDepartures(airportId : Int, dayOfWeek : Int, hour : Int, minute : Int)
 GET		 /airports/:fromAirportId/to/:toAirportId				controllers.Application.getAirportLinkConsumptions(fromAirportId : Int, toAirportId : Int)
 GET		 /airports/:airportId/links	controllers.Application.getLinksByAirport(airportId : Int)
-#GET	 	 /airports/:airportId/projects	      controllers.Application.getAirportProjects(airportId : Int)
-#PUT	 	 /airports/:airportId/projects	      controllers.Application.addAirportProject(airlineId : Int, airportId : Int)
 GET	 	 /airports/:airportId/assets	      controllers.AirportAssetApplication.getAirportAssets(airportId : Int)
 GET	 	 /airports/:airportId/champions	      controllers.Application.getAirportChampions(airportId : Int, airlineId: Option[Int])
 GET		 /airports/base/scale-details			  controllers.Application.getScaleDetails()
@@ -52,7 +52,6 @@ PUT 	 /airlines/:airlineId/links 	  controllers.LinkApplication.addLink(airlineI
 POST 	 /airlines/:airlineId/link-overtime-compensation 	  controllers.LinkApplication.getOvertimeCompensation(airlineId : Int)
 DELETE   /airlines/:airlineId/links/:linkId 		 	controllers.LinkApplication.deleteLink(airlineId : Int, linkId : Int)
 GET		 /airlines/:airlineId/links/:linkId 			controllers.LinkApplication.getLink(airlineId : Int, linkId : Int)
-GET		 /airlines/:airlineId/expectedQuality/:fromAirportId/:toAirportId/:queryAirportId	controllers.LinkApplication.getExpectedQuality(airlineId : Int, fromAirportId : Int, toAirportId : Int, queryAirportId : Int)
 GET		 /airlines/:airlineId/bases		  controllers.AirlineApplication.getBases(airlineId : Int)
 GET		 /airlines/:airlineId/bases/:airportId  		controllers.AirlineApplication.getBase(airlineId : Int, airportId : Int)
 DELETE	 /airlines/:airlineId/bases/:airportId  		controllers.AirlineApplication.deleteBase(airlineId : Int, airportId : Int)
@@ -78,7 +77,6 @@ GET		 /airlines/:airlineId/service-funding-projection		    controllers.AirlineAp
 PUT      /airlines/:airlineId/minimum-renewal-balance           controllers.AirlineApplication.setMinimumRenewalBalance(airlineId: Int)
 GET		 /airlines/:airlineId/airplane-renewal			controllers.AirlineApplication.getAirplaneRenewal(airlineId: Int)
 PUT		 /airlines/:airlineId/airplane-renewal			controllers.AirlineApplication.updateAirplaneRenewal(airlineId: Int)
-PUT		 /airlines/:airlineId/weeklyDividends			controllers.AirlineApplication.updateWeeklyDividends(airlineId: Int)
 POST	 /airlines/:airlineId/plan-link	  controllers.LinkApplication.planLink(airlineId : Int)
 POST	 /airlines/:airlineId/get-link-negotiation	  controllers.LinkApplication.getLinkNegotiation(airlineId : Int)
 GET	     /airlines/:airlineId/office-capacity	  controllers.AirlineApplication.getOfficeCapacity(airlineId : Int)
@@ -172,6 +170,11 @@ POST      /airlines/:airlineId/tutorial               controllers.TutorialApplic
 POST      /airlines/:airlineId/completed-notice/:noticeId     controllers.NoticeApplication.saveCompletedNotice(airlineId: Int, noticeId: String, category : String)
 GET     /airlines/:airlineId/profiles   controllers.ProfileApplication.getProfiles(airlineId : Int, airportId : Int)
 PUT     /airlines/:airlineId/profiles/:profileId     controllers.ProfileApplication.buildHqWithProfile(airlineId : Int, airportId : Int, profileId : Int)
+
+GET    /airlines/:airlineId/notes   controllers.NotesApplication.getNotesByAirline(airlineId : Int)
+PUT    /airlines/:airlineId/notes   controllers.NotesApplication.saveNoteToAirline(airlineId : Int)
+PUT    /airlines/:airlineId/notes/link/:linkId   controllers.NotesApplication.saveNoteToLink(airlineId : Int, linkId: Int)
+PUT    /airlines/:airlineId/notes/airport/:airportId   controllers.NotesApplication.saveNoteToAirport(airlineId : Int, airportId: Int)
 
 GET     /airlines/:airlineId/headquarters-map       controllers.TileApplication.getHeadquartersTiles(airlineId : Int)
 
@@ -269,7 +272,7 @@ OPTIONS    /*path     controllers.Application.options(path)
 GET  /favicon.ico        controllers.Assets.at(path="/public/images/icons", file="globe-with-airplane.png")
 
 # Map static resources from the /public folder to the /assets URL path
-GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
+GET     /assets/*file    controllers.Assets.versioned(path="/public", file: Asset)
 
 #front-end fake links...use redirect instead of telling them not found
 GET /nav-*any       controllers.Application.redirect(path : String = "/", any)

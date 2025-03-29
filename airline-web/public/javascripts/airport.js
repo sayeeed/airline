@@ -4,7 +4,8 @@ var activeAirportId
 var activeAirportPopupInfoWindow
 var airportMapMarkers = []
 var airportMapCircle
-var airportBase
+var targetBase
+var airportBaseScale
 
 
 function showAirportDetails(airportId) {
@@ -46,23 +47,11 @@ function updateAirportDetails(airport, cityImageUrl, airportImageUrl) {
 	if (airportImageUrl) {
 		$('#airportDetailsAirportImage').append('<img src="' + airportImageUrl + '" style="width:100%;"/>')
 	}
-
 	
 	$('.airportName').text(airport.name)
 	$('.airportIataIaco').text(
 	     airport.icao ? airport.iata + " / " + airport.icao : airport.iata
 	)
-//	if (airport.iata) {
-//		$('#airportDetailsIata').text(airport.iata)
-//	} else {
-//		$('#airportDetailsIata').text('-')
-//	}
-//
-//	if (airport.icao) {
-//		$('#airportDetailsIcao').text(airport.icao)
-//	} else {
-//		$('#airportDetailsIcao').text('-')
-//	}
 
 	//loyalist-trend
 //	$.each(result.airlineDeltas, function(index, deltaEntry) {
@@ -131,8 +120,14 @@ function updateAirportDetails(airport, cityImageUrl, airportImageUrl) {
 		    contentType: 'application/json; charset=utf-8',
 		    dataType: 'json',
 		    success: function(baseDetails) {
-		    	airportBase = baseDetails.base
-		    	if (!airportBase) { //new base
+		    	targetBase = baseDetails.targetBase
+		    	airportBaseScale = baseDetails.baseScale ?? 0
+
+		    	populateBaseUpkeepModal(baseDetails.targetBase)
+                const baseType = targetBase.headquarter ? "Headquarters" : "Base"
+                const upkeepByLevel = baseDetails.targetBase.upkeepByLevel
+
+		    	if (!baseDetails.baseScale) { //new base
 		    	    document.getElementById('airportBaseDetailsHeading').innerHTML = `Build base`
 	    			$('#airportDetailsBaseUpkeep').text('0')
 	    			$('#airportDetailsBaseDelegatesRequired').text('1 to Build Base')
@@ -144,13 +139,12 @@ function updateAirportDetails(airport, cityImageUrl, airportImageUrl) {
 
 	    			$('#baseDetailsModal').removeData('scale')
 	    		} else {
-	    		    const baseType = airportBase.headquarter ? "Headquarters" : "Base"
                     let specializationList = "";
-                    if (airportBase.specializations) {
+                    if (targetBase.specializations) {
                         specializationList = document.createElement('span');
 
 
-                        airportBase.specializations.forEach(specialization => {
+                        targetBase.specializations.forEach(specialization => {
                             const img = document.createElement('img');
                             img.src = `assets/images/icons/specialization/${specialization.id}.png`;
                             img.title = specialization.label;
@@ -162,23 +156,23 @@ function updateAirportDetails(airport, cityImageUrl, airportImageUrl) {
                     }
                     const smallTextUnderLine = document.createElement("small")
                     smallTextUnderLine.classList.add('text-underline',"pl-2")
-                    smallTextUnderLine.innerText = `Scale ${airportBase.scale}`;
+                    smallTextUnderLine.innerText = `Scale ${airportBaseScale}`;
 
                     const airportBaseDetailsHeadingELM = document.getElementById('airportBaseDetailsHeading')
                     airportBaseDetailsHeadingELM.innerText = `${activeAirline.name} ${baseType}`
                     airportBaseDetailsHeadingELM.appendChild(smallTextUnderLine)
-                    if (specializationList) {
-                        const specializationListELM = document.createElement('span');
-                        specializationListELM.innerHTML = specializationList;
-                        airportBaseDetailsHeadingELM.appendChild(specializationList);
-                    }
+//                    if (specializationList) {
+//                        const specializationListELM = document.createElement('span');
+//                        specializationListELM.innerHTML = specializationList;
+//                        airportBaseDetailsHeadingELM.appendChild(specializationList);
+//                    }
 
-	    			if (airportBase.delegatesRequired == 0) {
+	    			if (targetBase.delegatesRequired == 0) {
 	    			    $('#airportDetailsBaseDelegatesRequired').text('None')
                     } else {
                         $('#airportDetailsBaseDelegatesRequired').empty()
                         var $delegatesSpan = $('<span style="display: flex;"></span>')
-                        for (i = 0 ; i < airportBase.delegatesRequired; i ++) {
+                        for (i = 0 ; i < targetBase.delegatesRequired; i ++) {
                             var $delegateIcon = $('<img src="assets/images/icons/user-silhouette-available.png"/>')
                             $delegatesSpan.append($delegateIcon)
                         }
@@ -199,18 +193,19 @@ function updateAirportDetails(airport, cityImageUrl, airportImageUrl) {
                     }
                     $capacitySpan.text(capacityText)
 
-	    			$('#airportDetailsBaseUpkeep').text('$' + commaSeparateNumber(airportBase.upkeep))
-                    $('.upgradeCostLabel').text('Upgrade base cost')
+	    			$('#airportDetailsBaseUpkeep').text('$' + commaSeparateNumber(upkeepByLevel[airportBaseScale - 1]))
+//                    $('.upgradeCostLabel').text('Upgrade base cost')
 
-	    			$('#baseDetailsModal').data('scale', airportBase.scale)
-	    			$('#upgradeBaseButton').data('scale', airportBase.scale)
+	    			$('#baseDetailsModal').data('scale', airportBaseScale)
+	    			$('#upgradeBaseButton').data('scale', airportBaseScale)
 	    			updateFacilityIcons(airport)
 	    			enableButton($('#airportBaseDetails .specialization.button'))
 	    		}
 
-		    	var targetBase = baseDetails.targetBase
-		    	$('#airportDetailsBaseUpgradeCost').text('$' + commaSeparateNumber(targetBase.value))
-    			$('#airportDetailsBaseUpgradeUpkeep').text('$' + commaSeparateNumber(targetBase.upkeep))
+		    	var targetBaseScale = baseDetails.targetBase.scale
+				const upgradeText = targetBaseScale === 1 ? `Build ${baseType}` : `Upgrade ${baseType}`
+		    	$('#upgradeBaseButton').text(upgradeText + " for $" + commaSeparateNumber(baseDetails.targetBase.upgradeCostByLevel[targetBaseScale - 1]))
+    			$('#airportDetailsBaseUpgradeUpkeep').text('$' + commaSeparateNumber(upkeepByLevel[airportBaseScale - 1]))
 
 	    		
 	    		//update buttons and reject reasons
@@ -218,7 +213,7 @@ function updateAirportDetails(airport, cityImageUrl, airportImageUrl) {
 	    			$('#buildHeadquarterButton').hide()
 	    			$('#buildBaseButton').hide()
                     $('#upgradeBaseButton').hide()
-	    			if (!airportBase) {
+	    			if (!airportBaseScale) {
 	    			    disableButton($('#buildBaseButton'), baseDetails.rejection)
 	    			    $('#buildBaseButton').show()
 	    			} else {
@@ -226,7 +221,7 @@ function updateAirportDetails(airport, cityImageUrl, airportImageUrl) {
 	    			    $('#upgradeBaseButton').show()
 	    			}
 	    		} else {
-	    			if (!airportBase) {
+	    			if (!airportBaseScale) {
 	    				if (activeAirline.headquarterAirport) {
 		    				$('#buildHeadquarterButton').hide()
 		    				enableButton($('#buildBaseButton'))
@@ -249,7 +244,7 @@ function updateAirportDetails(airport, cityImageUrl, airportImageUrl) {
                     disableButton($('#downgradeBaseButton'), baseDetails.downgradeRejection)
 	    			$('#downgradeBaseButton').show()
 		    	} else {
-		    		if (airportBase) {
+		    		if (airportBaseScale > 0) {
                         enableButton($('#downgradeBaseButton'))
 		    			$('#downgradeBaseButton').show()
 		    		} else {
@@ -261,7 +256,7 @@ function updateAirportDetails(airport, cityImageUrl, airportImageUrl) {
                     disableButton($('#deleteBaseButton'), baseDetails.deleteRejection)
                     $('#deleteBaseButton').show()
                 } else {
-                    if (!airportBase) {
+                    if (!airportBaseScale) {
                         $('#deleteBaseButton').hide()
                     } else {
                         enableButton($('#deleteBaseButton'))
@@ -1444,19 +1439,19 @@ function showSpecializationModal() {
     var $container = $('#baseSpecializationModal .container')
     $container.empty()
     $.ajax({
-		type: 'GET',
-		url: "airlines/" + activeAirline.id + "/bases/" + activeAirportId + "/specialization-info",
-	    contentType: 'application/json; charset=utf-8',
-	    dataType: 'json',
-	    success: function(info) {
+        type: 'GET',
+        url: "airlines/" + activeAirline.id + "/bases/" + activeAirportId + "/specialization-info",
+        contentType: 'application/json; charset=utf-8',
+        dataType: 'json',
+        success: function(info) {
             $.each(info.specializations, function(index, specializationsByScale) {
-                var $scaleDiv = $('<div class="section"></div>').appendTo($container)
-                $scaleDiv.append($('<h4>Hub Scale Requirement ' + specializationsByScale.scaleRequirement + '</h4>'))
-                var $flexDiv = $('<div style="display: flex; flex-wrap: wrap;"></div>').appendTo($scaleDiv)
+                $container.append($('<h4 class="m-0">Base Level ' + specializationsByScale.scaleRequirement + '</h4>'))
+                $container.append($('<p><i>Choose any two</i></p>'))
+                var $flexDiv = $('<div class="modal-grid-options"></div>').appendTo($container)
                 $.each(specializationsByScale.specializations, function(index, specialization) {
-                    var $specializationDiv = $('<div class="section specialization" style="min-width: 200px; flex:1;"></div>').appendTo($flexDiv)
+                    var $specializationDiv = $('<div class="option" style="min-width: 260px; flex:1;"></div>').appendTo($flexDiv)
                     $specializationDiv.data('id', specialization.id)
-                    $specializationDiv.append($('<h4>' + specialization.label + '</h4>'))
+                    $specializationDiv.append($('<h4 class="m-0">' + specialization.label + '</h4>'))
                     var $descriptionList = $('<ul></ul>').appendTo($specializationDiv)
                     $.each(specialization.descriptions, function(index, description) {
                         $descriptionList.append($('<li class="dot">' + description + '</li>'))
@@ -1466,8 +1461,15 @@ function showSpecializationModal() {
                         $specializationDiv.addClass('available')
                         if (!specialization.free) {
                             $specializationDiv.on('click', function() {
-                                $(this).siblings().removeClass('active')
-                                $(this).toggleClass('active')
+                                var $activeSpecializations = $flexDiv.find('.option.active')
+                                if ($(this).hasClass('active')) {
+                                    $(this).removeClass('active')
+                                } else {
+                                    if ($activeSpecializations.length >= 2) {
+                                        $($activeSpecializations[0]).removeClass('active')
+                                    }
+                                    $(this).addClass('active')
+                                }
                             })
                         } else {
                             $specializationDiv.attr('title', 'Free at scale ' + specializationsByScale.scaleRequirement)
@@ -1484,21 +1486,22 @@ function showSpecializationModal() {
             })
 
             if (info.cooldown > 0) {
+                $('#baseSpecializationModal .warning').text("Next change can be made in " + info.cooldown + " week(s).")
                 disableButton($('#baseSpecializationModal .confirm'), info.cooldown + " more week(s) before another change")
             } else {
+                $('#baseSpecializationModal .warning').text("")
                 enableButton($('#baseSpecializationModal .confirm'))
             }
 
             $('#baseSpecializationModal').data("defaultCooldown", info.defaultCooldown)
 
             $('#baseSpecializationModal').fadeIn(500)
-	    },
+        },
         error: function(jqXHR, textStatus, errorThrown) {
-	            console.log(JSON.stringify(jqXHR));
-	            console.log("AJAX error: " + textStatus + ' : ' + errorThrown);
-	    }
-	});
-
+            console.log(JSON.stringify(jqXHR));
+            console.log("AJAX error: " + textStatus + ' : ' + errorThrown);
+        }
+    });
 }
 
 function confirmSpecializations() {
@@ -1507,7 +1510,7 @@ function confirmSpecializations() {
         var airlineId = activeAirline.id
         var url = "airlines/" + airlineId + "/bases/" + activeAirportId + "/specializations"
         var selectedSpecializations = []
-        $('#baseSpecializationModal .specialization.active').each(function(index) {
+        $('#baseSpecializationModal .option.active').each(function(index) {
             selectedSpecializations.push($(this).data('id'))
         })
 
@@ -1540,6 +1543,7 @@ function showGenericTransitModal() {
         $row = $('<div class="table-row" style="width: 100%"></div>')
         $row.append($('<div class="cell">' + transit.toAirportText + '</div>'))
         $row.append($('<div class="cell" align="right">' + commaSeparateNumber(transit.toAirportPopulation) + '</div>'))
+        $row.append($('<div class="cell" align="right">' + commaSeparateNumber(transit.distance) + 'km</div>'))
         $row.append($('<div class="cell capacity" align="right">' + commaSeparateNumber(transit.capacity) + '</div>'))
         $row.append($('<div class="cell" align="right">' + commaSeparateNumber(transit.passenger) + '</div>'))
 
@@ -1603,5 +1607,89 @@ async function toggleAllianceBaseMapViewButton (state) {
     }
 }
 
+function populateBaseUpkeepModal(targetBase) {
+    const tableContainer = document.querySelector('#baseUpkeepModal .table.data.scaleDetails');
+    
+    const existingRows = tableContainer.querySelectorAll('.table-row:not(.table-header)');
+    existingRows.forEach(row => row.remove());
 
+    targetBase.upkeepByLevel.forEach((upkeep, index) => {
+        const row = document.createElement('div');
+        row.className = 'table-row';
+        row.setAttribute('data-scale', index);
+		if (index + 1 === airportBaseScale) {
+            row.classList.add('selected');
+        }
+
+        const scaleCell = document.createElement('div');
+        scaleCell.className = 'cell';
+        scaleCell.style.width = '30%';
+        scaleCell.textContent = index + 1;
+        row.appendChild(scaleCell);
+
+        const upkeepCell = document.createElement('div');
+        upkeepCell.className = 'cell';
+        upkeepCell.style.width = '35%';
+        upkeepCell.textContent = '$' + commaSeparateNumber(upkeep);
+        row.appendChild(upkeepCell);
+
+        const costCell = document.createElement('div');
+        costCell.className = 'cell';
+        costCell.style.width = '35%';
+        costCell.textContent = '$' + commaSeparateNumber(targetBase.upgradeCostByLevel[index]);
+        row.appendChild(costCell);
+
+        tableContainer.appendChild(row);
+    });
+}
+
+function showBaseUpkeepModal() {
+	$('#baseUpkeepModal').fadeIn(500)
+}
+
+function populateBaseDetailsModal() {
+    const tableContainer = document.querySelector('#baseDetailsModal .table.data.scaleDetails');
+    
+    gameConstants.baseScaleProgression.forEach(entry => {
+        const maxFrequency = entry.maxFrequency;
+
+        const row = document.createElement('div');
+        row.className = 'table-row';
+        row.setAttribute('data-scale', entry.scale);
+
+        const scaleCell = document.createElement('div');
+        scaleCell.className = 'cell';
+        scaleCell.textContent = entry.scale;
+        row.appendChild(scaleCell);
+
+        const staffCell = document.createElement('div');
+        staffCell.className = 'cell';
+        staffCell.textContent = `${entry.headquartersStaffCapacity}/${entry.baseStaffCapacity}`;
+        row.appendChild(staffCell);
+
+        const internationalCell = document.createElement('div');
+        internationalCell.className = 'cell';
+        internationalCell.textContent = maxFrequency.INTERNATIONAL;
+        row.appendChild(internationalCell);
+
+        const domesticCell = document.createElement('div');
+        domesticCell.className = 'cell';
+        domesticCell.textContent = maxFrequency.DOMESTIC;
+        row.appendChild(domesticCell);
+
+        tableContainer.appendChild(row);
+    });
+}
+
+function showBaseDetailsModal() {
+    var scale = $('#baseDetailsModal').data('scale')
+    $('#baseDetailsModal .table-row').removeClass('selected')
+
+    if (scale) {
+        var $selectRow = $('#baseDetailsModal').find('.table-row[data-scale="' + scale + '"]')
+        $selectRow.addClass('selected')
+    }
+
+    $('#baseDetailsModal').fadeIn(500)
+}
 

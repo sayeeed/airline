@@ -6,7 +6,7 @@ var loadedLinks = []
 var loadedLinksById = {}
 var currentAnimationStatus = false
 var currentAirlineAllianceMembers = []
-const CLASSES = ['Economy', 'Business', 'First'];
+const CLASSES = ['economy', 'business', 'first'];
 
 $( document ).ready(function() {
     $('#linkEventModal .filterCheckboxes input:checkbox').change(function() {
@@ -66,15 +66,20 @@ function refreshTopBar(airline) {
 
 	//desktop
 	//$(getGradeStarsImgs(airline.gradeValue)).attr('title', "Reputation: " + airline.reputation).appendTo($(".reputationStars"))
-//	var reputationText = "Reputation: " + airline.reputation + " (" + airline.gradeDescription + ") Next Grade: " + airlineGradeLookup[airline.gradeValue]
+	var reputationText = "Reputation: " + airline.reputation + " (" + airline.gradeDescription + ") Next Grade: " + airline.gradeCeiling
 	var $starBar = $(getGradeStarsImgs(airline.gradeLevel - 2))
 	$(".reputationStars").append($starBar)
-//	addTooltip($(".reputationStars"), reputationText, {'top' : 0, 'width' : '350px', 'white-space' : 'nowrap'})
+	addTooltip($("#topReputationStars"), reputationText, {'top' : 0, 'width' : '350px', 'white-space' : 'nowrap'})
 
 	//updateTopBarDelegatesStatus
 	refreshTopBarDelegates(airline)
 }
 
+/**
+ * @value {number} 1-10
+ * @width {number} in px
+ * @returns {html} 5 stars, either full, half, or empty
+ **/
 function getGradeStarsImgs(value, width = 16) {
     const adjusted = Math.max(value, 0)
 	const halfStar = adjusted % 2
@@ -119,6 +124,7 @@ function loadAirlines() {
 function selectAirline(airlineId) {
 	initWebSocket(airlineId)
 	updateAllPanels(airlineId)
+	loadAndWatchAirlineNotes()
 }
 
 function selectHeadquarters(airportId) {
@@ -659,9 +665,7 @@ function refreshLinkDetails(linkId) {
 	    dataType: 'json',
 	    success: function(link) {
 	    	$("#linkFromAirport").attr("onclick", "showAirportDetails(" + link.fromAirportId + ")").html(getCountryFlagImg(link.fromCountryCode, "15px") + link.fromAirportCity + "<i class='pl-1 iata'>" + link.fromAirportCode + "</i>")
-	    	//$("#linkFromAirportExpectedQuality").attr("onclick", "loadLinkExpectedQuality(" + link.fromAirportId + "," + link.toAirportId + "," + link.fromAirportId + ")")
 	    	$("#linkToAirport").attr("onclick", "showAirportDetails(" + link.toAirportId + ")").html(getCountryFlagImg(link.toCountryCode, "15px") + link.toAirportCity + "<i class='pl-1 iata'>" + link.toAirportCode + "</i>")
-	    	//$("#linkToAirportExpectedQuality").attr("onclick", "loadLinkExpectedQuality(" + link.fromAirportId + "," + link.toAirportId + "," + link.toAirportId + ")")
 	    	$("#linkFlightCode").text(link.flightCode)
 	    	if (link.assignedAirplanes && link.assignedAirplanes.length > 0) {
 	    		$('#linkAirplaneModel').text(link.assignedAirplanes[0].airplane.name)
@@ -671,7 +675,7 @@ function refreshLinkDetails(linkId) {
 	    	$("#linkCurrentPrice").html(toLinkClassDiv(link.price, "$"))
 	    	$("#linkDistance").text(link.distance + " km")
 	    	$("#linkDuration").text(toHoursAndMinutes(link.duration).hours + "hr " + toHoursAndMinutes(link.duration).minutes + "min ")
-	    	$("#linkQuality").html(getGradeStarsImgs(Math.round(link.computedQuality / 10)) + " (" + link.computedQuality + ")")
+	    	$("#linkQuality").html(getGradeStarsImgs(Math.min(10, Math.round(link.computedQuality / 10))) + " (" + link.computedQuality + ")")
 	    	$("#linkCurrentCapacity").html(toLinkClassDiv(link.capacity))
 	    	if (link.future) {
 	    	    $("#linkCurrentDetails .future .capacity").html(toLinkClassDiv(link.future.capacity))
@@ -747,6 +751,7 @@ function refreshLinkDetails(linkId) {
 		    	$("#linkProfit").text("-")
 		    	$("#linkRevenue").text("-")
 		    	$("#linkFuelCost").text("-")
+		    	$("#linkFuelTax").text("-")
 		    	$("#linkCrewCost").text("-")
 		    	$("#linkAirportFees").text("-")
 		    	$("#linkDepreciation").text("-")
@@ -779,6 +784,7 @@ function refreshLinkDetails(linkId) {
 		    	$("#linkProfit").text("$" + commaSeparateNumber(linkConsumption.profit))
 		    	$("#linkRevenue").text("$" + commaSeparateNumber(linkConsumption.revenue))
 		    	$("#linkFuelCost").text("$" + commaSeparateNumber(linkConsumption.fuelCost))
+		    	$("#linkFuelTax").text("$" + commaSeparateNumber(linkConsumption.fuelTax))
 		    	$("#linkCrewCost").text("$" + commaSeparateNumber(linkConsumption.crewCost))
 		    	$("#linkAirportFees").text("$" + commaSeparateNumber(linkConsumption.airportFees))
 		    	$("#linkDepreciation").text("$" + commaSeparateNumber(linkConsumption.depreciation))
@@ -938,7 +944,6 @@ function planLink(fromAirport, toAirport, isRefresh) {
 
 var planLinkInfo = null
 var planLinkInfoByModel = {}
-var spaceMultipliers = null
 var existingLink
 
 function updatePlanLinkInfo(linkInfo, isRefresh) {
@@ -964,11 +969,8 @@ function updatePlanLinkInfo(linkInfo, isRefresh) {
 		$('#planLinkFromAirportEditIcon').hide()
 	}
 	$("#planLinkFromAirportSelect").hide() //do not show the list yet
-	//$('#planLinkFromAirportExpectedQuality').attr("onclick", "loadLinkExpectedQuality(" + linkInfo.fromAirportId + "," + linkInfo.toAirportId + "," + linkInfo.fromAirportId + ")")
 
 	$('#planLinkToAirportName').attr("onclick", "showAirportDetails(" + linkInfo.toAirportId + ")").html(getCountryFlagImg(linkInfo.toCountryCode) + linkInfo.toAirportCity + "<i class='pl-2 iata'>" + linkInfo.toAirportCode + "</i>")
-	//$('#planLinkToAirportExpectedQuality').attr("onclick", "loadLinkExpectedQuality(" + linkInfo.fromAirportId + "," + linkInfo.toAirportId + "," + linkInfo.toAirportId + ")")
-//	$('#planLinkFlightCode').text(linkInfo.flightCode)
     $('.planToIata').text(linkInfo.toAirportCode)
     $('.planFromIata').text(linkInfo.fromAirportCode)
 	$('#planLinkMutualRelationship').html(getCountryFlagImg(linkInfo.fromCountryCode) + " ⇄ " + getCountryFlagImg(linkInfo.toCountryCode) + getCountryRelationshipDescription(linkInfo.mutualRelationship))
@@ -991,21 +993,27 @@ function updatePlanLinkInfo(linkInfo, isRefresh) {
 	$('.planLinkFlightType').html(linkInfo.flightType)
 
     var $breakdown = $("#planLinkDetails .directDemandBreakdown")
-    plannedLinkDemands = linkInfo.demands
     $breakdown.find(".fromAirport .airportLabel").empty()
     $breakdown.find(".fromAirport .airportLabel").append(getAirportSpan({ "iata" : linkInfo.fromAirportCode, "countryCode" : linkInfo.fromCountryCode, "city" : linkInfo.fromAirportCity}))
-    $breakdown.find(".fromAirport .travelerDemand").text(toLinkClassValueString(linkInfo.demands.TravelerFrom))
-    $breakdown.find(".fromAirport .businessDemand").text(toLinkClassValueString(linkInfo.demands.BusinessFrom))
-    $breakdown.find(".fromAirport .touristDemand").text(toLinkClassValueString(linkInfo.demands.TouristFrom))
-
     $breakdown.find(".toAirport .airportLabel").empty()
     $breakdown.find(".toAirport .airportLabel").append(getAirportSpan({ "iata" : linkInfo.toAirportCode, "countryCode" : linkInfo.toCountryCode, "city" : linkInfo.toAirportCity}))
-    $breakdown.find(".toAirport .travelerDemand").text(toLinkClassValueString(linkInfo.demands.TravelerTo))
-    $breakdown.find(".toAirport .businessDemand").text(toLinkClassValueString(linkInfo.demands.BusinessTo))
-    $breakdown.find(".toAirport .touristDemand").text(toLinkClassValueString(linkInfo.demands.TouristTo))
 
-	 //+ " (business: " + linkInfo.businessPassengers + " tourist: " + linkInfo.touristPassengers + ")")
-	//$('#planLinkAirportLinkCapacity').text(linkInfo.airportLinkCapacity)
+    // Sum up all preferences for each passenger type for "from" direction
+    let fromTravelerTotal = sumPreferencesByType(linkInfo.fromDemandDetails, "Traveler")
+    let fromBusinessTotal = sumPreferencesByType(linkInfo.fromDemandDetails, "Business") 
+    let fromTouristTotal = sumPreferencesByType(linkInfo.fromDemandDetails, "Tourist")
+    $breakdown.find(".fromAirport .travelerDemand").text(toLinkClassValueString(fromTravelerTotal))
+    $breakdown.find(".fromAirport .businessDemand").text(toLinkClassValueString(fromBusinessTotal))
+    $breakdown.find(".fromAirport .touristDemand").text(toLinkClassValueString(fromTouristTotal))
+    
+    // Sum up all preferences for each passenger type for "to" direction
+    let toTravelerTotal = sumPreferencesByType(linkInfo.toDemandDetails, "Traveler")
+    let toBusinessTotal = sumPreferencesByType(linkInfo.toDemandDetails, "Business")
+    let toTouristTotal = sumPreferencesByType(linkInfo.toDemandDetails, "Tourist")
+    
+    $breakdown.find(".toAirport .travelerDemand").text(toLinkClassValueString(toTravelerTotal))
+    $breakdown.find(".toAirport .businessDemand").text(toLinkClassValueString(toBusinessTotal))
+    $breakdown.find(".toAirport .touristDemand").text(toLinkClassValueString(toTouristTotal))
 	
 	
 	$("#planLinkCompetitors .data-row").remove()
@@ -1071,18 +1079,36 @@ function updatePlanLinkInfo(linkInfo, isRefresh) {
 		$("#planLinkCompetitors").append("<div class='table-row data-row'><div style='display: table-cell;'>-</div><div style='display: table-cell;'>-</div><div style='display: table-cell;'>-</div><div style='display: table-cell;'>-</div><div style='display: table-cell;'>-</div></div>")
 	}
 
-	if (tempPath) { //remove previous plan link if it exists
-		removeTempPath()
-	}
+    document.querySelector("#planLinkQuality").innerHTML = getGradeStarsImgs(Math.min(10, Math.round(linkInfo.quality / 10)), 12)
 
-	$('#planLinkCost').text('$' + commaSeparateNumber(linkInfo.cost))
+	const fromQuality = document.getElementById("planLinkExpectedToQuality")
+	fromQuality.getElementsByClassName("first")[0].innerHTML = getGradeStarsImgs(Math.round(linkInfo.toExpectedQuality.F / 10), 12)
+	fromQuality.getElementsByClassName("business")[0].innerHTML = getGradeStarsImgs(Math.round(linkInfo.toExpectedQuality.J / 10), 12)
+	fromQuality.getElementsByClassName("economy")[0].innerHTML = getGradeStarsImgs(Math.round(linkInfo.toExpectedQuality.Y / 10), 12)
+	fromQuality.getElementsByClassName("discount")[0].innerHTML = getGradeStarsImgs(Math.round(linkInfo.toExpectedQuality.D / 10), 12)
+
+	const toQuality = document.getElementById("planLinkExpectedFromQuality")
+    toQuality.getElementsByClassName("first")[0].innerHTML = getGradeStarsImgs(Math.round(linkInfo.fromExpectedQuality.F / 10), 12)
+    toQuality.getElementsByClassName("business")[0].innerHTML = getGradeStarsImgs(Math.round(linkInfo.fromExpectedQuality.J / 10), 12)
+    toQuality.getElementsByClassName("economy")[0].innerHTML = getGradeStarsImgs(Math.round(linkInfo.fromExpectedQuality.Y / 10), 12)
+    toQuality.getElementsByClassName("discount")[0].innerHTML = getGradeStarsImgs(Math.round(linkInfo.fromExpectedQuality.D / 10), 12)
 
 	if (linkInfo.estimatedDifficulty) {
-	    $('#planLinkEstimatedDifficulty').text(linkInfo.estimatedDifficulty.toFixed(2) + " +")
+	    $('#planLinkEstimatedDifficulty').text(linkInfo.estimatedDifficulty.toFixed(2))
     } else {
         $('#planLinkEstimatedDifficulty').text('-')
     }
 
+     if (linkInfo.cost !== 0) {
+        $('#planLinkSetupCostRow').show()
+        $('#planLinkSetupCost').text("$" + commaSeparateNumber(linkInfo.cost))
+     } else {
+        $('#planLinkSetupCostRow').hide()
+     }
+
+    if (tempPath) { //remove previous plan link if it exists
+		removeTempPath()
+	}
 	//unhighlight the existing path if any
 	if (selectedLink) {
 	    unhighlightLink(selectedLink)
@@ -1104,9 +1130,9 @@ function updatePlanLinkInfo(linkInfo, isRefresh) {
 
     var initialPrice = {}
 	if (!linkInfo.existingLink) {
-	    initialPrice.economy = linkInfo.suggestedPrice.Traveler.economy
-	    initialPrice.business = linkInfo.suggestedPrice.Traveler.business
-	    initialPrice.first = linkInfo.suggestedPrice.Traveler.first
+	    initialPrice.economy = linkInfo.suggestedPrice.TouristFrom.economy
+	    initialPrice.business = linkInfo.suggestedPrice.TouristFrom.business
+	    initialPrice.first = linkInfo.suggestedPrice.TouristFrom.first
 
 		$('#addLinkButton').show()
 		$('#deleteLinkButton').hide()
@@ -1153,8 +1179,8 @@ function updatePlanLinkInfo(linkInfo, isRefresh) {
                 $(this).val(Math.floor(inputPrice))
             }
         }
-        updateMarkup()
-        calculateDemand()
+        updateMarkup();
+        calculateDemand();
 	})
 
     //reset/display warnings
@@ -1178,8 +1204,8 @@ function updatePlanLinkInfo(linkInfo, isRefresh) {
         $('#planLinkExtendedDetails').hide()
         $('#planLinkModelRow').hide()
         $('#extendedPanel').hide()
-        updateMarkup()
-        calculateDemand()
+        updateMarkup();
+        calculateDemand();
         return
     } else {
         $('.linkRejection').hide()
@@ -1197,12 +1223,6 @@ function updatePlanLinkInfo(linkInfo, isRefresh) {
     }
 
 	$("#planLinkModelSelect").children('option').remove()
-
-	spaceMultipliers = {
-                economy : planLinkInfo.economySpaceMultiplier,
-                business : planLinkInfo.businessSpaceMultiplier,
-                first : planLinkInfo.firstSpaceMultiplier
-    }
 
 	planLinkInfoByModel = {}
 	//existingLinkModelId = 0
@@ -1286,8 +1306,8 @@ function updatePlanLinkInfo(linkInfo, isRefresh) {
 	}
 
 	updatePlanLinkInfoWithModelSelected(selectedModelId, assignedModelId, isRefresh)
-	updateMarkup()
-	calculateDemand()
+	updateMarkup();
+	calculateDemand();
 	$("#planLinkDetails div.value").show()
 }
 
@@ -1302,35 +1322,19 @@ function calculateDemand() {
         business: parseFloat($('#planLinkBusinessPrice').val()),
         first: parseFloat($('#planLinkFirstPrice').val()),
     }
-    const suggestedPrice = planLinkInfo.suggestedPrice
-    /** adding more estimation to capture base pax profile prices
-    breakpoints manually copied from DemandGenerator...  */
-    for (const passengerType in suggestedPrice) {
-        if (currentPrices.economy <= suggestedPrice[passengerType].discountEconomy) {
-            totalDemand.economy += Math.floor(planLinkInfo.demands[passengerType].discountEconomy);
-        } else if (currentPrices.economy <= suggestedPrice[passengerType].discountEconomy * 1.1) {
-            totalDemand.economy += Math.floor(planLinkInfo.demands[passengerType].discountEconomy * 0.4);
+    
+    const allDemandDetails = [...planLinkInfo.fromDemandDetails, ...planLinkInfo.toDemandDetails];
+    
+    allDemandDetails.forEach(demandEntry => {
+        const linkClass = demandEntry.linkClass.toLowerCase();
+		const linkClassAdjusted = linkClass === "discount economy" ? "economy" : linkClass;
+        const currentPrice = currentPrices[linkClassAdjusted];
+        
+        if (currentPrice <= demandEntry.price) {
+            totalDemand[linkClassAdjusted] += demandEntry.count;
         }
-        if (currentPrices.economy <= suggestedPrice[passengerType].economy) {
-            totalDemand.economy += Math.floor(planLinkInfo.demands[passengerType].economy);
-        } else if (currentPrices.economy <= suggestedPrice[passengerType].economy * 1.05) {
-            totalDemand.economy += Math.floor(planLinkInfo.demands[passengerType].economy * 0.4);
-        }
-        if (currentPrices.business <= suggestedPrice[passengerType].business) {
-            totalDemand.business += Math.floor(planLinkInfo.demands[passengerType].business);
-        } else if (currentPrices.business <= suggestedPrice[passengerType].business * 1.11) {
-            totalDemand.business += Math.floor(planLinkInfo.demands[passengerType].business * 0.4);
-        } else if (currentPrices.business <= suggestedPrice[passengerType].business * 1.26) {
-            totalDemand.business += Math.floor(planLinkInfo.demands[passengerType].business * 0.2);
-        }
-        if (currentPrices.first <= suggestedPrice[passengerType].first) {
-            totalDemand.first += Math.floor(planLinkInfo.demands[passengerType].first);
-        } else if (currentPrices.first <= suggestedPrice[passengerType].first * 1.11) {
-            totalDemand.first += Math.floor(planLinkInfo.demands[passengerType].first * 0.4);
-        }  else if (currentPrices.first <= suggestedPrice[passengerType].first * 1.3) {
-            totalDemand.first += Math.floor(planLinkInfo.demands[passengerType].first * 0.2);
-      }
-    }
+    });
+
     $('#planLinkDirectDemand').text(toLinkClassValueString(totalDemand))
 }
 
@@ -1349,13 +1353,13 @@ function updatePrice(percentage, classType = "all") {
     const firstInput = $('#planLinkFirstPrice');
 
     if (classType === "economy" || classType === "all") {
-        economyInput.val(Math.round(planLinkInfo.suggestedPrice.Traveler.economy * percentage.economy));
+        economyInput.val(Math.round(planLinkInfo.suggestedPrice.TouristFrom.economy * percentage.economy));
     }
     if (classType === "business" || classType === "all") {
-        businessInput.val(Math.round(planLinkInfo.suggestedPrice.Traveler.business * percentage.business));
+        businessInput.val(Math.round(planLinkInfo.suggestedPrice.TouristFrom.business * percentage.business));
     }
     if (classType === "first" || classType === "all") {
-        firstInput.val(Math.round(planLinkInfo.suggestedPrice.Traveler.first * percentage.first));
+        firstInput.val(Math.round(planLinkInfo.suggestedPrice.TouristFrom.first * percentage.first));
     }
 
     updateMarkup();
@@ -1364,70 +1368,70 @@ function updatePrice(percentage, classType = "all") {
 
 
 function increasePrice(classType = "all") {
-    const economyInput = $('#planLinkEconomyPrice');
-    const businessInput = $('#planLinkBusinessPrice');
-    const firstInput = $('#planLinkFirstPrice');
-
-    const currentPercentageEconomy = parseFloat(economyInput.val() || 0) * 20 / planLinkInfo.suggestedPrice.Traveler.economy / 20;
-    const currentPercentageBusiness = parseFloat(businessInput.val() || 0) * 20 / planLinkInfo.suggestedPrice.Traveler.business / 20;
-    const currentPercentageFirst = parseFloat(firstInput.val() || 0) * 20 / planLinkInfo.suggestedPrice.Traveler.first / 20;
-
-    const newPercentage = {
-        economy: currentPercentageEconomy,
-        business: currentPercentageBusiness,
-        first: currentPercentageFirst
-    };
-
-    if (classType === "economy" || classType === "all") {
-        newPercentage.economy += 0.05;
+    if (classType === "all") {
+        CLASSES.forEach((paxClass) => {
+            changeClassPrice(paxClass, 0.049);
+        });
+    } else {
+        changeClassPrice(classType, 0.049);
     }
-    if (classType === "business" || classType === "all") {
-        newPercentage.business += 0.05;
-    }
-    if (classType === "first" || classType === "all") {
-        newPercentage.first += 0.05;
-    }
-
-    updatePrice(newPercentage, classType);
 }
 
 function decreasePrice(classType = "all") {
-    let newPercentages = {};
-
-    CLASSES.forEach((paxClass) => {
-        const currentPrice = document.getElementById(`planLink${paxClass}Price`).value ?? 0;
-        const defaultPrice = planLinkInfo.suggestedPrice.Traveler[paxClass.toLowerCase()]
-        const hasCompetitor = planLinkInfo.otherLinks.length > 1
-        const currentPercentage = parseFloat(currentPrice || 0) * 20 / defaultPrice / 20;
-        const priceFloor = (function() {
-                let lowestPrice = defaultPrice;
-                planLinkInfo.otherLinks.forEach(link => {
-                    if (link.price && link.price[paxClass.toLowerCase()] < lowestPrice) {
-                        lowestPrice = link.price[paxClass.toLowerCase()];
-                    }
-                });
-                return Math.ceil(lowestPrice * 0.65);
-            })();
-        const newPercentage = Math.max(0, currentPercentage - 0.05)
-        if (classType === paxClass.toLowerCase() || classType === "all") {
-            if (hasCompetitor && defaultPrice * newPercentage < priceFloor) {
-                newPercentages[`${paxClass.toLowerCase()}`] = priceFloor / defaultPrice;
-            } else {
-                newPercentages[`${paxClass.toLowerCase()}`] = newPercentage;
-            }
-        } else {
-            newPercentages[`${paxClass.toLowerCase()}`] = currentPercentage;
-        }
-    });
-
-    updatePrice(newPercentages, classType);
+    if (classType === "all") {
+        CLASSES.forEach((paxClass) => {
+            changeClassPrice(paxClass, -0.049);
+        });
+    } else {
+        changeClassPrice(classType, -0.049);
+    }
 }
 
+function changeClassPrice(paxClass, percent) {
+    const currentPrice = document.getElementById(`planLink${capitalizeFirstLetter(paxClass)}Price`).value ?? 0;
+    const defaultPrice = planLinkInfo.suggestedPrice.TouristFrom[paxClass];
+    const hasCompetitor = planLinkInfo.otherLinks.length > 1;
+    const currentPercentage = parseFloat(currentPrice || 0) * 20 / defaultPrice / 20;
+    
+    const priceFloor = (function() {
+        let lowestPrice = defaultPrice;
+        planLinkInfo.otherLinks.forEach(link => {
+            if (link.price && link.price[paxClass] < lowestPrice) {
+                lowestPrice = link.price[paxClass];
+            }
+        });
+        return Math.ceil(lowestPrice * 0.65);
+    })();
+
+    const newPercentage = Math.max(0, currentPercentage + percent);
+    if (hasCompetitor && defaultPrice * newPercentage < priceFloor) {
+        updatePrice({ [paxClass]: priceFloor / defaultPrice }, paxClass);
+    } else {
+        updatePrice({ [paxClass]: newPercentage }, paxClass);
+    }
+}
 
 function updateMarkup(){
-    $('#planMarkupEconomy').text(($('#planLinkEconomyPrice').val()/planLinkInfo.suggestedPrice.Traveler.economy*100).toFixed(0)+"%")
-    $('#planMarkupBusiness').text(($('#planLinkBusinessPrice').val()/planLinkInfo.suggestedPrice.Traveler.business*100).toFixed(0)+"%")
-    $('#planMarkupFirst').text(($('#planLinkFirstPrice').val()/planLinkInfo.suggestedPrice.Traveler.first*100).toFixed(0)+"%")
+    $('#planMarkupEconomy').text(($('#planLinkEconomyPrice').val()/planLinkInfo.suggestedPrice.TouristFrom.economy*100).toFixed(0)+"%")
+    $('#planMarkupBusiness').text(($('#planLinkBusinessPrice').val()/planLinkInfo.suggestedPrice.TouristFrom.business*100).toFixed(0)+"%")
+    $('#planMarkupFirst').text(($('#planLinkFirstPrice').val()/planLinkInfo.suggestedPrice.TouristFrom.first*100).toFixed(0)+"%")
+}
+
+function sumPreferencesByType(demandDetails, passengerType) {
+    let totals = {
+        "economy" : 0,
+        "business" : 0,
+        "first" : 0,
+        "discountEconomy" : 0
+    }
+    
+    demandDetails.forEach(detail => {
+        if (detail.passengerType === passengerType) {
+            totals[detail.linkClass.toLowerCase()] += detail.count
+        }
+    })
+    
+    return totals
 }
 
 function updateFrequencyBar(frequencyBar, valueContainer, airplane, currentFrequency) {
@@ -1449,7 +1453,7 @@ function updatePlanLinkInfoWithModelSelected(newModelId, assignedModelId, isRefr
 //		thisModelPlanLinkInfo.airplanes.sort(sortByProperty('airplane.condition', true))
 //		thisModelPlanLinkInfo.airplanes = sortPreserveOrder(thisModelPlanLinkInfo.airplanes, 'frequency', false) //higher frequency first
 
-		$('#planLinkAirplaneSelect').data('badConditionThreshold', thisModelPlanLinkInfo.badConditionThreshold)
+		$('#planLinkAirplaneSelect').data('badConditionThreshold', gameConstants.aircraft.conditionBad)
 
 		thisModelPlanLinkInfo.airplanes.sort(function(a, b) {
 		    var result = b.frequency - a.frequency
@@ -1549,6 +1553,10 @@ function updateFrequencyDetail(info) {
 
 function addAirplaneRow(container, airplane, frequency) {
     var airplaneRow = $("<div class='table-row airplaneRow'></div>") //airplane bar contains - airplane icon, configuration, frequency
+	let spaceMultipliers = {}
+	gameConstants.linkClassValues.forEach(linkClass => {
+		spaceMultipliers[linkClass.name] = linkClass.spaceMultiplier
+	})
 
     var configurationDiv = $("<div class='configuration' style='transform: translate(0%, -75%);'></div>")
     var airplaneUpdateCallback = function(configurationDiv, airplaneId) {
@@ -1596,7 +1604,7 @@ function addAirplaneRow(container, airplane, frequency) {
         }
     })
     if (sharedLinkCount > 0) {
-        airplaneCell.append($('<img src="assets/images/icons/information.svg" class="px-1 py-05 info svg" title="Shared with ' + sharedLinkCount + ' other route(s)">'))
+//        airplaneCell.append($('<img src="assets/images/icons/information.svg" class="px-1 py-05 info svg" title="Shared with ' + sharedLinkCount + ' other route(s)">'))
     }
 
     if (!airplane.isReady) {
@@ -1949,7 +1957,7 @@ function loadLinksTable() {
 				link.totalCapacity = link.capacity.economy + link.capacity.business + link.capacity.first
 				link.totalCapacityHistory = link.capacityHistory.economy + link.capacityHistory.business + link.capacityHistory.first
 				link.totalPassengers = link.passengers.economy + link.passengers.business + link.passengers.first
-				link.totalLoadFactor = link.totalCapacityHistory > 0 ? Math.round((link.totalPassengers + link.cancelledSeats.total) / link.totalCapacityHistory * 100) : 0
+				link.totalLoadFactor = link.totalCapacityHistory > 0 ? Math.round(link.totalPassengers / (link.totalCapacityHistory - link.cancelledSeats.total)* 100) : 0
 				var assignedModel
 				if (link.assignedAirplanes && link.assignedAirplanes.length > 0) {
 					assignedModel = link.assignedAirplanes[0].airplane.name
@@ -2115,36 +2123,6 @@ function updateLoadedLinks(links) {
 	loadedLinksById = {}
 	$.each(links, function(index, link) {
 		loadedLinksById[link.id] = link
-	});
-}
-
-function showLinkExpectedQualityModal(isFromAirport) {
-	var fromAirportId = $('#planLinkFromAirportId').val()
-	var toAirportId = $('#planLinkToAirportId').val()
-	var queryAirportId
-	if (isFromAirport) {
-		queryAirportId = fromAirportId
-	} else {
-		queryAirportId = toAirportId
-	}
-	var url = "airlines/" + activeAirline.id + "/expectedQuality/" + fromAirportId + "/" + toAirportId + "/" + queryAirportId
-	$('#expectedQualityModal .expectedQualityValue').empty()
-	$.ajax({
-		type: 'GET',
-		url: url,
-	    contentType: 'application/json; charset=utf-8',
-	    dataType: 'json',
-	    success: function(result) {
-	    	$('#expectedQualityModal .expectedQualityValue.firstClass').html(getGradeStarsImgs(Math.round(result.F / 10)))
-	    	$('#expectedQualityModal .expectedQualityValue.businessClass').html(getGradeStarsImgs(Math.round(result.J / 10)))
-	    	$('#expectedQualityModal .expectedQualityValue.economyClass').html(getGradeStarsImgs(Math.round(result.Y / 10)))
-	    	$('#expectedQualityModal .expectedQualityValue.discountClass').html(getGradeStarsImgs(Math.round(result.D / 10)))
-	    	$('#expectedQualityModal').fadeIn(200)
-	    },
-        error: function(jqXHR, textStatus, errorThrown) {
-	            console.log(JSON.stringify(jqXHR));
-	            console.log("AJAX error: " + textStatus + ' : ' + errorThrown);
-	    }
 	});
 }
 
@@ -2585,12 +2563,14 @@ function updateSatisfaction(result) {
     var topNegativeCommentsByClass = result.topNegativeCommentsByClass
     var topPositiveCommentsByPreference = result.topPositiveCommentsByPreference
     var topNegativeCommentsByPreference = result.topNegativeCommentsByPreference
+    var topPositiveCommentsByType = result.topPositiveCommentsByType
+    var topNegativeCommentsByType = result.topNegativeCommentsByType
 
     $.each(paxTypeSatisfaction, function(index, entry) {
         $row = $("<div class='table-row data-row'><div class='cell' style='width: 50%; vertical-align: middle;'>" + entry.title + "</div></div>")
         var $icon = getSatisfactionIcon(entry.satisfaction)
         $icon.on('mouseover.breakdown', function() {
-            showSatisfactionBreakdown($(this), topPositiveCommentsByClass[entry.level], topNegativeCommentsByClass[entry.level], entry.satisfaction)
+            showSatisfactionBreakdown($(this), topPositiveCommentsByType[entry.id], topNegativeCommentsByType[entry.id], entry.satisfaction)
         })
 
         $row.append("<div class='cell' style='width: 15%;'>" + entry.passengerCount)
@@ -2748,17 +2728,20 @@ function updateTopCountryComposition(countryComposition, selector) {
 }
 
 function updateTopAirportComposition($container, airportComposition) {
-	var maxPerColumn = Math.max(2, Math.floor(airportComposition.length / 2));
-	var index = 0;
-	$container.empty()
-	var $table
-	$.each(airportComposition, function(index, entry) {
-	    if (index % maxPerColumn == 0) { //flush a column (a table)
-	        $table = $('<div class="table data" style="flex : 1; min-width: 200px;"></div>').appendTo($container)
-	    }
-		$table.append("<div class='table-row data-row' style='max-width: 320px;'><div class='cell' style='width: 80%;'>" + getCountryFlagImg(entry.countryCode) + entry.airport
-	 			   + "</div><div class='cell' style='width: 20%; text-align: right;'>" + commaSeparateNumber(entry.passengerCount) + "</div></div>")
-	});
+    var halfLength = Math.ceil(airportComposition.length / 2);
+    $container.empty();
+    $container.css({
+        'display': 'flex',
+        'max-width': '100%'
+    });
+    var $leftTable = $('<div class="table rounded-none data" style="flex: 1; min-width: 200px;"></div>').appendTo($container);
+    var $rightTable = $('<div class="table rounded-none data" style="flex: 1; min-width: 200px;"></div>').appendTo($container);
+    
+    $.each(airportComposition, function(index, entry) {
+        var $targetTable = index < halfLength ? $leftTable : $rightTable;
+        $targetTable.append("<div class='table-row data-row' style='max-width: 320px;'><div class='cell' style='width: 80%;'>" + getCountryFlagImg(entry.countryCode) + entry.airport
+                + "</div><div class='cell' style='width: 20%; text-align: right; padding-right: 0.5rem;'>" + commaSeparateNumber(entry.passengerCount) + "</div></div>");
+    });
 }
 
 function updatePassengerTypeComposition(typeComposition) {
@@ -3373,3 +3356,104 @@ function addAirlineTooltip($target, airlineId, slogan, airlineName) {
     })
 }
 
+function loadAndWatchAirlineNotes() {
+    const airlineId = activeAirline.id;
+    const notesOffice = document.getElementById('airlineNotes');
+    const notesLink = document.getElementById('linkNotes');
+    const notesAirport = document.getElementById('airportNotes');
+
+    // Load the current note
+    fetch(`/airlines/${airlineId}/notes`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Failed to fetch notes: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            notes = data.notes || []; // Initialize notes if not present
+            notesOffice.value = data?.airlineNotes[0] || ''; // Populate office textarea with the note
+        })
+        .catch(error => {
+            console.error('Error loading notes:', error);
+        });
+
+    let debounceTimeout;
+    const debounceDelay = 1000;
+
+    notesOffice.addEventListener('input', () => {
+        clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(() => {
+            const sanitizedNote = notesOffice.value.replace(/</g, "&lt;").replace(/>/g, "&gt;"); // Basic sanitization
+
+            fetch(`/airlines/${airlineId}/notes`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ note: sanitizedNote }),
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Failed to save note: ${response.statusText}`);
+                    }
+                    console.log('Note saved successfully');
+                })
+                .catch(error => {
+                    console.error('Error saving note:', error);
+                });
+        }, debounceDelay);
+    });
+
+    notesLink.addEventListener('input', () => {
+        clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(() => {
+            const sanitizedNote = notesLink.value.replace(/</g, "&lt;").replace(/>/g, "&gt;"); // Basic sanitization
+
+			if (!selectedLink) return;
+
+            fetch(`/airlines/${airlineId}/notes/link/${selectedLink}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json; charset=utf-8',
+                },
+                body: JSON.stringify({ note: sanitizedNote }),
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Failed to save note: ${response.statusText}`);
+                    }
+                    console.log('Note saved successfully');
+                })
+                .catch(error => {
+                    console.error('Error saving note:', error);
+                });
+        }, debounceDelay);
+    });
+
+    notesAirport.addEventListener('input', () => {
+        clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(() => {
+            const sanitizedNote = notesAirport.value.replace(/</g, "&lt;").replace(/>/g, "&gt;"); // Basic sanitization
+
+			if (!activeAirportId) return;
+
+            fetch(`/airlines/${airlineId}/notes/airport/${activeAirportId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json; charset=utf-8',
+                },
+                body: JSON.stringify({ note: sanitizedNote }),
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Failed to save note: ${response.statusText}`);
+                    }
+                    console.log('Note saved successfully');
+                })
+                .catch(error => {
+                    console.error('Error saving note:', error);
+                });
+        }, debounceDelay);
+    });
+}

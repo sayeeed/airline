@@ -11,6 +11,8 @@ var airlineColors = {}
 var airlineLabelColors = {}
 var polylines = []
 var airports = undefined
+var gameConstants
+var notes = {}
 
 $( document ).ready(function() {
 	mobileCheck()
@@ -36,6 +38,7 @@ $( document ).ready(function() {
     registerEscape()
     updateAirlineColors()
 	initTabGroup()
+	getGameConstants()
 
 	populateTooltips()
 	checkAutoplaySettings()
@@ -60,10 +63,22 @@ $( document ).ready(function() {
         $(".laser").hide()
     }
 
-//    startFirework(10000)
-
-	//plotSeatConfigurationGauge($("#seatConfigurationGauge"), {"first" : 0, "business" : 0, "economy" : 220}, 220)
 })
+
+async function getGameConstants() {
+  const url = "game/constants";
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Response status: ${response.status}`);
+    }
+
+    gameConstants = await response.json();
+    populateBaseDetailsModal();
+  } catch (error) {
+    console.error(error.message);
+  }
+}
 
 $(window).on('focus', function() {
     if (selectedAirlineId) {

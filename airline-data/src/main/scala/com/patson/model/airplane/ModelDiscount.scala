@@ -3,7 +3,7 @@ package com.patson.model.airplane
 import com.patson.data.AirplaneSource
 import com.patson.data.airplane.ModelSource
 import com.patson.model.airplane.Model.Category
-import com.patson.model.airplane.Model.Type.{JUMBO, LARGE, MEDIUM, MEDIUM_XL, REGIONAL, SMALL}
+import com.patson.model.airplane.Model.Type.{JUMBO, LARGE, MEDIUM, MEDIUM_XL, PROPELLER_MEDIUM, PROPELLER_SMALL, REGIONAL, SMALL}
 import com.patson.util.{AirplaneModelCache, AirplaneModelDiscountCache, AirplaneOwnershipCache}
 
 import scala.collection.MapView
@@ -25,6 +25,8 @@ object ModelDiscount {
     val constructionTimeDiscount = ModelDiscount(model.id, 0.20, DiscountType.CONSTRUCTION_TIME, DiscountReason.FAVORITE, None)
     val priceDiscount = model.airplaneType match {
       case SMALL => 0.05
+      case PROPELLER_SMALL => 0.05
+      case PROPELLER_MEDIUM => 0.05
       case REGIONAL => 0.05
       case MEDIUM => 0.04
       case MEDIUM_XL => 0.04

@@ -18,7 +18,9 @@ function generateSimpleImageBar(imageSrc, count) {
 function generateImageBar(imageEmpty, imageFill, count, containerDiv, valueInput, indexToValueFunction, valueToIndexFunction, callback) {
     generateImageBarWithRowSize(imageEmpty, imageFill, count, containerDiv, valueInput, indexToValueFunction, valueToIndexFunction, 10, callback)
 }
-
+/**
+ * used by in setting route service stars & flight frequency
+ **/
 function generateImageBarWithRowSize(imageEmpty, imageFill, count, containerDiv, valueInput, indexToValueFunction, valueToIndexFunction, rowSize, callback) {
 	containerDiv.empty()
 	var images = []
@@ -38,7 +40,7 @@ function generateImageBarWithRowSize(imageEmpty, imageFill, count, containerDiv,
 	
 
 	for (i = 0 ; i < count ; i ++) {
-		var image = $("<img class='button'>")
+		var image = $("<img width='16px' height='auto' class='button'>")
 		image.attr("src", imageEmpty)
 		//image.click({index : i}, updateImageBar)
 
@@ -137,24 +139,24 @@ function toLinkPercentOfBasePrices(priceValues, basePrice) {
     return  economyValue + "%" + " / " + businessValue + "%" + " / " + firstValue + "%"
 }
 
-function toLinkClassValueString(linkValues, prefix, suffix) {
-	if (!prefix) {
-		prefix = ""
-	}
-	if (!suffix) {
-		suffix = ""
-	}
-	var discountValue = linkValues.hasOwnProperty('discountEconomy') ? linkValues.discountEconomy : 0
-	var economyValue = linkValues.hasOwnProperty('economy') ? linkValues.economy + discountValue : '-'
-	var businessValue = linkValues.hasOwnProperty('business') ? linkValues.business : '-'
-	var firstValue = linkValues.hasOwnProperty('first') ? linkValues.first : '-'
+function toLinkClassValueString(linkValues, prefix = "", suffix = "", displayDiscountEconomy = false) {
+    const formatValue = (value) => value > 0 ? (value >= 10000 ? commaSeparateNumber(value) : value) : '-';
+    
+    const discountValue = linkValues.discountEconomy || 0;
+    const economyValue = (linkValues.economy || 0) + (!displayDiscountEconomy ? discountValue : 0);
+    
+    const values = {
+        discount: formatValue(discountValue),
+        economy: formatValue(economyValue),
+        business: formatValue(linkValues.business),
+        first: formatValue(linkValues.first)
+    };
 
+    const parts = displayDiscountEconomy 
+        ? [values.discount, values.economy, values.business, values.first]
+        : [values.economy, values.business, values.first];
 
-	if (economyValue >= 10000 || businessValue >= 10000 || firstValue >= 10000) {
- 	    return prefix + commaSeparateNumber(economyValue) + suffix + " / " + prefix + commaSeparateNumber(businessValue) + suffix + " / " + prefix + commaSeparateNumber(firstValue) + suffix
-    } else {
-        return prefix + economyValue + suffix + " / " + prefix + businessValue + suffix + " / " + prefix + firstValue + suffix
-    }
+    return parts.map(v => `${prefix}${v}${suffix}`).join(' / ');
 }
 
 function toLinkClassDiv(linkValues, prefix, suffix) {
@@ -382,12 +384,14 @@ function getDurationText(duration) {
 }
 
 function getYearMonthText(weekDuration) {
-	var year = Math.floor(weekDuration / 52)
-	var month = Math.floor(weekDuration / 4) % 12
+	const year = Math.floor(weekDuration / 52)
+	const month = Math.floor(weekDuration / 4) % 12
+	const yearTxt = year == 1 ? " year " : " years "
+	const monthTxt = month == 1 ? " month " : " months "
 	if (year > 0) {
-		return year + " year(s) " + month + " month(s)"
+		return year + yearTxt + month + monthTxt
 	} else {
-		return month + " month(s)"
+		return month + monthTxt
 	}
 }
 
@@ -547,14 +551,14 @@ function padBefore(str, padChar, max) {
 
 function getAirportText(city, airportCode) {
 	if (city) {
-		return city + "(" + airportCode + ")"
+		return city + " (" + airportCode + ")"
 	} else {
 		return airportCode
 	}
 }
 
 function getAirportSpan(airport) {
-    return "<span style='display:inline-flex; align-items: center;'>" + getCountryFlagImg(airport.countryCode) + getAirportText(airport.city, airport.iata) + "</span>"
+    return "<span style='align-items: center;'>" + getCountryFlagImg(airport.countryCode) + getAirportText(airport.city, airport.iata) + "</span>"
 }
 
 function setActiveDiv(activeDiv, callback) {
@@ -678,7 +682,7 @@ function disableButton(button, reason) {
             $(button).find('.tooltiptext').remove()
             //add tooltip
             $(button).addClass("tooltip")
-            var $descriptionSpan = $('<span class="tooltiptext below alignLeft" style="width: 400px;  text-transform: none;">')
+            var $descriptionSpan = $('<span class="tooltiptext top alignLeft" style="width: 400px;  text-transform: none;">')
             $descriptionSpan.text(reason)
             $(button).append($descriptionSpan)
         }
@@ -823,6 +827,10 @@ function isPremium() {
     return activeUser && activeUser.level > 0
 }
 
+function capitalizeFirstLetter(string) {
+    return String(string).charAt(0).toUpperCase() + String(string).slice(1);
+}
+
 //from millisec
 function toReadableDuration(duration) {
   var hours = Math.floor((duration / (1000 * 60 * 60)) % 24),
@@ -898,5 +906,18 @@ function parseNumber(_str) {
         return Number(out.join(''));
     } else {
         return _str
+    }
+}
+
+function getGameDate(cycle, period = "WEEKLY") {
+    const periods = Math.floor(cycle / 48)
+    const remainder = cycle % 48
+
+    if (period == "WEEKLY") {
+        return `${periods}.${remainder}`;
+    } else if (period == "QUARTER") {
+        return `${periods}.${remainder - 3} - ${periods}.${remainder}`;
+    } else if (period == "PERIOD") {
+        return `${periods - 1}.${remainder} - ${periods}.${remainder}`;
     }
 }

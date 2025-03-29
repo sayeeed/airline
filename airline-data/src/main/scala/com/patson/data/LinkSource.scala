@@ -125,7 +125,6 @@ object LinkSource {
                   resultSet.getInt("quality"),
                   resultSet.getInt("duration"),
                   resultSet.getInt("frequency"),
-                  FlightType(resultSet.getInt("flight_type")),
                   resultSet.getInt("flight_number"))
               case GENERIC_TRANSIT =>
                 //from : Airport, to : Airport, airline: Airline, distance : Int, var capacity: LinkClassValues, duration : Int, var frequency : Int, var id : Int = 0
@@ -340,21 +339,21 @@ object LinkSource {
 
     //[T <: RequestType](t: T)
   def saveLink[T <: Transport](link : T) : Option[T] = {
-    val (fromAirportId : Int, toAirportId : Int, airlineId : Int, price : LinkClassValues, distance : Int, capacity : LinkClassValues, rawQuality : Int,  duration : Int, frequency : Int, flightType : FlightType.Value, flightNumber : Int, assignedAirplanes : Map[Airplane, LinkAssignment]) = {
+    val (fromAirportId : Int, toAirportId : Int, airlineId : Int, price : LinkClassValues, distance : Int, capacity : LinkClassValues, rawQuality : Int,  duration : Int, frequency : Int, flightNumber : Int, assignedAirplanes : Map[Airplane, LinkAssignment]) = {
       link.transportType match {
         case TransportType.FLIGHT =>
           val flightLink = link.asInstanceOf[Link]
-          (flightLink.from.id, flightLink.to.id, flightLink.airline.id, flightLink.price, flightLink.distance, flightLink.capacity, flightLink.rawQuality, flightLink.duration, flightLink.frequency, flightLink.flightType, flightLink.flightNumber, flightLink.getAssignedAirplanes)
+          (flightLink.from.id, flightLink.to.id, flightLink.airline.id, flightLink.price, flightLink.distance, flightLink.capacity, flightLink.rawQuality, flightLink.duration, flightLink.frequency, flightLink.flightNumber, flightLink.getAssignedAirplanes)
         case TransportType.GENERIC_TRANSIT =>
           val genericTransit = link.asInstanceOf[GenericTransit]
-          (genericTransit.from.id, genericTransit.to.id, 0, genericTransit.price, genericTransit.distance, genericTransit.capacity, GenericTransit.QUALITY, genericTransit.duration, genericTransit.frequency, genericTransit.flightType, 0, Map.empty)
+          (genericTransit.from.id, genericTransit.to.id, 0, genericTransit.price, genericTransit.distance, genericTransit.capacity, GenericTransit.QUALITY, genericTransit.duration, genericTransit.frequency, 0, Map.empty)
       }
 
 
     }
     //open the hsqldb
     val connection = Meta.getConnection()
-    val preparedStatement = connection.prepareStatement("INSERT INTO " + LINK_TABLE + "(from_airport, to_airport, airline, price_economy, price_business, price_first, distance, capacity_economy, capacity_business, capacity_first, quality, duration, frequency, flight_type, flight_number, airplane_model, from_country, to_country, transport_type) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS)
+    val preparedStatement = connection.prepareStatement("INSERT INTO " + LINK_TABLE + "(from_airport, to_airport, airline, price_economy, price_business, price_first, distance, capacity_economy, capacity_business, capacity_first, quality, duration, frequency, flight_number, airplane_model, from_country, to_country, transport_type) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS)
 
     try {
       preparedStatement.setInt(1, fromAirportId)
@@ -370,16 +369,15 @@ object LinkSource {
       preparedStatement.setInt(11, rawQuality)
       preparedStatement.setInt(12, duration)
       preparedStatement.setInt(13, frequency)
-      preparedStatement.setInt(14, flightType.id)
-      preparedStatement.setInt(15, flightNumber)
+      preparedStatement.setInt(14, flightNumber)
       if (link.isInstanceOf[Link]) {
-        preparedStatement.setInt(16, link.asInstanceOf[Link].getAssignedModel().map(_.id).getOrElse(0))
+        preparedStatement.setInt(15, link.asInstanceOf[Link].getAssignedModel().map(_.id).getOrElse(0))
       } else {
-        preparedStatement.setNull(16, Types.INTEGER)
+        preparedStatement.setNull(15, Types.INTEGER)
       }
-      preparedStatement.setString(17, link.from.countryCode)
-      preparedStatement.setString(18, link.to.countryCode)
-      preparedStatement.setInt(19, link.transportType.id)
+      preparedStatement.setString(16, link.from.countryCode)
+      preparedStatement.setString(17, link.to.countryCode)
+      preparedStatement.setInt(18, link.transportType.id)
 
       val updateCount = preparedStatement.executeUpdate()
       //println("Saved " + updateCount + " link!")
@@ -410,7 +408,7 @@ object LinkSource {
   def saveLinks[T <: Transport](links : List[T]) : Int = {
      //open the hsqldb
     val connection = Meta.getConnection()
-    val preparedStatement = connection.prepareStatement("INSERT INTO " + LINK_TABLE + "(from_airport, to_airport, airline, price_economy, price_business, price_first, distance, capacity_economy, capacity_business, capacity_first, quality, duration, frequency, flight_type, flight_number, airplane_model, from_country, to_country, transport_type) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS)
+    val preparedStatement = connection.prepareStatement("INSERT INTO " + LINK_TABLE + "(from_airport, to_airport, airline, price_economy, price_business, price_first, distance, capacity_economy, capacity_business, capacity_first, quality, duration, frequency, flight_number, airplane_model, from_country, to_country, transport_type) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS)
     var updateCount = 0
     val changeHistoryEntries = ListBuffer[LinkChange]()
     connection.setAutoCommit(false)
@@ -433,17 +431,16 @@ object LinkSource {
         }
         preparedStatement.setInt(12, link.duration)
         preparedStatement.setInt(13, link.frequency)
-        preparedStatement.setInt(14, link.flightType.id)
         if (link.isInstanceOf[Link]) {
-          preparedStatement.setInt(15, link.asInstanceOf[Link].flightNumber)
-          preparedStatement.setInt(16, link.asInstanceOf[Link].getAssignedModel().map(_.id).getOrElse(0))
+          preparedStatement.setInt(14, link.asInstanceOf[Link].flightNumber)
+          preparedStatement.setInt(15, link.asInstanceOf[Link].getAssignedModel().map(_.id).getOrElse(0))
         } else {
+          preparedStatement.setNull(14, Types.INTEGER)
           preparedStatement.setNull(15, Types.INTEGER)
-          preparedStatement.setNull(16, Types.INTEGER)
         }
-        preparedStatement.setString(17, link.from.countryCode)
-        preparedStatement.setString(18, link.to.countryCode)
-        preparedStatement.setInt(19, link.transportType.id)
+        preparedStatement.setString(16, link.from.countryCode)
+        preparedStatement.setString(17, link.to.countryCode)
+        preparedStatement.setInt(18, link.transportType.id)
 
 
         updateCount += preparedStatement.executeUpdate()
@@ -479,7 +476,7 @@ object LinkSource {
     val connection = Meta.getConnection()
     val existingLink = loadFlightLinkById(link.id, ID_LOAD) //use ID load to get the simple freq/capacity of previous state (even tho some airplanes might have just arrived)
 
-    val preparedStatement = connection.prepareStatement("UPDATE " + LINK_TABLE + " SET price_economy = ?, price_business = ?, price_first = ?, capacity_economy = ?, capacity_business = ?, capacity_first = ?, quality = ?, duration = ?, frequency = ?, flight_type = ?, flight_number = ?, airplane_model = ?, last_update = ? WHERE id = ?")
+    val preparedStatement = connection.prepareStatement("UPDATE " + LINK_TABLE + " SET price_economy = ?, price_business = ?, price_first = ?, capacity_economy = ?, capacity_business = ?, capacity_first = ?, quality = ?, duration = ?, frequency = ?, flight_number = ?, airplane_model = ?, last_update = ? WHERE id = ?")
 
     try {
       preparedStatement.setInt(1, link.price(ECONOMY))
@@ -495,16 +492,15 @@ object LinkSource {
       }
       preparedStatement.setInt(8, link.duration)
       preparedStatement.setInt(9, link.frequency)
-      preparedStatement.setInt(10, link.flightType.id)
       if (link.isInstanceOf[Link]) {
-        preparedStatement.setInt(11, link.asInstanceOf[Link].flightNumber)
-        preparedStatement.setInt(12, link.asInstanceOf[Link].getAssignedModel().map(_.id).getOrElse(0))
+        preparedStatement.setInt(10, link.asInstanceOf[Link].flightNumber)
+        preparedStatement.setInt(11, link.asInstanceOf[Link].getAssignedModel().map(_.id).getOrElse(0))
       } else {
+        preparedStatement.setNull(10, Types.INTEGER)
         preparedStatement.setNull(11, Types.INTEGER)
-        preparedStatement.setNull(12, Types.INTEGER)
       }
-      preparedStatement.setTimestamp(13, new java.sql.Timestamp(new Date().getTime()))
-      preparedStatement.setInt(14, link.id)
+      preparedStatement.setTimestamp(12, new java.sql.Timestamp(new Date().getTime()))
+      preparedStatement.setInt(13, link.id)
       
       val updateCount = preparedStatement.executeUpdate()
       println("Updated " + updateCount + " link!")
@@ -525,7 +521,7 @@ object LinkSource {
   def updateLinks[T <: Transport](links : List[T]) = {
     //open the hsqldb
     val connection = Meta.getConnection()
-    val preparedStatement = connection.prepareStatement("UPDATE " + LINK_TABLE + " SET price_economy = ?, price_business = ?, price_first = ?, capacity_economy = ?, capacity_business = ?, capacity_first = ?, quality = ?, duration = ?, frequency = ?, flight_type = ?, flight_number = ?, airplane_model = ?, last_update = ? WHERE id = ?")
+    val preparedStatement = connection.prepareStatement("UPDATE " + LINK_TABLE + " SET price_economy = ?, price_business = ?, price_first = ?, capacity_economy = ?, capacity_business = ?, capacity_first = ?, quality = ?, duration = ?, frequency = ?, flight_number = ?, airplane_model = ?, last_update = ? WHERE id = ?")
     val existingLinks = loadLinksByIds(links.map(_.id)).map(link => (link.id, link)).toMap
     val changeEntries = ListBuffer[LinkChange]()
 
@@ -545,16 +541,15 @@ object LinkSource {
         }
         preparedStatement.setInt(8, link.duration)
         preparedStatement.setInt(9, link.frequency)
-        preparedStatement.setInt(10, link.flightType.id)
         if (link.isInstanceOf[Link]) {
-          preparedStatement.setInt(11, link.asInstanceOf[Link].flightNumber)
-          preparedStatement.setInt(12, link.asInstanceOf[Link].getAssignedModel().map(_.id).getOrElse(0))
+          preparedStatement.setInt(10, link.asInstanceOf[Link].flightNumber)
+          preparedStatement.setInt(11, link.asInstanceOf[Link].getAssignedModel().map(_.id).getOrElse(0))
         } else {
+          preparedStatement.setNull(10, Types.INTEGER)
           preparedStatement.setNull(11, Types.INTEGER)
-          preparedStatement.setNull(12, Types.INTEGER)
         }
-        preparedStatement.setTimestamp(13, new java.sql.Timestamp(new Date().getTime()))
-        preparedStatement.setInt(14, link.id)
+        preparedStatement.setTimestamp(12, new java.sql.Timestamp(new Date().getTime()))
+        preparedStatement.setInt(13, link.id)
         preparedStatement.addBatch()
 
         if (link.transportType == TransportType.FLIGHT) {
@@ -768,7 +763,7 @@ object LinkSource {
   def saveLinkConsumptions(linkConsumptions: List[LinkConsumptionDetails]) = {
      //open the hsqldb
     val connection = Meta.getConnection()
-    val preparedStatement = connection.prepareStatement("REPLACE INTO " + LINK_CONSUMPTION_TABLE + "(link, price_economy, price_business, price_first, capacity_economy, capacity_business, capacity_first, sold_seats_economy, sold_seats_business, sold_seats_first, quality, fuel_cost, crew_cost, airport_fees, inflight_cost, delay_compensation, maintenance_cost, lounge_cost, depreciation, revenue, profit, minor_delay_count, major_delay_count, cancellation_count, from_airport, to_airport, airline, distance, frequency, duration, transport_type, flight_type, flight_number, airplane_model, raw_quality, satisfaction, cycle) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+    val preparedStatement = connection.prepareStatement("REPLACE INTO " + LINK_CONSUMPTION_TABLE + "(link, price_economy, price_business, price_first, capacity_economy, capacity_business, capacity_first, sold_seats_economy, sold_seats_business, sold_seats_first, quality, fuel_cost, fuel_tax, crew_cost, airport_fees, inflight_cost, delay_compensation, maintenance_cost, lounge_cost, depreciation, revenue, profit, minor_delay_count, major_delay_count, cancellation_count, from_airport, to_airport, airline, distance, frequency, duration, transport_type, flight_number, airplane_model, satisfaction, cycle) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
 
     try {
       connection.setAutoCommit(false)
@@ -783,39 +778,37 @@ object LinkSource {
           preparedStatement.setInt(8, linkConsumption.link.soldSeats(ECONOMY))
           preparedStatement.setInt(9, linkConsumption.link.soldSeats(BUSINESS))
           preparedStatement.setInt(10, linkConsumption.link.soldSeats(FIRST))
-          preparedStatement.setInt(11, linkConsumption.link.computedQuality)
+          preparedStatement.setInt(11, linkConsumption.link.computedQuality())
           preparedStatement.setInt(12, linkConsumption.fuelCost)
-          preparedStatement.setInt(13, linkConsumption.crewCost)
-          preparedStatement.setInt(14, linkConsumption.airportFees)
-          preparedStatement.setInt(15, linkConsumption.inflightCost)
-          preparedStatement.setInt(16, linkConsumption.delayCompensation)
-          preparedStatement.setInt(17, linkConsumption.maintenanceCost)
-          preparedStatement.setInt(18, linkConsumption.loungeCost)
-          preparedStatement.setInt(19, linkConsumption.depreciation)
-          preparedStatement.setInt(20, linkConsumption.revenue)
-          preparedStatement.setInt(21, linkConsumption.profit)
-          preparedStatement.setInt(22, linkConsumption.link.minorDelayCount)
-          preparedStatement.setInt(23, linkConsumption.link.majorDelayCount)
-          preparedStatement.setInt(24, linkConsumption.link.cancellationCount)
-          preparedStatement.setInt(25, linkConsumption.link.from.id)
-          preparedStatement.setInt(26, linkConsumption.link.to.id)
-          preparedStatement.setInt(27, linkConsumption.link.airline.id)
-          preparedStatement.setInt(28, linkConsumption.link.distance)
-          preparedStatement.setInt(29, linkConsumption.link.frequency)
-          preparedStatement.setInt(30, linkConsumption.link.duration)
-          preparedStatement.setInt(31, linkConsumption.link.transportType.id)
-          preparedStatement.setInt(32, linkConsumption.link.flightType.id)
+          preparedStatement.setInt(13, linkConsumption.fuelTax)
+          preparedStatement.setInt(14, linkConsumption.crewCost)
+          preparedStatement.setInt(15, linkConsumption.airportFees)
+          preparedStatement.setInt(16, linkConsumption.inflightCost)
+          preparedStatement.setInt(17, linkConsumption.delayCompensation)
+          preparedStatement.setInt(18, linkConsumption.maintenanceCost)
+          preparedStatement.setInt(19, linkConsumption.loungeCost)
+          preparedStatement.setInt(20, linkConsumption.depreciation)
+          preparedStatement.setInt(21, linkConsumption.revenue)
+          preparedStatement.setInt(22, linkConsumption.profit)
+          preparedStatement.setInt(23, linkConsumption.link.minorDelayCount)
+          preparedStatement.setInt(24, linkConsumption.link.majorDelayCount)
+          preparedStatement.setInt(25, linkConsumption.link.cancellationCount)
+          preparedStatement.setInt(26, linkConsumption.link.from.id)
+          preparedStatement.setInt(27, linkConsumption.link.to.id)
+          preparedStatement.setInt(28, linkConsumption.link.airline.id)
+          preparedStatement.setInt(29, linkConsumption.link.distance)
+          preparedStatement.setInt(30, linkConsumption.link.frequency)
+          preparedStatement.setInt(31, linkConsumption.link.duration)
+          preparedStatement.setInt(32, linkConsumption.link.transportType.id)
           if (linkConsumption.link.isInstanceOf[Link]) {
             preparedStatement.setInt(33, linkConsumption.link.asInstanceOf[Link].flightNumber)
             preparedStatement.setInt(34, linkConsumption.link.asInstanceOf[Link].getAssignedModel().map(_.id).getOrElse(0))
-            preparedStatement.setInt(35, linkConsumption.link.asInstanceOf[Link].rawQuality)
           } else {
             preparedStatement.setNull(33, Types.INTEGER)
             preparedStatement.setNull(34, Types.INTEGER)
-            preparedStatement.setNull(35, Types.INTEGER)
           }
-          preparedStatement.setDouble(36, linkConsumption.satisfaction)
-          preparedStatement.setInt(37, linkConsumption.cycle)
+          preparedStatement.setDouble(35, linkConsumption.satisfaction)
+          preparedStatement.setInt(36, linkConsumption.cycle)
           preparedStatement.executeUpdate()
         }
       preparedStatement.close()
@@ -921,19 +914,17 @@ object LinkSource {
         val airline = AirlineCache.getAirline(resultSet.getInt("airline")).getOrElse(Airline.fromId(resultSet.getInt("airline")))
         val distance = resultSet.getInt("distance")
         val duration = resultSet.getInt("duration")
-        val flightType = resultSet.getInt("flight_type")
         val flightNumber = resultSet.getInt("flight_number")
         val modelId = resultSet.getInt("airplane_model")
-        val rawQuality = resultSet.getInt("raw_quality")
         val transportType = resultSet.getInt("transport_type")
         val link =
           if (transportType == TransportType.FLIGHT.id) {
-            Link(fromAirport, toAirport, airline, price, distance, capacity, 0, duration, frequency, FlightType(flightType), flightNumber, linkId)
+            Link(fromAirport, toAirport, airline, price, distance, capacity, 0, duration, frequency, flightNumber, linkId)
           } else if (transportType == TransportType.GENERIC_TRANSIT.id) {
             GenericTransit(fromAirport, toAirport, distance, capacity, linkId)
           } else {
             println("Unknown transport type for link consumption : " + resultSet.getInt("transport_type"))
-            Link(fromAirport, toAirport, airline, price, distance, capacity, 0, duration, frequency, FlightType(flightType), flightNumber, linkId)
+            Link(fromAirport, toAirport, airline, price, distance, capacity, 0, duration, frequency, flightNumber, linkId)
           }
 
         link match {
@@ -957,6 +948,7 @@ object LinkSource {
         linkConsumptions.append(LinkConsumptionDetails(
           link = link,
           fuelCost = resultSet.getInt("fuel_cost"),
+          fuelTax = resultSet.getInt("fuel_tax"),
           crewCost = resultSet.getInt("crew_cost"),
           airportFees = resultSet.getInt("airport_fees"),
           inflightCost = resultSet.getInt("inflight_cost"),

@@ -132,8 +132,8 @@ function updateAirplaneModelTable(sortProperty, sortOrder) {
 	
 	$.each(modelsFiltered, function(index, modelOwnerInfo) {
 		var row = $("<div class='table-row clickable' data-model-id='" + modelOwnerInfo.id + "' onclick='selectAirplaneModel(loadedModelsById[" + modelOwnerInfo.id + "])'></div>")
-		var stars = $("<div class='cell' align='right'>").append(getGradeStarsImgs(modelOwnerInfo.quality * 2)).append("</div>")
-		var capacity = modelOwnerInfo.capacity === modelOwnerInfo.maxSeats ? modelOwnerInfo.capacity : modelOwnerInfo.capacity + "<br><i class='text-hint'>" + modelOwnerInfo.maxSeats + "</i>";
+		var stars = $("<div class='cell' align='right'>").append(getGradeStarsImgs(modelOwnerInfo.quality)).append("</div>")
+		var capacity = modelOwnerInfo.capacity
         modelOwnerInfo.costPerPax = calcCostPerPax(modelOwnerInfo, rangeRequirement)
         modelOwnerInfo.trips = calcFreq(modelOwnerInfo, rangeRequirement)
 
@@ -149,7 +149,8 @@ function updateAirplaneModelTable(sortProperty, sortOrder) {
 		row.append(stars)
 		row.append("<div class='cell' align='right'>" + modelOwnerInfo.range + " km</div>")
 		row.append("<div class='cell' align='right'>" + modelOwnerInfo.trips + "</div>")
-		row.append("<div class='cell' align='right'>" + modelOwnerInfo.fuelPerPax + "</div>")
+		row.append("<div class='cell' align='right'>" + modelOwnerInfo.ascentBurn + "</div>")
+		row.append("<div class='cell' align='right'>" + modelOwnerInfo.cruiseBurn + "</div>")
 		row.append("<div class='cell' align='right'>" + modelOwnerInfo.lifespan / 52 + " yrs</div>")
 		row.append("<div class='cell' align='right'>" + modelOwnerInfo.speed + " km/h</div>")
 		row.append("<div class='cell' align='right'>" + modelOwnerInfo.runwayRequirement + " m</div>")
@@ -169,54 +170,41 @@ function calcFreq(airplane, distance) {
     if (airplane.range < distance) {
         return "-"
     }
-    const maxFlightMinutes = 4 * 24 * 60;
     const flightTime = calcFlightTime(airplane, distance);
-    return Math.floor(maxFlightMinutes / ((flightTime + airplane.turnaroundTime) * 2));
+    return Math.floor(gameConstants.aircraft.maxFlightMin / ((flightTime + airplane.turnaroundTime) * 2));
 }
 
 function calcCostPerPax(airplane, distance) {
-    const maxFlightMinutes = 4 * 24 * 60;
+    const MAX_FLIGHT_MIN = gameConstants.aircraft.maxFlightMin;
+    const FUEL_UNIT_COST = gameConstants.linkCosts.fuelCost
+
     const flightTime = calcFlightTime(airplane, distance);
-    const frequency = Math.floor(maxFlightMinutes / ((flightTime + airplane.turnaroundTime) * 2));
+    const frequency = Math.floor(MAX_FLIGHT_MIN / ((flightTime + airplane.turnaroundTime) * 2));
     const aircraftFlightTime = frequency * 2 * (flightTime + airplane.turnaroundTime);
-    const availableFlightMinutes = maxFlightMinutes - aircraftFlightTime;
-    const utilisation = aircraftFlightTime / (maxFlightMinutes - availableFlightMinutes);
-    const planeUtilisation = (maxFlightMinutes - availableFlightMinutes) / maxFlightMinutes;
+    const availableFlightMinutes = MAX_FLIGHT_MIN - aircraftFlightTime;
+    const utilisation = aircraftFlightTime / (MAX_FLIGHT_MIN - availableFlightMinutes);
+    const planeUtilisation = (MAX_FLIGHT_MIN - availableFlightMinutes) / MAX_FLIGHT_MIN;
 
     const decayRate = 100 / (airplane.lifespan * 3) * (1 + 2 * planeUtilisation);
     const depreciationRate = Math.floor(airplane.price * (decayRate / 100) * utilisation);
 
-    const fuelCost = calcFuelBurn(airplane, distance) * 0.08;
+    const fuelCost = frequency * calcFuelBurn(airplane, distance) * FUEL_UNIT_COST;
+    const fuelTax = fuelCost * (activeAirline.fuelTaxRate / 100);
 
-    const cost = (fuelCost * frequency + depreciationRate) / (airplane.capacity * frequency);
+    const cost = (fuelCost + fuelTax + depreciationRate) / (airplane.capacity * frequency);
     return cost;
 }
 
-function calcFlightTime(airplane, distance){
-    const min = Math.min;
-    const max = Math.max;
-    const speed = airplane.speed * (airplane.airplaneType.toUpperCase() == "SUPERSONIC" ? 1.5 : 1);
-    const a = min(distance, 300);
-    const b = min(max(0, distance-a), 400);
-    const c = min(max(0, distance-(a+b)), 400);
-    const d = max(0, distance-(a+b+c));
-    //prop
-    const x = min(distance, 250);
-    const y = min(max(0, distance-x), 350);
-    const z = max(0, distance-(x+y));
-    const time_flight = airplane.airplaneType.toUpperCase() == "PROP" ? x / min(speed, 425) + y / min(speed, 550) + z / speed : a / min(speed, 350) + b / min(speed, 500) + c / min(speed, 700) + d / speed;
-    return time_flight * 60;
+function calcFlightTime(airplaneModel, distance) {
+  let timeToCruise = gameConstants.aircraft.timeToCruise[airplaneModel.airplaneType] ?? gameConstants.aircraft.timeToCruise.Other
+  return parseInt(timeToCruise + distance * 60 / airplaneModel.speed);
 }
 
 function calcFuelBurn(airplane, distance){
+    const loadFactor = 1 //assuming 100%
     const flightTime = calcFlightTime(airplane, distance);
-    const distanceFactor = 0.5 + 0.05 * Math.pow(flightTime / 60, 1.4)
-    const ascentTimes = {
-      "HELICOPTER": 0,
-      "PROP": 18
-    };
-    const ascendTime = ascentTimes[airplane.airplaneType.toUpperCase()] || Math.min(50, flightTime / 3 * 2);
-    const fuelBurn = parseInt((ascendTime * airplane.fuelBurn * 4.75 + (flightTime - ascendTime) * airplane.fuelBurn) * distanceFactor);
+    const distanceFactor = 1 + 0.1 * Math.pow(flightTime / 60, gameConstants.linkCosts.fuelDistanceExponent);
+    const fuelBurn = airplane.capacity * distanceFactor * (airplane.ascentBurn * loadFactor + airplane.cruiseBurn * distance / 800);
     return fuelBurn;
 }
 
@@ -594,7 +582,7 @@ function buyUsedAirplane(airplaneId, homeAirportId, configurationId) {
 function updateModelInfo(modelId) {
 	loadAirplaneModels()
 	model = loadedModelsById[modelId]
-	var $stars = $(getGradeStarsImgs(model.quality * 2))
+	var $stars = $(getGradeStarsImgs(model.quality))
 	$('#airplaneModelDetails .selectedModel').val(modelId)
 	$('#airplaneModelDetails #modelName').text(model.name)
 	$('#airplaneModelDetails .modelFamily').text(model.family)
@@ -605,7 +593,8 @@ function updateModelInfo(modelId) {
 	$('#airplaneModelDetails #airplaneType').text(model.airplaneType)
 	$('#airplaneModelDetails .turnaroundTime').text(model.turnaroundTime)
 	$('#airplaneModelDetails .runwayRequirement').text(model.runwayRequirement)
-	$('#airplaneModelDetails #fuelBurn').text(model.fuelBurn)
+	$('#airplaneModelDetails #ascentBurn').text(model.ascentBurn)
+	$('#airplaneModelDetails #cruiseBurn').text(model.cruiseBurn)
 	$('#airplaneModelDetails #range').text(model.range + "km")
 	$('#airplaneModelDetails #speed').text(model.speed + "km/h")
 	$('#airplaneModelDetails #lifespan').text(model.lifespan / 52 + " years")
@@ -624,6 +613,13 @@ function updateModelInfo(modelId) {
 		$('#airplaneModelDetails .delivery').text(model.constructionTime + " weeks")
 		$('#airplaneModelDetails .delivery').addClass('warning')
 		$('#airplaneModelDetails .add').text('Place Order')
+	}
+
+	if (model.quality === 10) {
+	    $('.aircraft-note').show()
+	    $('.aircraftNote .note').text('Five star aircraft can only have premium seats.')
+	} else {
+	    $('.aircraftNote').hide()
 	}
 	
 	if (model.rejection) {
@@ -655,7 +651,7 @@ function selectAirplaneModel(model) {
 	} else {
 		$('#airplaneCanvas .modelIllustration').hide()
 	}
-	var $stars = $(getGradeStarsImgs(model.quality * 2))
+	var $stars = $(getGradeStarsImgs(model.quality))
 	
 	$('#airplaneCanvas .selectedModel').val(model.id)
 	$('#airplaneCanvas .modelName').text(model.name)
@@ -666,7 +662,8 @@ function selectAirplaneModel(model) {
 	$('#airplaneCanvas #airplaneType').text(model.airplaneType)
 	$('#airplaneCanvas .turnaroundTime').text(model.turnaroundTime)
 	$('#airplaneCanvas .runwayRequirement').text(model.runwayRequirement)
-	$('#airplaneCanvas #fuelBurn').text(model.fuelBurn)
+	$('#airplaneCanvas #ascentBurn').text(model.ascentBurn)
+	$('#airplaneCanvas #cruiseBurn').text(model.cruiseBurn)
 	$('#airplaneCanvas #range').text(model.range + " km")
 	$('#airplaneCanvas #speed').text(model.speed + " km/h")
 	$('#airplaneCanvas #lifespan').text(model.lifespan / 52 + " years")
@@ -699,6 +696,14 @@ function selectAirplaneModel(model) {
 		$('#airplaneCanvas .delivery').addClass('warning')
 		$('#airplaneCanvas .add').text('Place Order')
 	}
+
+	if (model.quality === 10) {
+        $('.aircraftNote').show()
+        $('.aircraftNote .note').text('Five star aircraft can only have premium seats.')
+    } else {
+        $('.aircraftNote').hide()
+    }
+
 	if (model.rejection) {
 		disableButton($('#airplaneCanvas .add'), model.rejection)
 	} else {
@@ -849,9 +854,9 @@ function showAirplaneBase(modelId) {
     $.each(activeAirline.baseAirports, function(index, base) {
         var inventoryDiv = $("<div style='width : 95%; min-height : 85px;' class='section config'></div>")
         if (base.headquarter) {
-            inventoryDiv.append("<div style='display : inline-block;'><img src='assets/images/icons/building-hedge.png' style='vertical-align:middle;'></div>&nbsp;<div style='display : inline-block;'><h4>" + getCountryFlagImg(base.countryCode) + getAirportText(base.city, base.airportName) + "</h4></div>")
+            inventoryDiv.append("<div style='display : inline-block;'><img src='assets/images/icons/building-hedge.png' style='vertical-align:middle;'></div>&nbsp;<div style='display : inline-block;'><h4>" + getCountryFlagImg(base.countryCode) + getAirportText(base.city, base.airportCode) + "</h4></div>")
         } else {
-            inventoryDiv.append("<div style='display : inline-block;'><img src='assets/images/icons/building-low.png' style='vertical-align:middle;'></div>&nbsp;<div style='display : inline-block;'><h4>" + getCountryFlagImg(base.countryCode) + getAirportText(base.city, base.airportName) + "</h4></div>")
+            inventoryDiv.append("<div style='display : inline-block;'><img src='assets/images/icons/building-low.png' style='vertical-align:middle;'></div>&nbsp;<div style='display : inline-block;'><h4>" + getCountryFlagImg(base.countryCode) + getAirportText(base.city, base.airportCode) + "</h4></div>")
         }
 
         var assignedAirplanesCount = getAssignedAirplanesCount("homeAirportId", base.airportId, model.id)
@@ -892,7 +897,7 @@ function showAllAirplaneInventory(modelId) {
     $.each(allAirplanes, function( key, airplane ) {
         var airplaneId = airplane.id
         var li = $("<div style='float: left;' class='clickable' onclick='loadOwnedAirplaneDetails(" + airplaneId + ", $(this), refreshAllAirplaneInventoryAfterAirplaneUpdate)'></div>").appendTo(airplanesDiv)
-        var airplaneIcon = getAirplaneIcon(airplane, info.badConditionThreshold)
+        var airplaneIcon = getAirplaneIcon(airplane, gameConstants.aircraft.conditionBad)
         enableAirplaneIconDrag(airplaneIcon, airplaneId)
         enableAirplaneIconDrop(airplaneIcon, airplaneId, "refreshAllAirplaneInventoryAfterAirplaneUpdate")
         li.append(airplaneIcon)
@@ -943,9 +948,9 @@ function addAirplaneInventoryDivByBase(containerDiv, modelId, compareKey, compar
         if (airplane[compareKey] == compareValue) {
             var airplaneId = airplane.id
             var li = $("<div style='float: left;' class='clickable' onclick='loadOwnedAirplaneDetails(" + airplaneId + ", $(this), refreshBaseAfterAirplaneUpdate)'></div>").appendTo(airplanesDiv)
-            var airplaneIcon = getAirplaneIcon(airplane, info.badConditionThreshold)
+            var airplaneIcon = getAirplaneIcon(airplane, gameConstants.aircraft.conditionBad)
 
-            enableAirplaneIconDrag(airplaneIcon, airplaneId, airplane.availableFlightMinutes != airplane.maxFlightMinutes)
+            enableAirplaneIconDrag(airplaneIcon, airplaneId, airplane.availableFlightMinutes != gameConstants.aircraft.maxFlightMin)
             enableAirplaneIconDrop(airplaneIcon, airplaneId, "refreshBaseAfterAirplaneUpdate")
             li.append(airplaneIcon)
             empty = false
@@ -988,7 +993,7 @@ function addAirplaneHangarDivByModel($containerDiv, modelInfo) {
         $.each(airplanes, function( index, airplane ) {
             var airplaneId = airplane.id
             var li = $("<div style='float: left;' class='clickable' onclick='loadOwnedAirplaneDetails(" + airplaneId + ", $(this), showAirplaneCanvas)'></div>").appendTo($airplanesByBaseDiv)
-            var airplaneIcon = getAirplaneIcon(airplane, modelInfo.badConditionThreshold)
+            var airplaneIcon = getAirplaneIcon(airplane, gameConstants.aircraft.conditionBad)
             li.append(airplaneIcon)
         })
         $airplanesByBaseDiv.append("<div style='clear:both; '></div>")
@@ -1038,7 +1043,7 @@ function getAirplaneIcon(airplane, badConditionThreshold, explicitIsAssigned) {
     if (typeof explicitIsAssigned != 'undefined') {
         isAssigned = explicitIsAssigned
     } else {
-        isAssigned = airplane.availableFlightMinutes != airplane.maxFlightMinutes
+        isAssigned = airplane.availableFlightMinutes != gameConstants.aircraft.maxFlightMin
     }
 
     if (typeof explicitIsAssigned == 'undefined') {
@@ -1049,7 +1054,7 @@ function getAirplaneIcon(airplane, badConditionThreshold, explicitIsAssigned) {
     div.append(img)
 
     //utilization label
-	var utilization = Math.round((airplane.maxFlightMinutes - airplane.availableFlightMinutes) / airplane.maxFlightMinutes * 100)
+	var utilization = Math.round((gameConstants.aircraft.maxFlightMin - airplane.availableFlightMinutes) / gameConstants.aircraft.maxFlightMin * 100)
     var color
     if (utilization < 25) {
         color = "#FF9973"
@@ -1224,33 +1229,31 @@ function loadOwnedAirplaneDetails(airplaneId, selectedItem, closeCallback, disab
                     $('#ownedAirplaneDetail .modelIllustration').hide()
                 }
 
-    	    	$("#airplaneDetailsId").text(airplane.id)
-        		$("#airplaneDetailsCondition").text(airplane.condition.toFixed(2) + "%")
-        		$("#airplaneDetailsCondition").removeClass("warning fatal")
-        		if (airplane.condition < airplane.criticalConditionThreshold) {
-        			$("#airplaneDetailsCondition").addClass("fatal")
-        		} else if (airplane.condition < airplane.badConditionThreshold) {
-        			$("#airplaneDetailsCondition").addClass("warning")
-        		}
         		var age = currentCycle - airplane.constructedCycle
 
         		if (age >= 0) {
-        			$("#airplaneDetailsAge").text(getYearMonthText(age))
-        			$("#airplaneDetailsAgeRow").show()
-        			$("#airplaneDetailsDeliveryRow").hide()
+        		    $("#airplaneDetailsAge").text(getYearMonthText(age) + " old | " + airplane.condition.toFixed(2) + "% condition")
+                    $("#airplaneDetailsCondition").removeClass("warning fatal")
+                    if (airplane.condition < gameConstants.aircraft.conditionCritical) {
+                        $("#airplaneDetailsCondition").addClass("fatal")
+                    } else if (airplane.condition < gameConstants.aircraft.conditionBad) {
+                        $("#airplaneDetailsCondition").addClass("warning")
+                    }
+        			$("#airplaneDetailsAge").show()
+        			$("#airplaneDetailsDelivery").hide()
         		} else {
-        			$("#airplaneDetailsDelivery").text(age * -1 + "week(s)")
-        			$("#airplaneDetailsAgeRow").hide()
-        			$("#airplaneDetailsDeliveryRow").show()
+        			$("#airplaneDetailsAge").hide()
+        			$("#airplaneDetailsDelivery").text("Will be available in " + -age * -1 + "week(s)")
+        			$("#airplaneDetailsDeliver").show()
         		}
-    	    	$("#airplaneDetailsSellValue").text("$" + commaSeparateNumber(airplane.sellValue))
+    	    	$("#sellAirplaneButton").text("Sell for $" + commaSeparateNumber(airplane.sellValue))
     	    	var replaceCost = model.price - airplane.sellValue
-                $("#airplaneDetailsReplaceCost").text("$" + commaSeparateNumber(replaceCost))
+                $("#replaceAirplaneButton").text("Replace for $" + commaSeparateNumber(replaceCost))
     	    	$("#airplaneDetailsLink").empty()
     	    	if (airplane.links.length > 0) {
     	    	    $.each(airplane.links, function(index, linkEntry) {
     	    	        var link = linkEntry.link
-    	    	        var linkDescription = "<div style='display: flex; align-items: center;'>" + getAirportText(link.fromAirportCity, link.fromAirportCode) + "<img src='assets/images/icons/arrow.png'>" + getAirportText(link.toAirportCity, link.toAirportCode) + " " + linkEntry.frequency + " flight(s) per week</div>"
+    	    	        var linkDescription = "<div style='display: flex; align-items: center; margin: 4px 0;'>" + getAirportText(link.fromAirportCity, link.fromAirportCode) + "<img src='assets/images/icons/arrow.png'>" + getAirportText(link.toAirportCity, link.toAirportCode) + " " + linkEntry.frequency + " flight(s) per week</div>"
     	    	        $("#airplaneDetailsLink").append("<div><a data-link='show-link-from-airplane' href='javascript:void(0)' onclick='closeAllAndStoreAirplaneModals(); showWorldMap(); selectLinkFromMap(" + link.id + ", true)'>" + linkDescription + "</a></div>" )
     	    	        populateNavigation($("#airplaneDetailsLink"))
     	    	    })
@@ -1264,7 +1267,7 @@ function loadOwnedAirplaneDetails(airplaneId, selectedItem, closeCallback, disab
     	    		}
 
     	    	}
-    	    	$("#ownedAirplaneDetail .availableFlightMinutes").text(airplane.availableFlightMinutes)
+    	    	$("#ownedAirplaneDetail .availableFlightMinutes").text(airplane.availableFlightMinutes + " available flight minutes")
     	    	populateAirplaneHome(airplane, disableChangeHome)
 
                 var weeksRemainingBeforeReplacement = airplane.constructionTime - (currentCycle - airplane.purchasedCycle)
@@ -1304,33 +1307,31 @@ function loadOwnedAirplaneDetails(airplaneId, selectedItem, closeCallback, disab
                         plotSeatConfigurationBar($('#ownedAirplaneDetailModal .configurationBar'), configuration, airplane.capacity, result.spaceMultipliers)
 
                         if (result.configurations.length <= 1) { //then cannot change
-                            $("#ownedAirplaneDetail .configuration-view .edit").hide()
-                            $("#ownedAirplaneDetail .configuration-view .editDisabled").show()
+                            $("#ownedAirplaneDetail .configuration-edit-button").hide()
+                            $("#ownedAirplaneDetail #configuration-warning").show()
                         } else {
-                            $("#ownedAirplaneDetail .configuration-view .show").hide()
+                            $("#ownedAirplaneDetail #configuration-warning").hide()
+                            $("#ownedAirplaneDetail .configuration-edit-button").show()
 
-                            //populateConfigurationOptionsFunction = function() { //delay this as the div is not visible and fusionchart would not render it
-                                $("#ownedAirplaneDetail .configuration-options").empty()
-                                $("#ownedAirplaneDetail .configuration-options").data("selectedIndex", 0)
-                                $("#ownedAirplaneDetail .configuration-options").data("optionCount", result.configurations.length)
-                                for (i = 0 ; i < result.configurations.length; i ++) {
-                                    //start from the matching one
-                                    var index = (i + matchingIndex) % result.configurations.length
-                                    var option = result.configurations[index]
-                                    var barDiv = $("<div style='width : 100%' class='configuration-option'></div>")
-                                    $("#ownedAirplaneDetail .configuration-options").append(barDiv)
-                                    barDiv.data("configurationId", option.id)
-                                    if (i != 0) { //if not the matching one, hide by default
-                                        barDiv.hide()
-                                    }
-                                    plotSeatConfigurationBar(barDiv, option, airplane.capacity, result.spaceMultipliers)
+                            $("#ownedAirplaneDetail .configuration-options").empty()
+                            $("#ownedAirplaneDetail .configuration-options").data("selectedIndex", 0)
+                            $("#ownedAirplaneDetail .configuration-options").data("optionCount", result.configurations.length)
+                            for (i = 0 ; i < result.configurations.length; i ++) {
+                                //start from the matching one
+                                var index = (i + matchingIndex) % result.configurations.length
+                                var option = result.configurations[index]
+                                var barDiv = $("<div style='width : 100%' class='configuration-option'></div>")
+                                $("#ownedAirplaneDetail .configuration-options").append(barDiv)
+                                barDiv.data("configurationId", option.id)
+                                if (i != 0) { //if not the matching one, hide by default
+                                    barDiv.hide()
                                 }
-                            //}
+                                plotSeatConfigurationBar(barDiv, option, airplane.capacity, result.spaceMultipliers)
+                            }
                             $("#ownedAirplaneDetail .configuration-view .edit").show()
-                            $("#ownedAirplaneDetail .configuration-view .editDisabled").hide()
                         }
-                        $("#ownedAirplaneDetail .configuration-view").show()
-                        $("#ownedAirplaneDetail .configuration-edit").hide()
+//                        $("#ownedAirplaneDetail #configuration-view").show()
+//                        $("#ownedAirplaneDetail #configuration-edit-button").hide()
 
                         if (closeCallback) {
                             $("#ownedAirplaneDetailModal").data("closeCallback", function() {
@@ -1390,9 +1391,9 @@ function populateAirplaneHome(airplane, disableChangeHome) {
 
 
     if (currentAirport) {
-        $("#ownedAirplaneDetail .homeView .home").text(getAirportText(currentAirport.city, currentAirport.airportCode))
+        $("#ownedAirplaneDetail .homeView .home").text("Home airport: " + getAirportText(currentAirport.city, currentAirport.airportCode))
     } else {
-        $("#ownedAirplaneDetail .homeView .home").text("-")
+        $("#ownedAirplaneDetail .homeView .home").text("No home airport")
     }
     if (disableChangeHome) { //explicitly disabled it, do not even show any reason
         $("#ownedAirplaneDetail .homeView .editDisabled").hide()

@@ -2,6 +2,7 @@ var loadedRivals = []
 var loadedRivalsById = {}
 var loadedRivalLinks = []
 var hideInactive = true
+var rivalsHideNonPlayerAirlines = false
 
 function showRivalsCanvas(selectedAirline) {
 	setActiveDiv($("#rivalsCanvas"))
@@ -13,6 +14,12 @@ function showRivalsCanvas(selectedAirline) {
 
 function toggleHideInactive(flagValue) {
     hideInactive = flagValue
+    var selectedSortHeader = $('#rivalsTableSortHeader .table-header .cell.selected')
+    updateRivalsTable(selectedSortHeader.data('sort-property'), selectedSortHeader.data('sort-order'), null)
+}
+
+function toggleHideNonPlayerAirlines(flagValue) {
+    rivalsHideNonPlayerAirlines = flagValue
     var selectedSortHeader = $('#rivalsTableSortHeader .table-header .cell.selected')
     updateRivalsTable(selectedSortHeader.data('sort-property'), selectedSortHeader.data('sort-order'), null)
 }
@@ -58,11 +65,19 @@ function updateRivalsTable(sortProperty, sortOrder, selectedAirline) {
 	rivalsTable.children("div.table-row").remove()
 
 	//filter if necessary
-	var displayRivals
-	if (hideInactive) {
+	var displayRivals;
+	if (hideInactive && rivalsHideNonPlayerAirlines) {
+    	    displayRivals = loadedRivals.filter(function(rival) {
+                  return rival.loginStatus < 3 && rival.type != "Non-Player" || rival.id == selectedAirline
+            });
+	} else if (hideInactive) {
 	    displayRivals = loadedRivals.filter(function(rival) {
-                                    	    		  return rival.loginStatus < 3 || rival.id == selectedAirline
-                                    	    	});
+              return rival.loginStatus < 3 || rival.id == selectedAirline
+        });
+    } else if (rivalsHideNonPlayerAirlines) {
+        displayRivals = loadedRivals.filter(function(rival) {
+              return rival.type != "Non-Player"
+        });
 	} else {
 	    displayRivals = loadedRivals
     }
@@ -80,7 +95,7 @@ function updateRivalsTable(sortProperty, sortOrder, selectedAirline) {
 
 		row.append("<div class='cell'><img src='" + getStatusLogo(airline.loginStatus) + "' title='" + getStatusTitle(airline.loginStatus) + "' style='vertical-align:middle;'/>")
 		var $nameDiv = $("<div class='cell' style='vertical-align:unset;'>" + getAirlineSpan(airline.id, airline.name) + getUserLevelImg(airline.userLevel) + getAdminImg(airline.adminStatus) + getUserModifiersSpan(airline.userModifiers) + getAirlineModifiersSpan(airline.airlineModifiers)
-				+ (airline.isGenerated ? "<img src='assets/images/icons/robot.png' title='AI' style='vertical-align:middle;'/>" : "") + "</div>").appendTo(row)
+				+ (airline.type == "Non-Player" ? "<img src='assets/images/icons/robot.png' title='AI' style='vertical-align:middle;'/>" : "") + "</div>").appendTo(row)
 		addAirlineTooltip($nameDiv, airline.id, airline.slogan, airline.name)
 		if (airline.headquartersAirportName) {
 			row.append("<div class='cell'>" + getCountryFlagImg(airline.countryCode) + getAirportText(airline.headquartersCity, airline.headquartersAirportIata) + "</div>")
@@ -229,7 +244,9 @@ function toggleRivalLinksTableSortOrder(sortHeader) {
 function updateRivalBasicsDetails(airlineId) {
 	var rival = loadedRivalsById[airlineId]
 	$("#rivalsCanvas .airlineName").text(rival.name)
+	$("#rivalsCanvas .airlineType").text(rival.type + " Airline")
 	$("#rivalsCanvas .airlineCode").text(rival.airlineCode)
+	$("#rivalsCanvas .airlineSlogan").text(rival.slogan)
 	var color = airlineColors[airlineId]
 	if (!color) {
 		$("#rivalsCanvas .airlineColorDot").hide()

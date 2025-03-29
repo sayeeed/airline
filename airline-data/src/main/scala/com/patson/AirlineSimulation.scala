@@ -24,8 +24,9 @@ object AirlineSimulation {
   val MINIMUM_CASH_BALANCE_STOCKS = 10000000 //10M
   val BANKRUPTCY_ASSETS_THRESHOLD = -50000000 //-50M
   val BANKRUPTCY_CASH_THRESHOLD = -10000000 //-10M
+  val BOOKKEEPING_ENTRIES_COUNT = 25
 
-  def airlineSimulation(cycle: Int, flightLinkResult : List[LinkConsumptionDetails], loungeResult : scala.collection.immutable.Map[Lounge, LoungeConsumptionDetails], airplanes : List[Airplane], airlineStats : List[AirlineStat]) = {
+  def airlineSimulation(cycle: Int, flightLinkResult: List[LinkConsumptionDetails], loungeResult: scala.collection.immutable.Map[Lounge, LoungeConsumptionDetails], airplanes: List[Airplane], paxStats: immutable.Map[Int, AirlinePaxStat]) = {
     val allAirlines = AirlineSource.loadAllAirlines(true)
     val allLinks = LinkSource.loadAllLinks(LinkSource.FULL_LOAD)
     val allFlightLinksByAirlineId = allLinks.filter(_.transportType == TransportType.FLIGHT).map(_.asInstanceOf[Link]).groupBy(_.airline.id)
@@ -37,17 +38,14 @@ object AirlineSimulation {
     val flightLinkResultByAirline = flightLinkResult.groupBy(_.link.airline.id)
 
     val airplanesByAirline = airplanes.groupBy(_.owner.id)
-    val allCountries = CountrySource.loadAllCountries().map( country => (country.countryCode, country)).toMap
 
-    val loungesByAirlineId = scala.collection.mutable.Map[Int, ListBuffer[Lounge]]()
-    AirlineSource.loadAllLounges.foreach(lounge =>
-      loungesByAirlineId.getOrElseUpdate(lounge.airline.id, ListBuffer[Lounge]()) += lounge
-    )
+    val loungesByAirlineId = AirlineSource.loadAllLounges().groupBy(_.airline.id)
 
     val assetsByAirlineId = AirportAssetSource.loadAirportAssetsByAssetCriteria(List.empty).groupBy(_.airline.get.id) //load all owned assets
 
     val allIncomes = ListBuffer[AirlineIncome]()
     val allCashFlows = ListBuffer[AirlineCashFlow]() //cash flow for accounting purpose
+    val allAirlineStats = ListBuffer[AirlineStat]()
 
     val currentCycle = MainSimulation.currentWeek
     //val champions : scala.collection.immutable.Map[Airline, List[ChampionInfo]] = ChampionUtil.getAllCountryChampionInfo().groupBy(_.airline)
@@ -73,7 +71,7 @@ object AirlineSimulation {
     val oilConsumptionEntries = ListBuffer[OilConsumptionHistory]()
 
     allAirlines.foreach { airline =>
-        val airlineStat = airlineStats.find(_.airlineId == airline.id).getOrElse(AirlineStat(airline.id,0,0,0,0,0))
+        val airlineStat = paxStats.getOrElse(airline.id, AirlinePaxStat(0,0,0,0,0))
         var totalCashRevenue = 0L
         var totalCashExpense = 0L
         var linksDepreciation = 0L
@@ -88,9 +86,9 @@ object AirlineSimulation {
           case Some(airplanes) =>
             val modelSet = airplanes.map(_.model).toSet
             if (modelSet.size >= 12) {
-              20
+              25
             } else if (modelSet.size >= 8) {
-              10
+              15
             } else if (modelSet.size >= 4) {
               5
             } else {
@@ -101,17 +99,32 @@ object AirlineSimulation {
         }
         reputationBreakdowns.append(ReputationBreakdown(ReputationType.MILESTONE_AIRCRAFT_TYPES, reputationByAircraftTypes))
 
+      val airlineRegionalBonus = if (airline.airlineType == AirlineType.REGIONAL) 2 else 1
+      val reputationByAllianceAssists =
+        if (airlineStat.allianceAssists > 500_000) {
+          80
+        } else if (airlineStat.allianceAssists > 75_000) {
+          50
+        } else if (airlineStat.allianceAssists > 5000) {
+          30
+        } else if (airlineStat.allianceAssists > 500) {
+          15
+        } else {
+          0
+        } * airlineRegionalBonus
+      reputationBreakdowns.append(ReputationBreakdown(ReputationType.MILESTONE_ALLIANCE_ASSISTS, reputationByAllianceAssists))
+
         val reputationByCountries = flightLinkResultByAirline.get(airline.id) match {
           case Some(linkConsumptions) =>
             val countryCodeSet = linkConsumptions.map(_.link.to.countryCode).toSet
             val uniqueCountryCount = countryCodeSet.size
-            if (uniqueCountryCount >= 120) {
+            if (uniqueCountryCount >= 100) {
               75
-            } else if (uniqueCountryCount >= 90) {
+            } else if (uniqueCountryCount >= 80) {
               45
-            } else if (uniqueCountryCount >= 60) {
+            } else if (uniqueCountryCount >= 40) {
               30
-            } else if (uniqueCountryCount >= 12) {
+            } else if (uniqueCountryCount >= 15) {
               15
             } else {
               0
@@ -126,13 +139,13 @@ object AirlineSimulation {
             val totalPassengerKilometers = linkConsumptions.foldLeft(0L) { (accumulator, linkConsumption) =>
               accumulator + linkConsumption.link.soldSeats.total * linkConsumption.link.distance
             }
-            if (totalPassengerKilometers > 1_000_000_000) {
+            if (totalPassengerKilometers > 2_000_000_000) {
               60
-            } else if (totalPassengerKilometers > 50_000_000) {
+            } else if (totalPassengerKilometers > 500_000_000) {
               45
-            } else if (totalPassengerKilometers > 1_000_000) {
+            } else if (totalPassengerKilometers > 25_000_000) {
               30
-            } else if (totalPassengerKilometers > 10_000) {
+            } else if (totalPassengerKilometers > 50_000) {
               15
             } else {
               0
@@ -148,10 +161,12 @@ object AirlineSimulation {
         }
         reputationBreakdowns.append(ReputationBreakdown(ReputationType.AIRPORT_LOYALIST_RANKING, reputationByAirportChampions))
 
-        val reputationByTourists = 20 * AirlineGradeTourists.findGrade(airlineStat.tourists).level
+        val airlineTouristBonus = if (airline.airlineType == AirlineType.ULCC) 2 else 1
+        val reputationByTourists = 25 * airlineTouristBonus * AirlineGradeTourists.findGrade(airlineStat.tourists).level
         reputationBreakdowns.append(ReputationBreakdown(ReputationType.TOURISTS, reputationByTourists))
 
-        val reputationByElites = 20 * AirlineGradeElites.findGrade(airlineStat.elites).level
+        val airlineEliteBonus = if (airline.airlineType == AirlineType.LUXURY) 2 else 1
+        val reputationByElites = 25 * airlineEliteBonus * AirlineGradeElites.findGrade(airlineStat.elites).level
         reputationBreakdowns.append(ReputationBreakdown(ReputationType.ELITES, reputationByElites))
 
         val reputationBonusFromAlliance: Double = allianceByAirlineId.get(airline.id) match {
@@ -167,27 +182,15 @@ object AirlineSimulation {
         reputationBreakdowns.append(ReputationBreakdown(ReputationType.LEADERBOARD_BONUS, reputationBonusFromLeaderboards))
 
         //stock price
-        var dividendsFunding = airline.getWeeklyDividends()
-        if (airlineValue.existingBalance < MINIMUM_CASH_BALANCE_STOCKS + dividendsFunding) {
-          airline.setWeeklyDividends(0)
-          dividendsFunding = 0
-        }
-        othersSummary.put(OtherIncomeItemType.DIVIDENDS, dividendsFunding.toLong * -1)
-        totalCashExpense += dividendsFunding
-
-        val oldStockPrice = airline.getStockPrice()
-        val exStockBreakdowns = ReputationBreakdowns(reputationBreakdowns.toList)
-        val companySentiment = exStockBreakdowns.total - currentReputation + ThreadLocalRandom.current().nextDouble(0.1)
-        val stockPrice = getNewStockPrice(dividendsFunding, airlineValue.overall, oldStockPrice, companySentiment)
-        airline.setStockPrice(stockPrice)
-
+        val stockPrice = 0 //todo!
         val reputationByStockPrice = 10 * airline.airlineGradeStockPrice.level
         reputationBreakdowns.append(ReputationBreakdown(ReputationType.STOCK_PRICE, reputationByStockPrice))
 
         //set reputation
         val finalBreakdowns = ReputationBreakdowns(reputationBreakdowns.toList)
         AirlineSource.updateReputationBreakdowns(airline.id, finalBreakdowns)
-        var targetReputation = finalBreakdowns.total
+        val beginnerAirlineCeiling = if (airline.airlineType == AirlineType.BEGINNER) 250 else Int.MaxValue
+        var targetReputation = Math.min(beginnerAirlineCeiling, finalBreakdowns.total)
         if (targetReputation > currentReputation && targetReputation - currentReputation > MAX_REPUTATION_DELTA) {
           targetReputation = currentReputation + MAX_REPUTATION_DELTA //make sure it increases/decreases gradually based on passenger volume
         } else if (targetReputation < currentReputation && currentReputation - targetReputation > MAX_REPUTATION_DELTA) {
@@ -203,10 +206,8 @@ object AirlineSimulation {
           false
         }
         if (isBankrupt) {
-          val resetBalance = 0
-          //todd: add public notice of bankruptcy with stats
           println(s"Resetting $airline due to negative value")
-          Airline.resetAirline(airline.id, newBalance = resetBalance)
+          Airline.resetAirline(airline.id, newBalance = 0, resetExtendedInfo = true)
           NoticeSource.saveTrackingNotice(airline.id, GameOverNotice())
         }
 
@@ -216,6 +217,7 @@ object AirlineSimulation {
             val linksAirportFee = linkConsumptions.foldLeft(0L)(_ + _.airportFees)
             val linksCrewCost = linkConsumptions.foldLeft(0L)(_ + _.crewCost)
             val linksFuelCost = linkConsumptions.foldLeft(0L)(_ + _.fuelCost)
+            val linksFuelTax = linkConsumptions.foldLeft(0L)(_ + _.fuelTax)
             val linksInflightCost = linkConsumptions.foldLeft(0L)(_ + _.inflightCost)
             val linksDelayCompensation = linkConsumptions.foldLeft(0L)(_ + _.delayCompensation)
             val linksMaintenanceCost = linkConsumptions.foldLeft(0L)(_ + _.maintenanceCost)
@@ -223,11 +225,11 @@ object AirlineSimulation {
             val linksLoungeCost = linkConsumptions.foldLeft(0L)(_ + _.loungeCost)
             val linksRevenue = linkConsumptions.foldLeft(0L)(_ + _.revenue)
 
-            val linksExpense = linksAirportFee + linksCrewCost + linksFuelCost + linksInflightCost + linksDelayCompensation + linksMaintenanceCost + linksDepreciation + linksLoungeCost
+            val linksExpense = linksAirportFee + linksCrewCost + linksFuelCost + linksFuelTax + linksInflightCost + linksDelayCompensation + linksMaintenanceCost + linksDepreciation + linksLoungeCost
 
             totalCashRevenue += linksRevenue
             totalCashExpense += linksExpense - linksDepreciation //airplane depreciation is already deducted on the plane, not a cash expense
-            LinksIncome(airline.id, profit = linksProfit, revenue = linksRevenue, expense = linksExpense, ticketRevenue = linksRevenue, airportFee = -1 * linksAirportFee, fuelCost = -1 * linksFuelCost, crewCost = -1 * linksCrewCost, inflightCost = -1 * linksInflightCost, delayCompensation = -1 * linksDelayCompensation, maintenanceCost= -1 * linksMaintenanceCost, loungeCost= -1 * linksLoungeCost,  depreciation = -1 * linksDepreciation, cycle = currentCycle)
+            LinksIncome(airline.id, profit = linksProfit, revenue = linksRevenue, expense = linksExpense, ticketRevenue = linksRevenue, airportFee = -1 * linksAirportFee, fuelCost = -1 * linksFuelCost, fuelTax = -1 * linksFuelTax, crewCost = -1 * linksCrewCost, inflightCost = -1 * linksInflightCost, delayCompensation = -1 * linksDelayCompensation, maintenanceCost= -1 * linksMaintenanceCost, loungeCost= -1 * linksLoungeCost,  depreciation = -1 * linksDepreciation, cycle = currentCycle)
           }
           case None => LinksIncome(airline.id, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, cycle = currentCycle)
         }
@@ -403,7 +405,6 @@ object AirlineSimulation {
             , loanInterest = othersSummary.getOrElse(OtherIncomeItemType.LOAN_INTEREST, 0)
             , baseUpkeep = othersSummary.getOrElse(OtherIncomeItemType.BASE_UPKEEP, 0)
             , overtimeCompensation = othersSummary.getOrElse(OtherIncomeItemType.OVERTIME_COMPENSATION, 0)
-            , dividends = othersSummary.getOrElse(OtherIncomeItemType.DIVIDENDS, 0)
             , advertisement = othersSummary.getOrElse(OtherIncomeItemType.ADVERTISEMENT, 0)
             , loungeUpkeep = othersSummary.getOrElse(OtherIncomeItemType.LOUNGE_UPKEEP, 0)
             , loungeCost = othersSummary.getOrElse(OtherIncomeItemType.LOUNGE_COST, 0)
@@ -420,7 +421,7 @@ object AirlineSimulation {
         val airlineExpense = linksIncome.expense + transactionsIncome.expense + othersIncome.expense
         val airlineProfit = airlineRevenue - airlineExpense
 
-        val airlineWeeklyIncome = AirlineIncome(airline.id, airlineProfit, airlineRevenue, airlineExpense, stockPrice, linksIncome, transactionsIncome, othersIncome, cycle = currentCycle)
+        val airlineWeeklyIncome = AirlineIncome(airline.id, airlineProfit, airlineRevenue, airlineExpense, stockPrice, airlineValue.overall, linksIncome, transactionsIncome, othersIncome, cycle = currentCycle)
         allIncomes += airlineWeeklyIncome
         allIncomes ++= computeAccumulateIncome(airlineWeeklyIncome)
 
@@ -461,6 +462,79 @@ object AirlineSimulation {
         allCashFlows += airlineWeeklyCashFlow
         allCashFlows ++= computeAccumulateCashFlow(airlineWeeklyCashFlow)
 
+      // AirlineStats
+      var calculatedRASK = 0.0
+      var calculatedCASK = 0.0
+      var calculatedSatisfaction = 0.0 // Default to 0, could use Option or NaN if preferred
+      var calculatedLoadFactor = 0.0
+      var calculatedOnTime = 1.0 // Default to 100% on time if no flights
+
+      flightLinkResultByAirline.get(airline.id) match {
+        case Some(linkConsumptions) if linkConsumptions.nonEmpty =>
+          val intermediateStats = linkConsumptions.foldLeft((0.0, 0.0, 0.0, 0.0, 0.0)) {
+            // Accumulator: (ask, satisfactionSum, loadFactorSum, flights, majorDelays, minorDelays)
+            case ((askAcc, satAcc, lfAcc, flightsAcc, delayAcc), consumption) =>
+              val link = consumption.link
+              val ASK = link.capacity.total * link.distance
+              (
+                askAcc + ASK,
+                satAcc + consumption.satisfaction,
+                lfAcc + link.soldSeats.total.toDouble / link.capacity.total,
+                flightsAcc + link.frequency,
+                delayAcc + link.majorDelayCount + link.minorDelayCount.toDouble / 6 //6 because that's the cost multiplier
+              )
+          }
+
+          val totalASK = intermediateStats._1
+          val totalSatisfactionSum = intermediateStats._2
+          val totalLoadFactorSum = intermediateStats._3
+          val totalFlights = intermediateStats._4
+          val totalDelays = intermediateStats._5
+
+          val numLinks = linkConsumptions.size
+
+          // Calculate RASK & CASK using linksIncome values and calculated ASK
+          if (totalASK > 0) {
+            calculatedRASK = linksIncome.revenue.toDouble / totalASK
+            calculatedCASK = linksIncome.expense.toDouble / totalASK
+          }
+
+          // Calculate Satisfaction & Load Factor averages
+          if (numLinks > 0) {
+            calculatedSatisfaction = totalSatisfactionSum / numLinks
+            calculatedLoadFactor = totalLoadFactorSum / numLinks
+          }
+
+          // Calculate On-Time percentage
+          if (totalFlights > 0) {
+            val onTimeFlights = totalFlights - totalDelays
+            calculatedOnTime = Math.max(0.0, onTimeFlights / totalFlights) // Ensure it doesn't go below 0
+          } // Else onTime remains 1.0
+
+        case _ => // No link consumptions for this airline or list is empty
+        // All calculated stats remain at their default values (0.0 or 1.0 for onTime)
+        // RASK/CASK are 0.0 since linksIncome.revenue/expense would also be 0 in this case.
+      }
+
+      // Create and Add AirlineStat Instance using calculated values and paxStat
+      val currentAirlineStat = AirlineStat(
+        airlineId = airline.id,
+        cycle = cycle, // Use the cycle parameter from the function
+        period = Period.WEEKLY,
+        tourists = airlineStat.tourists,
+        elites = airlineStat.elites,
+        business = airlineStat.business,
+        total = airlineStat.total,
+        allianceAssists = airlineStat.allianceAssists,
+        RASK = calculatedRASK,
+        CASK = calculatedCASK,
+        satisfaction = calculatedSatisfaction,
+        loadFactor = calculatedLoadFactor,
+        onTime = calculatedOnTime,
+        hubDominance = 0.0 //todo
+      )
+      allAirlineStats += currentAirlineStat
+
         //set labor quality
         val targetServiceQuality = airline.getTargetServiceQuality()
         val currentServiceQuality = airline.getCurrentServiceQuality()
@@ -473,33 +547,34 @@ object AirlineSimulation {
       case(airline, cashFlow) => AirlineSource.adjustAirlineBalance(airline.id, cashFlow)
     }
     IncomeSource.saveIncomes(allIncomes.toList)
+    AirlineStatisticsSource.saveAirlineStats(allAirlineStats.toList)
     
     //purge previous entry of current year/month
-    if (currentCycle % 4 != 0) { //clear previous entry for current month, if currentCycle % 4 == 0, it starts a new entry, so no previous entry for the same month to clear
-      IncomeSource.deleteIncomes(currentCycle - 1, Period.MONTHLY)
+    if (currentCycle % Period.numberWeeks(Period.QUARTER) != 0) { //clear previous temp entry
+      IncomeSource.deleteIncomes(currentCycle - 1, Period.QUARTER)
     }
-    if (currentCycle % 52 != 0) { //clear previous entry for current year, if currentCycle % 52 == 0, it starts a new entry, so no previous entry for the same years to clear
-      IncomeSource.deleteIncomes(currentCycle - 1, Period.YEARLY)
+    if (currentCycle % Period.numberWeeks(Period.PERIOD) != 0) { //clear previous temp entry
+      IncomeSource.deleteIncomes(currentCycle - 1, Period.PERIOD)
     }
     
-    //purge old entries, keep 10 entries of each Period
-    IncomeSource.deleteIncomesBefore(currentCycle - 10, Period.WEEKLY);
-    IncomeSource.deleteIncomesBefore(currentCycle - 10 * 4, Period.MONTHLY);
-    IncomeSource.deleteIncomesBefore(currentCycle - 10 * 52, Period.YEARLY);
+    //purge old entries
+    IncomeSource.deleteIncomesBefore(currentCycle - BOOKKEEPING_ENTRIES_COUNT, Period.WEEKLY);
+    IncomeSource.deleteIncomesBefore(currentCycle - BOOKKEEPING_ENTRIES_COUNT * Period.numberWeeks(Period.QUARTER), Period.QUARTER);
+    IncomeSource.deleteIncomesBefore(currentCycle - BOOKKEEPING_ENTRIES_COUNT * Period.numberWeeks(Period.PERIOD), Period.PERIOD);
     
     CashFlowSource.saveCashFlows(allCashFlows.toList)
     //purge previous entry of current year/month
-    if (currentCycle % 4 != 0) { //clear previous entry for current month, if currentCycle % 4 == 0, it starts a new entry, so no previous entry for the same month to clear
-      CashFlowSource.deleteCashFlows(currentCycle - 1, Period.MONTHLY)
+    if (currentCycle % Period.numberWeeks(Period.QUARTER) != 0) { //clear previous temp entry
+      CashFlowSource.deleteCashFlows(currentCycle - 1, Period.QUARTER)
     }
-    if (currentCycle % 52 != 0) { //clear previous entry for current year, if currentCycle % 52 == 0, it starts a new entry, so no previous entry for the same years to clear
-      CashFlowSource.deleteCashFlows(currentCycle - 1, Period.YEARLY)
+    if (currentCycle % Period.numberWeeks(Period.PERIOD) != 0) { //clear previous temp entry
+      CashFlowSource.deleteCashFlows(currentCycle - 1, Period.PERIOD)
     }
     
-    //purge old entries, keep 10 entries of each Period
-    CashFlowSource.deleteCashFlowsBefore(currentCycle - 10, Period.WEEKLY);
-    CashFlowSource.deleteCashFlowsBefore(currentCycle - 10 * 4, Period.MONTHLY);
-    CashFlowSource.deleteCashFlowsBefore(currentCycle - 10 * 52, Period.YEARLY);
+    //purge old entries
+    CashFlowSource.deleteCashFlowsBefore(currentCycle - BOOKKEEPING_ENTRIES_COUNT, Period.WEEKLY);
+    CashFlowSource.deleteCashFlowsBefore(currentCycle - BOOKKEEPING_ENTRIES_COUNT * Period.numberWeeks(Period.QUARTER), Period.QUARTER);
+    CashFlowSource.deleteCashFlowsBefore(currentCycle - BOOKKEEPING_ENTRIES_COUNT * Period.numberWeeks(Period.PERIOD), Period.PERIOD);
     
     //update Oil consumption history
     OilSource.saveOilConsumptionHistory(oilConsumptionEntries.toList)
@@ -507,58 +582,29 @@ object AirlineSimulation {
   }
 
   /**
-  * Returns both level & stock price
-  */
-  def getNewStockPrice(shareholderReturns: Int, companyValue: Long, oldStockPrice: Double, sentiment: Double): Double = {
-    val normalizedCompanyValue = (companyValue + 100000000) * 1.1
-    val returnsRatio = shareholderReturns / normalizedCompanyValue
-    var ratioBand = 0.0006
-    var exponent = 0
-    while (returnsRatio > ratioBand && exponent < 30) { //first level is 0.000702
-      ratioBand = 0.0006 * Math.pow(1.17, (exponent + 1))
-      exponent += 1
-    }
-    val newStockPrice = if (exponent > 0) {
-      val sign = if (sentiment < 0) -1 else 1
-      Math.max(0.0, 0.004 * Math.pow(1.7, (exponent + 1)) + Math.sqrt(sentiment.abs) * sign)
-    } else {
-      0.0
-    }
-    val weightedStockPrice = if (newStockPrice > oldStockPrice) {
-      newStockPrice * 0.51 + oldStockPrice * 0.49
-    } else if (oldStockPrice < 0.001) { //worthless and still falling
-      0
-    } else {
-      newStockPrice * 0.7 + oldStockPrice * 0.3
-    }
-    weightedStockPrice
-  }
-  
-  /**
    * compute monthly and yearly income 
    * 
    * Returns Updating income entries
    *
-   * todo: remove the monthly / yearly logic and just compute it in the browser
    */
   def computeAccumulateIncome(weeklyIncome : AirlineIncome) : List[AirlineIncome] = {
     //get existing entry
     val currentWeek = MainSimulation.currentWeek
     val airlineId = weeklyIncome.airlineId
-    val currentMonthIncomeOption = if (currentWeek % 4 == 0) None else IncomeSource.loadIncomeByAirline(airlineId, currentWeek - 1, Period.MONTHLY)
+    val currentMonthIncomeOption = if (currentWeek % Period.numberWeeks(Period.QUARTER) == 0) None else IncomeSource.loadIncomeByAirline(airlineId, currentWeek - 1, Period.QUARTER)
     
     val updatedMonthIncome = currentMonthIncomeOption match {
       case Some(income) => {
         income.update(weeklyIncome)
       }
-      case None => weeklyIncome.copy(period = Period.MONTHLY)//new month
+      case None => weeklyIncome.copy(period = Period.QUARTER)//new quarter
     }
-    val currentYearIncomeOption = if (currentWeek % 52 == 0) None else IncomeSource.loadIncomeByAirline(airlineId, currentWeek - 1, Period.YEARLY)
+    val currentYearIncomeOption = if (currentWeek % Period.numberWeeks(Period.PERIOD) == 0) None else IncomeSource.loadIncomeByAirline(airlineId, currentWeek - 1, Period.PERIOD)
     val updatedYearIncome = currentYearIncomeOption match {
       case Some(income) => {
         income.update(weeklyIncome)
       }
-      case None => weeklyIncome.copy(period = Period.YEARLY)//new year
+      case None => weeklyIncome.copy(period = Period.PERIOD)//new period
     }
     
     List[AirlineIncome](updatedMonthIncome, updatedYearIncome)
@@ -573,20 +619,20 @@ object AirlineSimulation {
     //get existing entry
     val currentWeek = MainSimulation.currentWeek
     val airlineId = weeklyCashFlow.airlineId
-    val currentMonthCashFlowOption = if (currentWeek % 4 == 0) None else CashFlowSource.loadCashFlowByAirline(airlineId, currentWeek - 1, Period.MONTHLY)
+    val currentMonthCashFlowOption = if (currentWeek % 4 == 0) None else CashFlowSource.loadCashFlowByAirline(airlineId, currentWeek - 1, Period.QUARTER)
     
     val updatedMonthCashFlow = currentMonthCashFlowOption match {
       case Some(cashFlow) => {
         cashFlow.update(weeklyCashFlow)
       }
-      case None => weeklyCashFlow.copy(period = Period.MONTHLY)//new month
+      case None => weeklyCashFlow.copy(period = Period.QUARTER)//new month
     }
-    val currentYearCashFlowOption = if (currentWeek % 52 == 0) None else CashFlowSource.loadCashFlowByAirline(airlineId, currentWeek - 1, Period.YEARLY)
+    val currentYearCashFlowOption = if (currentWeek % 52 == 0) None else CashFlowSource.loadCashFlowByAirline(airlineId, currentWeek - 1, Period.PERIOD)
     val updatedYearCashFlow = currentYearCashFlowOption match {
       case Some(cashFlow) => {
         cashFlow.update(weeklyCashFlow)
       }
-      case None => weeklyCashFlow.copy(period = Period.YEARLY)//new year
+      case None => weeklyCashFlow.copy(period = Period.PERIOD)//new year
     }
     
     List[AirlineCashFlow](updatedMonthCashFlow, updatedYearCashFlow)
@@ -622,9 +668,9 @@ object AirlineSimulation {
     val delta = targetQuality - currentQuality
     val adjustment = 
       if (delta >= 0) { //going up, slower when current quality is already high
-        MAX_SERVICE_QUALITY_INCREMENT * (1 - (currentQuality / Airline.MAX_SERVICE_QUALITY * 0.9)) //at current quality 0, multiplier 1x; current quality 100, multiplier 0.1x
+        MAX_SERVICE_QUALITY_INCREMENT * (1 - (currentQuality / Airline.EQ_MAX * 0.9)) //at current quality 0, multiplier 1x; current quality 100, multiplier 0.1x
       } else { //going down, faster when current quality is already high
-        -1 * MAX_SERVICE_QUALITY_DECREMENT * (0.1 + (currentQuality / Airline.MAX_SERVICE_QUALITY * 0.9)) //at current quality 0, multiplier 0.1x; current quality 100, multiplier 1x
+        -1 * MAX_SERVICE_QUALITY_DECREMENT * (0.1 + (currentQuality / Airline.EQ_MAX * 0.9)) //at current quality 0, multiplier 0.1x; current quality 100, multiplier 1x
       }
     if (adjustment >= 0) {
       if (adjustment + currentQuality >= targetQuality) {

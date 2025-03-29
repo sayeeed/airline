@@ -1,53 +1,51 @@
 package com.patson.model
-import FlightType._
+
+import com.patson.model.FlightCategory.FlightCategory
 
 /**
  * Cost base model
+ *
+ * rates at 400, 1200, 5000, 8000
  */
 object Pricing {
-  //base 10
-  //200 km = 10 + 40
-  //1000 km = 50 + 100 = 150  (800 * 0.125) // 250
-  //2000 km = 150 + 100 = 250  (1000 * 0.1) // 350
-  //10000 km = 150 + 900 = 1050  (9000 * 0.1) // 750
-  val modifierBrackets = List((200, 0.2),(800, 0.125),(Int.MaxValue, 0.1))
+  val modifierBrackets: Map[LinkClass, List[(Int, Double)]] = Map(
+    DISCOUNT_ECONOMY  -> List((400, 0.13), (800, 0.070), (3800, 0.071), (3000, 0.09), (Int.MaxValue, 0.15)),
+    ECONOMY           -> List((400, 0.16), (800, 0.077), (3800, 0.076), (3000, 0.09), (Int.MaxValue, 0.16)),
+    BUSINESS          -> List((400, 0.42), (800, 0.239), (3800, 0.173), (3000, 0.27), (Int.MaxValue, 0.27)),
+    FIRST             -> List((400, 1.24), (800, 0.354), (3800, 0.465), (3000, 0.58), (Int.MaxValue, 0.62))
+  )
   val INTERNATIONAL_PRICE_MULTIPLIER = 1.05
+  val PRICE_BASE = 15
 
-  def computeStandardPrice(link : Link, linkClass : LinkClass) : Int = {
-    computeStandardPrice(link.distance, link.flightType, linkClass)
+  def computeStandardPrice(link : Transport, linkClass : LinkClass, paxType: PassengerType.Value) : Int = {
+    val flightCategory = Computation.getFlightCategory(link.from, link.to)
+    computeStandardPrice(link.distance, flightCategory, linkClass, paxType, link.from.baseIncome)
   }
-  def computeStandardPrice(distance : Int, flightType : FlightType, linkClass : LinkClass) : Int = {
+  def computeStandardPrice(distance: Int, flightCategory: FlightCategory.Value, linkClass: LinkClass, paxType: PassengerType.Value, airportIncome: Int) : Int = {
     var remainDistance = distance
-    var price = linkClass.basePrice.toDouble
-    for (priceBracket <- modifierBrackets if(remainDistance > 0)) {
+    var price: Double = PRICE_BASE
+    for (priceBracket <- modifierBrackets(linkClass) if(remainDistance > 0)) {
       if (priceBracket._1 >= remainDistance) {
         price += remainDistance * priceBracket._2
       } else {
-        price += priceBracket._1 * priceBracket._2
+        price += priceBracket._1.toDouble * priceBracket._2
       }
       remainDistance -= priceBracket._1
     }
-    price = ((flightType match {
-      case SHORT_HAUL_INTERNATIONAL | MEDIUM_HAUL_INTERNATIONAL | LONG_HAUL_INTERNATIONAL | ULTRA_LONG_HAUL_INTERCONTINENTAL => (price * INTERNATIONAL_PRICE_MULTIPLIER)
-      case _ => price
-    }) * linkClass.priceMultiplier).toInt
+    price = if (flightCategory == FlightCategory.INTERNATIONAL) {
+      price * INTERNATIONAL_PRICE_MULTIPLIER
+    } else {
+      price
+    }
+    price *= 1 + 0.14 * Math.min(1, airportIncome.toDouble / Airport.HIGH_INCOME)
+    price *= PassengerType.priceAdjust(paxType)
     
-    (price * 1.20).toInt //increase the standard price by 20%
-    // 150 * 1.2 = 180    250 * 1.5 = 375 | 57%
-    // 250 * 1.2 = 300    350 * 1.5 = 525
-    // 1050 * 1.2 = 1260  750 * 1.5 = 1125
+    price.toInt
   }
   
-//  def computeStandardPriceForAllClass(distance : Int, fromAirport : Airport, toAirport : Airport) : LinkClassValues = {
-//    val priceByLinkClass : List[(LinkClass, Int)] = LinkClass.values.map { linkClass =>
-//      (linkClass, computeStandardPrice(distance, Computation.getFlightType(fromAirport, toAirport, distance), linkClass))
-//    }
-//    LinkClassValues.getInstanceByMap(priceByLinkClass.toMap)
-//  }
-  
-  def computeStandardPriceForAllClass(distance : Int, flightType : FlightType.Value) : LinkClassValues = {
+  def computeStandardPriceForAllClass(distance: Int, flightCategory: FlightCategory.Value, paxType: PassengerType.Value, airportIncome: Int) : LinkClassValues = {
     val priceByLinkClass : List[(LinkClass, Int)] = LinkClass.values.map { linkClass =>
-      (linkClass, computeStandardPrice(distance, flightType, linkClass))
+      (linkClass, computeStandardPrice(distance, flightCategory, linkClass, paxType, airportIncome))
     }
     LinkClassValues.getInstanceByMap(priceByLinkClass.toMap)
   }

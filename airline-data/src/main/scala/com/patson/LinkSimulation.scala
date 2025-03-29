@@ -6,8 +6,6 @@ import com.patson.data._
 
 import scala.collection.mutable._
 import scala.collection.{immutable, mutable}
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
 import com.patson.model.airplane.{Airplane, AirplaneMaintenanceUtil, LinkAssignments}
 import com.patson.model.event.Olympics
 
@@ -17,14 +15,15 @@ import com.patson.model.oil.OilPrice
 import java.util.concurrent.ThreadLocalRandom
 
 object LinkSimulation {
+  val FUEL_UNIT_COST = OilPrice.DEFAULT_UNIT_COST * 92 //for easier flight monitoring, let's make it the default unit price here
+  val FUEL_DISTANCE_EXPONENT = 1.4
+  val FUEL_EMPTY_AIRCRAFT_BURN_PERCENT = 0.62
+  val CREW_UNIT_COST = 6.75
+  val CREW_BASE_COST = 50
+  val CREW_EQ_EXPONENT = 1.95
 
 
-  private val FUEL_UNIT_COST = OilPrice.DEFAULT_UNIT_COST //for easier flight monitoring, let's make it the default unit price here
-  val CREW_UNIT_COST = 5
-  val CREW_BASE_COST = 0
-
-
-  def linkSimulation(cycle: Int) : (List[LinkConsumptionDetails], scala.collection.immutable.Map[Lounge, LoungeConsumptionDetails], immutable.Map[(PassengerGroup, Airport, Route), Int], List[AirlineStat]) = {
+  def linkSimulation(cycle: Int) : (List[LinkConsumptionDetails], scala.collection.immutable.Map[Lounge, LoungeConsumptionDetails], immutable.Map[(PassengerGroup, Airport, Route), Int], immutable.Map[Int, AirlinePaxStat]) = {
     println("Loading all links")
     val links = LinkSource.loadAllLinks(LinkSource.FULL_LOAD)
     val flightLinks = links.filter(_.transportType == TransportType.FLIGHT).map(_.asInstanceOf[Link])
@@ -42,9 +41,7 @@ object LinkSimulation {
     val PassengerConsumptionResult(consumptionResult: scala.collection.immutable.Map[(PassengerGroup, Airport, Route), Int], missedPassengerResult : immutable.Map[(PassengerGroup, Airport), Int])= PassengerSimulation.passengerConsume(demand, links)
 
     println("Generating Airline Stats")
-    val airlineStats = tallyPassengerTypesByAirline(consumptionResult, cycle)
-    AirlineStatisticsSource.deleteAirlineStatsBeforeCycle(cycle - 40)
-    AirlineStatisticsSource.saveAirlineStats(airlineStats)
+    val airlineStats = tallyPassengerTypesByAirline(consumptionResult)
 
     //used for airport stats
     println("Generating flight stats")
@@ -108,14 +105,13 @@ object LinkSimulation {
           loungeConsumptionDetails ++= loungeResult
         }
       case nonFlightLink => //only compute for flights (class Link)
-        linkConsumptionDetails += LinkConsumptionDetails(nonFlightLink, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, cycle)
+        linkConsumptionDetails += LinkConsumptionDetails(nonFlightLink, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, cycle)
     }
 
     endTime = System.currentTimeMillis()
     println(s"Finished calculation on profits by links. Took ${endTime - startTime} millisecs")
 
     purgeAlerts()
-    //todo: skip if is generated
     checkLoadFactor(flightLinks, cycle)
 
     LinkSource.deleteLinkConsumptionsByCycle(300)
@@ -158,11 +154,14 @@ object LinkSimulation {
         var i = 0
         val assignedInServiceAirplanes = link.getAssignedAirplanes().filter(_._1.isReady)
         for ( i <- 0 until link.frequency) {
-          var airplaneCount : Int = assignedInServiceAirplanes.size
+          val airplaneCount : Int = assignedInServiceAirplanes.size
           if (airplaneCount > 0) {
-            val airplane = assignedInServiceAirplanes.toList.map(_._1)(i % airplaneCount)           //round robin
+            val airplane = assignedInServiceAirplanes.toList.map(_._1)(i % airplaneCount) //round-robin
             val errorValue = ThreadLocalRandom.current().nextDouble()
-            val conditionMultiplier = (Airplane.MAX_CONDITION - airplane.condition * 0.75).toDouble / Airplane.MAX_CONDITION
+            val hangarCountFrom = link.from.getAirlineBase(link.airline.id).map(_.specializations.count(_.getType == BaseSpecializationType.HANGAR)).getOrElse(0)
+            val hangarCountTo = link.to.getAirlineBase(link.airline.id).map(_.specializations.count(_.getType == BaseSpecializationType.HANGAR)).getOrElse(0)
+            val airplaneCondition = Math.min(100, (hangarCountTo + hangarCountFrom) * 4 + airplane.condition)
+            val conditionMultiplier = (Airplane.MAX_CONDITION - airplaneCondition * 0.75).toDouble / Airplane.MAX_CONDITION
 
             if (airplane.condition > Airplane.CRITICAL_CONDITION) { //small chance of delay and cancellation
               if (errorValue < cancellationNormalThreshold * conditionMultiplier) {
@@ -207,23 +206,19 @@ object LinkSimulation {
   def computeLinkAndLoungeConsumptionDetail(link : Link, cycle : Int, allAirplaneAssignments : immutable.Map[Int, LinkAssignments], passengerCostEntries : List[PassengerCost]) : (LinkConsumptionDetails, List[LoungeConsumptionDetails]) = {
     val flightLink = link.asInstanceOf[Link]
 
+
     val fuelCost = flightLink.getAssignedModel() match {
       case Some(model) =>
-        val distanceFactor = 0.5 + 0.05 * Math.pow(flightLink.duration.toDouble / 60, 1.4)
-        val loadFactor = 0.5 + 0.5 * flightLink.getTotalSoldSeats.toDouble / flightLink.getTotalCapacity
-        val ascendTime = if (model.airplaneType == com.patson.model.airplane.Model.Type.PROPELLER_SMALL || model.airplaneType == com.patson.model.airplane.Model.Type.PROPELLER_MEDIUM) {
-          18
-        } else if (model.airplaneType == com.patson.model.airplane.Model.Type.HELICOPTER) {
-          0
-        } else {
-          Math.min(50, flightLink.duration.toDouble / 3 * 2)
-        }
-        val fuelBurn = ascendTime * model.fuelBurn * 4.75 + (flightLink.duration - ascendTime) * model.fuelBurn
+        val loadFactor = FUEL_EMPTY_AIRCRAFT_BURN_PERCENT + (1 - FUEL_EMPTY_AIRCRAFT_BURN_PERCENT) * flightLink.getTotalSoldSeats.toDouble / flightLink.capacity.totalwithSeatSize
+        val distanceFactor = 1 + 0.1 * Math.pow(flightLink.duration.toDouble / 60, FUEL_DISTANCE_EXPONENT * loadFactor)
+        val fuelCost = FUEL_UNIT_COST * model.capacity * distanceFactor * (model.ascentBurn * loadFactor + model.cruiseBurn * link.distance / 800)
 
-        (fuelBurn * FUEL_UNIT_COST * (flightLink.frequency - flightLink.cancellationCount) * loadFactor * distanceFactor).toInt
+        (fuelCost * (flightLink.frequency - flightLink.cancellationCount)).toInt
       case None => 0
     }
 
+    val fuelTaxRate = AirlineGrades.findTaxRate(link.airline.getReputation())
+    val fuelTax = (fuelCost * (fuelTaxRate.toDouble / 100)).toInt
 
     val inServiceAssignedAirplanes = flightLink.getAssignedAirplanes().filter(_._1.isReady)
     //the % of time spent on this link for each airplane
@@ -249,26 +244,26 @@ object LinkSimulation {
     val airportFees = flightLink.getAssignedModel() match {
       case Some(model) =>
         val airline = flightLink.airline
-        (flightLink.from.slotFee(model, airline) + flightLink.to.slotFee(model, airline) + flightLink.from.landingFee(model) + flightLink.to.landingFee(model)) * flightLink.frequency
+        (flightLink.from.slotFee(model, airline) + flightLink.to.slotFee(model, airline)) * flightLink.frequency + flightLink.from.landingFee(flightLink.getTotalSoldSeats) + flightLink.to.landingFee(flightLink.getTotalSoldSeats)
       case None => 0
     }
 
     var depreciation = 0
     inServiceAssignedAirplanes.foreach {
       case(airplane, _) =>
-        //link.getAssignedAirplanes().toList.map(_._1).foldLeft(0)(_ + _.depreciationRate)
         depreciation += (airplane.depreciationRate * assignmentWeights(airplane)).toInt
     }
 
-    val targetQualityCost = Math.pow(flightLink.airline.getTargetServiceQuality().toDouble / 25, 1.96)
+    val targetQualityCost = Math.pow(flightLink.airline.getTargetServiceQuality().toDouble / 22, CREW_EQ_EXPONENT)
     var crewCost = CREW_BASE_COST
     var inflightCost, revenue = 0
+    val crewUnitCost = if (link.airline.airlineType == AirlineType.ULCC || link.airline.airlineType == AirlineType.BEGINNER) CREW_UNIT_COST * 0.75 else CREW_UNIT_COST
     LinkClass.values.foreach { linkClass =>
       val capacity = flightLink.capacity(linkClass)
       val soldSeats = flightLink.soldSeats(linkClass)
 
       inflightCost += computeInflightCost(linkClass.resourceMultiplier, flightLink, soldSeats)
-      crewCost += (targetQualityCost * capacity * linkClass.resourceMultiplier * flightLink.duration / 60).toInt + (CREW_UNIT_COST * capacity * linkClass.resourceMultiplier * flightLink.duration / 60).toInt
+      crewCost += (targetQualityCost * capacity * linkClass.resourceMultiplier * flightLink.duration / 60).toInt + (crewUnitCost * capacity * linkClass.resourceMultiplier * flightLink.duration / 60).toInt
       revenue += soldSeats * flightLink.price(linkClass)
     }
 
@@ -303,7 +298,7 @@ object LinkSimulation {
 
     }
 
-    val profit = revenue - fuelCost - maintenanceCost - crewCost - airportFees - inflightCost - delayCompensation - depreciation - loungeCost
+    val profit = revenue - fuelCost - fuelTax - maintenanceCost - crewCost - airportFees - inflightCost - delayCompensation - depreciation - loungeCost
 
     //calculation overall satisifaction
     var satisfactionTotalValue : Double = 0
@@ -311,36 +306,41 @@ object LinkSimulation {
     passengerCostEntries.foreach {
       case PassengerCost(passengerGroup, passengerCount, cost) =>
         val preferredLinkClass = passengerGroup.preference.preferredLinkClass
-        val standardPrice = flightLink.standardPrice(preferredLinkClass)
-        val satisfaction = Computation.computePassengerSatisfaction(cost, standardPrice)
+        val standardPrice = flightLink.standardPrice(preferredLinkClass, passengerGroup.passengerType)
+        val loadFactor = link.soldSeats.totalwithSeatSize / link.capacity.totalwithSeatSize
+        val satisfaction = Computation.computePassengerSatisfaction(cost, standardPrice, loadFactor)
         satisfactionTotalValue += satisfaction * passengerCount
         totalPassengerCount += passengerCount
     }
     val overallSatisfaction = if (totalPassengerCount == 0) 0 else satisfactionTotalValue / totalPassengerCount
 
-    //val result = LinkConsumptionDetails(link.id, link.price, link.capacity, link.soldSeats, link.computedQuality, fuelCost, crewCost, airportFees, inflightCost, delayCompensation = delayCompensation, maintenanceCost, depreciation = depreciation, revenue, profit, link.cancellationCount, linklink.from.id, link.to.id, link.airline.id, link.distance, cycle)
-    val result = LinkConsumptionDetails(flightLink, fuelCost, crewCost, airportFees, inflightCost, delayCompensation = delayCompensation, maintenanceCost, depreciation = depreciation, loungeCost = loungeCost, revenue, profit, overallSatisfaction, cycle)
+    val result = LinkConsumptionDetails(flightLink, fuelCost, fuelTax, crewCost, airportFees, inflightCost, delayCompensation = delayCompensation, maintenanceCost, depreciation = depreciation, loungeCost = loungeCost, revenue, profit, overallSatisfaction, cycle)
     //println("model : " + link.getAssignedModel().get + " profit : " + result.profit + " result: " + result)
     (result, loungeConsumptionDetails.toList)
   }
 
   //"service supplies"
   val computeInflightCost = (classMultiplier : Double, link : Link, soldSeats : Int) => {
-    val star = link.rawQuality / 20
-    val durationCostPerHour =
-      if (star == 1) {
-        -4.5 //selling food & credit cards :)
-      } else if (star == 2) {
-        0
-      } else if (star == 3) {
-        2
-      } else if (star == 4) {
-        7
+    val durationCostPerHour: Double =
+      if (link.rawQuality <= 20) {
+        -5 //selling food & credit cards :)
+      } else if (link.rawQuality <= 40) {
+        -1
+      } else if (link.rawQuality <= 60) {
+        4
+      } else if (link.rawQuality <= 80) {
+        9
       } else {
         15
       }
+    val airlineTypeMultipler = link.airline.airlineType match {
+      case AirlineType.LUXURY => 0.7
+      case AirlineType.BEGINNER => 0.7
+      case AirlineType.NOSTALGIA => 0.7
+      case _ => 1.0
+    }
 
-    val costPerPassenger = classMultiplier * durationCostPerHour * link.duration.toDouble / 60
+    val costPerPassenger = classMultiplier * durationCostPerHour * airlineTypeMultipler * link.duration.toDouble / 60
     (costPerPassenger * soldSeats).toInt
   }
 
@@ -366,7 +366,7 @@ object LinkSimulation {
     val existingAlerts = AlertSource.loadAlertsByCategory(AlertCategory.LINK_CANCELLATION)
 
     //group links by from and to airport ID Tuple(id1, id2), smaller ID goes first in the tuple
-    val linksByAirportIds = links.filter(_.capacity.total > 0).groupBy( link =>
+    val linksByAirportIds = links.filter(_.capacity.total > 0).filter(_.airline.airlineType != AirlineType.NON_PLAYER).groupBy( link =>
       if (link.from.id < link.to.id) (link.from.id, link.to.id) else (link.to.id, link.from.id)
     )
 
@@ -463,27 +463,54 @@ object LinkSimulation {
     
   }
 
-  def tallyPassengerTypesByAirline(consumptionResult: scala.collection.immutable.Map[(PassengerGroup, Airport, Route), Int], cycle: Int): List[AirlineStat] = {
-    val passengerTypeCountsByAirline = Map[Int, (Int, Int, Int, Int)]()
+  def tallyPassengerTypesByAirline(consumptionResult: scala.collection.immutable.Map[(PassengerGroup, Airport, Route), Int]): immutable.Map[Int, AirlinePaxStat] = {
+    // Create a mutable map to accumulate stats per airline
+    val airlineStatsMap = mutable.Map[Int, (Int, Int, Int, Int, Int)]() // (tourist, elite, business, total, allianceRoute)
 
-    consumptionResult.foreach {
-      case ((passengerGroup, _, route), passengerCount) =>
+    // First, group by route to avoid double-counting alliance assists
+    val routesByPassengerType = consumptionResult.groupBy(_._1._3)
+
+    routesByPassengerType.foreach {
+      case (route, passengerTypes) =>
+        // Check if this route has alliance partners for each airline
+        def hasAlliancePartners(airlineId: Int) = route.links.exists(linkConsideration =>
+          linkConsideration.link.transportType == TransportType.FLIGHT &&
+            linkConsideration.link.airline.id == airlineId &&
+            linkConsideration.link.airline.getAllianceId().isDefined &&
+          route.links.exists(otherLink => 
+            otherLink.link.transportType == TransportType.FLIGHT &&
+            otherLink.link.airline.id != airlineId &&
+            otherLink.link.airline.getAllianceId().isDefined &&
+            otherLink.link.airline.getAllianceId() == linkConsideration.link.airline.getAllianceId()
+          )
+        )
+
+        // Process each airline in the route
         route.links.filter(_.link.transportType == TransportType.FLIGHT).foreach { link =>
           val airlineId = link.link.airline.id
-          val countInstance = passengerTypeCountsByAirline.getOrElse(airlineId, (0, 0, 0, 0))
-          val paxTypeCount = passengerGroup.passengerType match {
-            case PassengerType.TOURIST => passengerTypeCountsByAirline.put(airlineId, (countInstance._1 + passengerCount, countInstance._2, countInstance._3, countInstance._4 + passengerCount))
-            case PassengerType.ELITE => passengerTypeCountsByAirline.put(airlineId, (countInstance._1, countInstance._2 + passengerCount, countInstance._3, countInstance._4 + passengerCount))
-            case PassengerType.BUSINESS => passengerTypeCountsByAirline.put(airlineId, (countInstance._1, countInstance._2, countInstance._3 + passengerCount, countInstance._4 + passengerCount))
-            case _ => passengerTypeCountsByAirline.put(airlineId, (countInstance._1, countInstance._2, countInstance._3, countInstance._4 + passengerCount))
+          val currentStats = airlineStatsMap.getOrElse(airlineId, (0, 0, 0, 0, 0))
+          val allianceAssists = if (hasAlliancePartners(airlineId)) passengerTypes.values.sum else 0
+          
+          // Process each passenger type for this airline
+          val newStats = passengerTypes.foldLeft(currentStats) {
+            case ((tourist, elite, business, total, alliance), ((passengerGroup, _, _), passengerCount)) =>
+              passengerGroup.passengerType match {
+                case PassengerType.TOURIST => (tourist + passengerCount, elite, business, total + passengerCount, alliance)
+                case PassengerType.ELITE => (tourist, elite + passengerCount, business, total + passengerCount, alliance)
+                case PassengerType.BUSINESS => (tourist, elite, business + passengerCount, total + passengerCount, alliance)
+                case _ => (tourist, elite, business, total + passengerCount, alliance)
+              }
           }
+
+          // Add alliance assists after processing all passenger types
+          airlineStatsMap.put(airlineId, (newStats._1, newStats._2, newStats._3, newStats._4, newStats._5 + allianceAssists))
         }
     }
 
-    passengerTypeCountsByAirline.map {
-      case (airlineId, (tourist, elite, business, total)) =>
-        AirlineStat(airlineId, cycle, tourist, elite, business, total)
-    }.toList
+    airlineStatsMap.map {
+    case (airlineId, (tourist, elite, business, total, allianceRoute)) =>
+      airlineId -> AirlinePaxStat(tourist, elite, business, total, allianceRoute)
+    }.toMap
   }
   
   def generateCountryMarketShares(consumptionResult: scala.collection.immutable.Map[(PassengerGroup, Airport, Route), Int]) : List[CountryMarketShare] = {

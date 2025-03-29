@@ -13,7 +13,7 @@ object LogoUtil {
   val imageWidth = 24
   
   def getLogo(airlineId : Int) : Array[Byte]= {
-    if (airlineId < 300) {
+    if (airlineId < 30) {
       rat
     } else {
       logos.get(airlineId) match {

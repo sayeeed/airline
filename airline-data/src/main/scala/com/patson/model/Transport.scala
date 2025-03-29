@@ -12,8 +12,8 @@ abstract class Transport extends IdObject{
   var frequency : Int
   val frequencyByClass : LinkClass => Int
   val transportType : TransportType.Value
+//  val transportCategory : TransportCategory.Value
   val price: LinkClassValues
-  val flightType : FlightType.Value
   var availableSeats : LinkClassValues = capacity.copy()
   var minorDelayCount : Int
   var majorDelayCount : Int
@@ -21,7 +21,7 @@ abstract class Transport extends IdObject{
 
   @volatile var soldSeats : LinkClassValues = LinkClassValues.getInstance()
   @volatile var cancelledSeats :  LinkClassValues = LinkClassValues.getInstance()
-  private val standardPrice : ConcurrentHashMap[LinkClass, Int] = new ConcurrentHashMap[LinkClass, Int]()
+  private val standardPrice : ConcurrentHashMap[(LinkClass, PassengerType.Value), Int] = new ConcurrentHashMap[(LinkClass, PassengerType.Value), Int]()
 
   val cost: LinkClassValues //the cost of taking this transport, could just be the price, or with the hidden cost of taking it
 
@@ -54,16 +54,15 @@ abstract class Transport extends IdObject{
     this.availableSeats = this.availableSeats - cancelledSeats;
   }
 
-  def standardPrice(linkClass : LinkClass) : Int = {
-    var price = standardPrice.get(linkClass)
+  def standardPrice(linkClass : LinkClass, paxType: PassengerType.Value) : Int = {
+    var price = standardPrice.get((linkClass, paxType))
     if (price == null.asInstanceOf[Int]) {
-      price = Pricing.computeStandardPrice(distance, flightType, linkClass)
-      standardPrice.put(linkClass, price)
+      price = Pricing.computeStandardPrice(distance, Computation.getFlightCategory(from, to), linkClass, paxType, from.baseIncome)
+      standardPrice.put((linkClass, paxType), price)
     }
     price
   }
 
-  import FlightType._
   /**
     * Find seats at or below the requestedLinkClass
     *
@@ -79,13 +78,13 @@ abstract class Transport extends IdObject{
         return Some(targetLinkClass, availableSeats(targetLinkClass))
       } else  {
         if (targetLinkClass.level > ECONOMY.level) {
-          val classDiff = flightType match {
-            case SHORT_HAUL_DOMESTIC | SHORT_HAUL_INTERNATIONAL => targetLinkClass.level - 1//accept all classes
-            case _ => 1
+          val lowestAcceptableLevel = if (distance < 1000) {
+            1 //always accept lowest level (economy)
+          } else {
+            targetLinkClass.level - 1
           }
-          val lowestAcceptableLevel = targetLinkClass.level - classDiff
-          var level = targetLinkClass.level - 1
 
+          var level = targetLinkClass.level - 1
           while (level >= lowestAcceptableLevel) {
             val lowerClass = LinkClass.fromLevel(level)
             val seatsAvailable = availableSeats(lowerClass)

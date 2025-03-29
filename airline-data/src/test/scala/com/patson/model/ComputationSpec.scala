@@ -20,7 +20,6 @@ class ComputationSpec(_system: ActorSystem) extends TestKit(_system) with Implic
     TestKit.shutdownActorSystem(system)
   }
  
-  import FlightType._
   val smallAirplaneModel = Model.modelByName("Cessna Caravan")
   val mediumAirplaneModel = Model.modelByName("Bombardier CS100")
   val largeAirplaneModel = Model.modelByName("Boeing 787-8 Dreamliner")

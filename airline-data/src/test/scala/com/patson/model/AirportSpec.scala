@@ -1,5 +1,7 @@
 package com.patson.model
 
+import com.patson.data.{AirportSource, GameConstants}
+
 import scala.collection.immutable.Map
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.Finders
@@ -18,9 +20,9 @@ class AirportSpec(_system: ActorSystem) extends TestKit(_system) with ImplicitSe
   def this() = this(ActorSystem("MySpec"))
  
   val airport : Airport = Airport("A", "", "Airport A", 0, 0, countryCode = "A", "", "", 1, 0, basePopulation = 100)
-  airport.country = Some(Country(countryCode = "A", name = "Country A", airportPopulation = 1000000, income = 500000, openness = 10))
+  airport.country = Some(Country(countryCode = "A", name = "Country A", airportPopulation = 1000000, income = 500000, openness = 10, gini = 0.5))
   val otherAirport : Airport = Airport("B", "", "Airport B", 0, 0, countryCode = "B", "", "", 1, 0, basePopulation = 100)
-  otherAirport.country = Some(Country(countryCode = "B", name = "Country B", airportPopulation = 1000000, income = 500000, openness = 3))
+  otherAirport.country = Some(Country(countryCode = "B", name = "Country B", airportPopulation = 1000000, income = 500000, openness = 3, gini = 0.5))
   
   val highReputationLocalHqAirline = Airline("airline 1", id = 1)
   highReputationLocalHqAirline.setReputation(125)
@@ -70,6 +72,21 @@ class AirportSpec(_system: ActorSystem) extends TestKit(_system) with ImplicitSe
       assert(airport.computeLoyaltyByLoyalist(List(Loyalist(airport, Airline.fromId(1), airport.population.toInt / 5)))(1) < 50.0)
     }
 
+  }
+
+  "islandAirport".must {
+    "be island if island country".in {
+      val islandCountryAirport = AirportSource.loadAirportByIata("VLI", true).get
+      val notIsland = AirportSource.loadAirportByIata("JFK", true).get
+      assert(GameConstants.connectsIsland(islandCountryAirport, notIsland))
+      assert(GameConstants.connectsIsland(notIsland, islandCountryAirport))
+    }
+    "be island if island airport".in {
+      val islandAirport = AirportSource.loadAirportByIata("ESD", true).get
+      val notIsland = AirportSource.loadAirportByIata("JFK", true).get
+      assert(GameConstants.connectsIsland(islandAirport, notIsland))
+      assert(GameConstants.connectsIsland(notIsland, islandAirport))
+    }
   }
   
   override def afterAll {

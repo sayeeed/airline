@@ -2,28 +2,53 @@ package com.patson.model
 
 import com.patson.data.{AirlineSource, AirportSource, CountrySource}
 import com.patson.model.AirlineBaseSpecialization.FlightTypeSpecialization
+import com.patson.model.airplane.Model
 import com.patson.util.AirportCache
 
 
 case class AirlineBase(airline : Airline, airport : Airport, countryCode : String, scale : Int, foundedCycle : Int, headquarter : Boolean = false) {
+  private lazy val COST_EXPONENTIAL_BASE = if (airline.airlineType == AirlineType.MEGA_HQ && headquarter) {
+    1.54
+  } else if (airline.airlineType == AirlineType.MEGA_HQ && !headquarter) {
+    1.73
+  } else {
+    1.68
+  }
+
   lazy val getValue : Long = {
+    calculateUpgradeCost(scale)
+  }
+
+  def calculateUpgradeCost (scale: Int): Long = {
+    val adjustedScale = Math.min(12, Math.max(1, scale)) //for non-existing base, calculate as if the base is 1, cap at 12
     if (scale == 0) {
       0
     } else if (headquarter && scale == 1) { //free to start HQ
       0
     } else {
-      var baseCost = (1000000 + airport.rating.overallRating * 120000).toLong
-      (baseCost * airportTypeMultiplier * airportSizeRatio * Math.pow (COST_EXPONENTIAL_BASE, (scale - 1) )).toLong
+      val baseCost = if (airline.airlineType == AirlineType.MEGA_HQ) {
+        if (headquarter) {
+          (airport.rating.overallRating * 100000).toLong
+        } else {
+          (40 * 1000000 + airport.rating.overallRating * 120000).toLong
+        }
+      } else {
+        (1000000 + airport.rating.overallRating * 120000).toLong
+      }
+      val cost = baseCost * airportTypeMultiplier * airportSizeRatio * Math.pow (COST_EXPONENTIAL_BASE, (adjustedScale - 1) )
+      (cost * Math.max(1, 1 + (scale - 12) * 0.2)).toLong
     }
   }
 
-  val COST_EXPONENTIAL_BASE = 1.68
-
   lazy val getUpkeep : Long = {
-    val adjustedScale = if (scale == 0) 1 else scale //for non-existing base, calculate as if the base is 1
-    var baseUpkeep = (3000 + airport.rating.overallRating * 150).toLong
+    calculateUpkeep(scale)
+  }
 
-    (baseUpkeep * airportTypeMultiplier * airportSizeRatio * Math.pow(COST_EXPONENTIAL_BASE, adjustedScale - 1)).toInt
+  def calculateUpkeep (scale: Int): Long = {
+    val adjustedScale = Math.min(12, Math.max(1, scale)) //for non-existing base, calculate as if the base is 1, cap at 12
+    val baseUpkeep = 3000 + airport.rating.overallRating * 150
+    val upkeep = baseUpkeep * airportTypeMultiplier * airportSizeRatio * Math.pow(COST_EXPONENTIAL_BASE, adjustedScale - 1)
+    (upkeep * Math.max(1, 1 + (scale - 12) * 0.1)).toLong
   }
 
   lazy val airportTypeMultiplier =
@@ -84,12 +109,12 @@ case class AirlineBase(airline : Airline, airport : Airport, countryCode : Strin
     }
   }
 
-  lazy val getStaffModifier : (FlightCategory.Value => Double) = flightCategory => {
+  lazy val getStaffModifier : ((FlightCategory.Value, Model.Type.Value, Int) => Double) = (flightCategory, model, serviceStars) => {
     val flightTypeSpecializations = specializations.filter(_.getType == BaseSpecializationType.FLIGHT_TYPE).map(_.asInstanceOf[FlightTypeSpecialization])
     if (flightTypeSpecializations.isEmpty) {
       1
     } else {
-      flightTypeSpecializations.map(_.staffModifier(flightCategory)).sum - (flightTypeSpecializations.size - 1)
+      flightTypeSpecializations.map(_.staffModifier(flightCategory, model, serviceStars)).sum - (flightTypeSpecializations.size - 1)
     }
   }
 

@@ -46,10 +46,10 @@ object LinkUtil {
       case Some(fromAirport) =>
         AirportCache.getAirport(toAirportId) match {
           case Some(toAirport) =>
-            val flightType = Computation.getFlightType(fromAirport, toAirport)
             val airport = if (fromAirportId == queryAirportId) fromAirport else toAirport
+            val distance = Computation.calculateDistance(fromAirport, toAirport)
             val classMap: List[(LinkClass, Int)] = LinkClass.values.map { linkClass =>
-              linkClass -> airport.expectedQuality(flightType, linkClass)
+              linkClass -> airport.expectedQuality(distance, linkClass)
             }
             Some(LinkClassValues.getInstanceByMap(classMap.toMap))
           case None =>

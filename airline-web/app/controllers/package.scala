@@ -38,7 +38,7 @@ package object controllers {
         "gradeDescription" -> airline.airlineGrade.description,
         "airlineCode" -> airline.getAirlineCode(),
         "baseCount" -> airline.getBases().size,
-        "isGenerated" -> airline.isGenerated
+        "type" -> AirlineType.label(airline.airlineType)
       )
 
       if (airline.getCountryCode().isDefined) {
@@ -57,17 +57,15 @@ package object controllers {
 
   implicit object AirplaneModelWrites extends Writes[Model] {
     def writes(airplaneModel: Model): JsValue = {
-      val fuelPP = if (airplaneModel.capacity > 0) BigDecimal(airplaneModel.fuelBurn / airplaneModel.capacity.toDouble).setScale(2, RoundingMode.HALF_EVEN).toDouble else 0
 
       JsObject(List(
         "id" -> JsNumber(airplaneModel.id),
         "name" -> JsString(airplaneModel.name),
         "family" -> JsString(airplaneModel.family),
         "capacity" -> JsNumber(airplaneModel.capacity),
-        "maxSeats" -> JsNumber(airplaneModel.maxSeats),
         "quality" -> JsNumber(airplaneModel.quality),
-        "fuelBurn" -> JsNumber(airplaneModel.fuelBurn),
-        "fuelPerPax" -> JsNumber(fuelPP),
+        "ascentBurn" -> JsNumber(airplaneModel.ascentBurn),
+        "cruiseBurn" -> JsNumber(airplaneModel.cruiseBurn),
         "speed" -> JsNumber(airplaneModel.speed),
         "range" -> JsNumber(airplaneModel.range),
         "price" -> JsNumber(airplaneModel.price),
@@ -76,8 +74,6 @@ package object controllers {
         "size" -> JsNumber(airplaneModel.airplaneTypeSize),
         "turnaroundTime" -> JsNumber(airplaneModel.turnaroundTime),
         "runwayRequirement" -> JsNumber(airplaneModel.runwayRequirement),
-        "badConditionThreshold" -> JsNumber(Airplane.BAD_CONDITION), //same for all models for now
-        "criticalConditionThreshold" -> JsNumber(Airplane.CRITICAL_CONDITION), //same for all models for now
         "constructionTime" -> JsNumber(airplaneModel.constructionTime),
         "imageUrl" -> JsString(airplaneModel.imageUrl),
         "countryCode" -> JsString(airplaneModel.manufacturer.countryCode),
@@ -95,8 +91,8 @@ package object controllers {
         "name" -> JsString(airplane.model.name),
         "modelId" -> JsNumber(airplane.model.id),
         "capacity" -> JsNumber(airplane.model.capacity),
-        "maxSeats" -> JsNumber(airplane.model.maxSeats),
-        "fuelBurn" -> JsNumber(airplane.model.fuelBurn),
+        "ascentBurn" -> JsNumber(airplane.model.ascentBurn),
+        "cruiseBurn" -> JsNumber(airplane.model.cruiseBurn),
         "speed" -> JsNumber(airplane.model.speed),
         "range" -> JsNumber(airplane.model.range),
         "price" -> JsNumber(airplane.model.price),
@@ -112,10 +108,7 @@ package object controllers {
         "dealerRatio" -> JsNumber(airplane.dealerRatio),
         "configurationId" -> JsNumber(airplane.configuration.id),
         "configuration" -> Json.obj("economy" -> airplane.configuration.economyVal, "business" -> airplane.configuration.businessVal, "first" -> airplane.configuration.firstVal),
-        "maxFlightMinutes" -> JsNumber(Airplane.MAX_FLIGHT_MINUTES),
         "homeAirportId" -> JsNumber(airplane.home.id),
-        "badConditionThreshold" -> JsNumber(Airplane.BAD_CONDITION),
-        "criticalConditionThreshold" -> JsNumber(Airplane.CRITICAL_CONDITION)
       ))
     }
   }
@@ -162,7 +155,7 @@ package object controllers {
       val toAirport = AirportCache.getAirport(toAirportId, true).get
       val airline = AirlineCache.getAirline(airlineId).get
       val distance = Util.calculateDistance(fromAirport.latitude, fromAirport.longitude, toAirport.latitude, toAirport.longitude).toInt
-      val flightType = Computation.getFlightType(fromAirport, toAirport, distance)
+//      val flightType = Computation.getFlightCategory(fromAirport, toAirport)
       val airplaneAssignments = json.\("airplanes").as[Map[Airplane, Int]](AirplaneAssignmentsRead)
 
       val modelId = json.\("model").as[Int]
@@ -184,7 +177,7 @@ package object controllers {
         rawQuality = 0
       }
 
-      val link = Link(fromAirport, toAirport, airline, price, distance, capacity = LinkClassValues.getInstance(), rawQuality, duration, frequency = 0, flightType) //compute frequency and capacity after validating the assigned airplanes
+      val link = Link(fromAirport, toAirport, airline, price, distance, capacity = LinkClassValues.getInstance(), rawQuality, duration, frequency = 0) //compute frequency and capacity after validating the assigned airplanes
       link.setAssignedAirplanes(airplaneAssignments.toList.map {
         case(airplane, frequency) => (airplane, LinkAssignment(frequency, frequency * flightMinutesRequiredPerFlight))
       }.toMap)
@@ -209,13 +202,12 @@ package object controllers {
       "airlineName" -> JsString(link.airline.name),
       "price" -> Json.toJson(link.price),
       "distance" -> JsNumber(link.distance),
-      "flightType" -> JsString(FlightType.label(link.flightType)),
       "capacity" -> Json.toJson(link.capacity),
       "rawQuality" -> JsNumber(link.rawQuality),
       "computedQuality" -> JsNumber(link.computedQuality()),
       "duration" -> JsNumber(link.duration),
       "frequency" -> JsNumber(link.frequency),
-      "availableSeat" -> Json.toJson(link.availableSeats),
+//      "availableSeat" -> Json.toJson(link.availableSeats),
       "fromLatitude" -> JsNumber(link.from.latitude),
       "fromLongitude" -> JsNumber(link.from.longitude),
       "toLatitude" -> JsNumber(link.to.latitude),
@@ -312,11 +304,11 @@ package object controllers {
     def writes(base: AirlineBase): JsValue = {
       var jsObject = JsObject(List(
       "airportId" -> JsNumber(base.airport.id),
-      "airportName" -> JsString(base.airport.name),
+//      "airportName" -> JsString(base.airport.name),
       "airportCode" -> JsString(base.airport.iata),
       "airportRunwayLength" -> JsNumber(base.airport.runwayLength),
       "countryCode" -> JsString(base.airport.countryCode),
-      "airportZone" -> JsString(base.airport.zone),
+//      "airportZone" -> JsString(base.airport.zone),
       "city" -> JsString(base.airport.city),
       "airlineId" -> JsNumber(base.airline.id),
       "airlineName" -> JsString(base.airline.name),
@@ -335,6 +327,16 @@ package object controllers {
         implicit val writes = AirlineBaseSpecializationWrites(base.airport)
         jsObject = jsObject + ("specializations" -> Json.toJson(base.specializations))
       }
+
+      val upkeepByLevel = (1 to 18).map { level =>
+        base.calculateUpkeep(level)
+      }
+      jsObject = jsObject + ("upkeepByLevel" -> Json.toJson(upkeepByLevel))
+
+      val upgradeCostByLevel = (1 to 18).map { level =>
+        base.calculateUpgradeCost(level)
+      }
+      jsObject = jsObject + ("upgradeCostByLevel" -> Json.toJson(upgradeCostByLevel))
 
       jsObject
     }
@@ -395,6 +397,7 @@ package object controllers {
         "linksTicketRevenue" -> JsNumber(airlineIncome.links.ticketRevenue),
         "linksAirportFee" -> JsNumber(airlineIncome.links.airportFee),
         "linksFuelCost" -> JsNumber(airlineIncome.links.fuelCost),
+        "linksFuelTax" -> JsNumber(airlineIncome.links.fuelTax),
         "linksCrewCost" -> JsNumber(airlineIncome.links.crewCost),
         "linksInflightCost" -> JsNumber(airlineIncome.links.inflightCost),
         "linksDelayCompensation" -> JsNumber(airlineIncome.links.delayCompensation),
@@ -417,7 +420,6 @@ package object controllers {
         "othersLoungeIncome" -> JsNumber(airlineIncome.others.loungeIncome),
         "othersAssetExpense" -> JsNumber(airlineIncome.others.assetExpense),
         "othersAssetRevenue" -> JsNumber(airlineIncome.others.assetRevenue),
-        "othersDividends" -> JsNumber(airlineIncome.others.dividends),
         "othersAdvertisement" -> JsNumber(airlineIncome.others.advertisement),
         "othersFuelProfit" -> JsNumber(airlineIncome.others.fuelProfit),
         "othersDepreciation" -> JsNumber(airlineIncome.others.depreciation),
@@ -454,6 +456,7 @@ package object controllers {
         "elites" -> JsNumber(airlineStat.elites),
         "business" -> JsNumber(airlineStat.business),
         "total" -> JsNumber(airlineStat.total),
+        "allianceAssists" -> JsNumber(airlineStat.allianceAssists),
         "cycle" -> JsNumber(airlineStat.cycle)))
     }
   }
@@ -900,8 +903,10 @@ package object controllers {
 
   val cachedAirportsByPower = AirportSource.loadAllAirports(fullLoad = false, loadFeatures = true).filter(_.population > 0).sortBy(_.power)
 
-
   val allAirplaneModels = ModelSource.loadAllModels()
+
+  val regionalAirplaneModels = allAirplaneModels.filter(_.airplaneTypeSize < AirlineType.REGIONAL_MODEL_MAX_SIZE)
+  
   val allCountryRelationships = CountrySource.getCountryMutualRelationships()
 
   object LoginStatus extends Enumeration {

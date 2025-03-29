@@ -2,7 +2,7 @@ package com.patson.model.christmas
 
 import com.patson.data.{AirlineSource, AirportSource, ChristmasSource, CycleSource}
 import com.patson.model.christmas.SantaClausAward.{Difficulty, getDifficultyLevel}
-import com.patson.model.{Airline, AirlineAppeal, AirlineBonus, BonusType, DelegateBoostAirlineModifier}
+import com.patson.model.{Airline, AirlineAppeal, AirlineBonus, AirlineCashFlowItem, AirlineTransaction, BonusType, CashFlowType, DelegateBoostAirlineModifier, TransactionType}
 import com.patson.util.AirlineCache
 
 abstract class SantaClausAward(santaClausInfo: SantaClausInfo) {
@@ -29,6 +29,7 @@ class CashAward(santaClausInfo: SantaClausInfo) extends SantaClausAward(santaCla
   val CASH_AMOUNT = 20000000 * difficultyMultiplier //rich santa claus wow, 20M!
   override def applyAward(): Unit = {
     AirlineSource.adjustAirlineBalance(santaClausInfo.airline.id, CASH_AMOUNT)
+    AirlineSource.saveCashFlowItem(AirlineCashFlowItem(santaClausInfo.airline.id, CashFlowType.PRIZE, CASH_AMOUNT))
   }
 
   override val description: String = s"Santa Claus is feeling generous! He is giving you $$${integerFormatter.format(CASH_AMOUNT)} cash!"
@@ -38,7 +39,7 @@ class ServiceQualityAward(santaClausInfo: SantaClausInfo) extends SantaClausAwar
   override val getType: SantaClausAwardType.Value = SantaClausAwardType.SERVICE_QUALITY
   val BONUS = 10 * difficultyMultiplier
   override def applyAward(): Unit = {
-    val newQuality = Math.min(santaClausInfo.airline.getCurrentServiceQuality() + BONUS, Airline.MAX_SERVICE_QUALITY)
+    val newQuality = Math.min(santaClausInfo.airline.getCurrentServiceQuality() + BONUS, Airline.EQ_MAX)
 
     santaClausInfo.airline.setCurrentServiceQuality(newQuality)
     AirlineSource.saveAirlineInfo(santaClausInfo.airline, updateBalance = false)

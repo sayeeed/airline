@@ -5,24 +5,18 @@ import com.patson.model.airplane._
 import org.scalatest.{Matchers, WordSpecLike}
  
 class AirplaneSimulationSpec extends WordSpecLike with Matchers {
-  private[this] val model = Model.modelByName("Cessna 421")
+  private[this] val model = Model.modelByName("Cessna Caravan")
   val airline1 = Airline("test-1")
-  //val airline2 = Airline("test-2")
+  val airline2 = Airline("test-2")
 
   val airplane1 = Airplane(model, airline1, 0, 0, 100, 0, model.price, id = 1)
   val airplane2 = Airplane(model, airline1, 0, 0, 100, 0, model.price, id = 2)
   val airport1 = Airport.fromId(1)
   val airport2 = Airport.fromId(2)
-  val link1 = Link(airport1, airport2, airline1, LinkClassValues.getInstance(), 0, LinkClassValues.getInstance(), 0, 0, 1, FlightType.SHORT_HAUL_DOMESTIC)
-  //val link2 = Link(airport1, airport2, airline2, LinkClassValues.getInstance(), 0, LinkClassValues.getInstance(), 0, 0, 1, FlightType.SHORT_HAUL_DOMESTIC)
+  val link1 = Link(airport1, airport2, airline1, LinkClassValues.getInstance(), 0, LinkClassValues.getInstance(), 0, 0, 1)
+  val link2 = Link(airport1, airport2, airline2, LinkClassValues.getInstance(), 0, LinkClassValues.getInstance(), 0, 0, 1)
   
   "decayAirplanesByAirline".must {
-//    "decay airplane according to airline maintenance quality".in {
-//       val result1 = AirplaneSimulation.decayAirplanesByAirline(Map(airplane1 -> LinkAssignments(Map(link1.id -> LinkAssignment(1, 1)))), airline1)
-//       val result2 = AirplaneSimulation.decayAirplanesByAirline(Map(airplane2 -> LinkAssignments(Map(link2.id -> LinkAssignment(1, 1)))), airline2)
-//
-//       result1(0).condition.should(be > result2(0).condition)
-//    }
     "decay slower if no assigned link".in {
       val airplane1 = this.airplane1.copy()
       val airplane2 = this.airplane2.copy()

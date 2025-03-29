@@ -338,7 +338,6 @@ object ConsumptionHistorySource {
     LinkSource.loadFlightLinkById(linkId) match {
       case Some(link) => 
         val connection = Meta.getConnection()
-        val standardPrice = Pricing.computeStandardPriceForAllClass(link.distance, link.flightType)
         try {
           val preparedStatement = connection.prepareStatement("SELECT * FROM " + PASSENGER_HISTORY_TABLE + " WHERE link = ? ")
     
@@ -349,18 +348,19 @@ object ConsumptionHistorySource {
           while (resultSet.next()) {
 
             val preferredLinkClass = LinkClass.fromCode(resultSet.getString("preferred_link_class"))
+            val paxType = PassengerType(resultSet.getInt("passenger_type"))
+            val loadFactor = link.soldSeats.totalwithSeatSize / link.capacity.totalwithSeatSize
             result += LinkConsumptionHistory(link = link, 
                 passengerCount = resultSet.getInt("passenger_count"), 
                 homeAirport = AirportCache.getAirport(resultSet.getInt("home_airport")).get,
                 destinationAirport = AirportCache.getAirport(resultSet.getInt("destination_airport")).get,
-                passengerType = PassengerType(resultSet.getInt("passenger_type")),
-                preferredLinkClass = LinkClass.fromCode(resultSet.getString("preferred_link_class")),
+                passengerType = paxType,
+                preferredLinkClass = preferredLinkClass,
                 preferenceType = FlightPreferenceType(resultSet.getInt("preference_type")),
                 linkClass = LinkClass.fromCode(resultSet.getString("link_class")),
-                satisfaction = Computation.computePassengerSatisfaction(resultSet.getInt("cost"), standardPrice(preferredLinkClass))
+                satisfaction = Computation.computePassengerSatisfaction(resultSet.getInt("cost"), link.standardPrice(preferredLinkClass, paxType), loadFactor)
             )
           }
-        
           
           result.toList
         } finally {

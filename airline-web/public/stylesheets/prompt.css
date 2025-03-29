@@ -1,13 +1,14 @@
-.tutorial li.label, .notice li.label{
-    padding: 10px 5px;
+.tutorial li.label, .notice li.label {
+    font-size: 14px;
+    line-height: 1.35;
+    padding: 12px 0;
 }
 .tutorial .modal-content, .notice .modal-content {
     position: relative;
 }
 .tutorial .modal-content .footer {
-    margin-top: 20px;
-    bottom : 5px;
-    right : 10px;
+    bottom : 8px;
+    right : 8px;
     position: absolute;
 }
 

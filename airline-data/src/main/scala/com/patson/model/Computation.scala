@@ -1,6 +1,6 @@
 package com.patson.model
 
-import com.patson.PassengerSimulation.LINK_COST_TOLERANCE_FACTOR
+import com.patson.PassengerSimulation.{LINK_COST_TOLERANCE_FACTOR, countryOpenness}
 import com.patson.model.airplane._
 import com.patson.data.{AirlineSource, AirplaneSource, AirportAssetSource, AirportSource, AllianceSource, BankSource, CountrySource, CycleSource, OilSource}
 import com.patson.Util
@@ -12,7 +12,7 @@ import scala.collection.mutable
 
 object Computation {
   val MODEL_COUNTRY_CODE = "US"
-  val MODEL_COUNTRY_POWER : Double = CountrySource.loadCountryByCode(MODEL_COUNTRY_CODE) match {
+  lazy val MODEL_COUNTRY_POWER : Double = CountrySource.loadCountryByCode(MODEL_COUNTRY_CODE) match {
     case Some(country) =>
       country.airportPopulation.toDouble * country.income
     case None =>
@@ -41,38 +41,28 @@ object Computation {
   }
 
   def calculateDuration(airplaneModel: Model, distance : Int) : Int = {
-    val speed =
-      if (airplaneModel.airplaneType == com.patson.model.airplane.Model.Type.SUPERSONIC) {
-        (airplaneModel.speed * 1.5).toInt //up adjusted for SST
-      } else {
-        airplaneModel.speed
-      }
-    val speedLimits = if (airplaneModel.airplaneType == com.patson.model.airplane.Model.Type.PROPELLER_MEDIUM || airplaneModel.airplaneType == com.patson.model.airplane.Model.Type.PROPELLER_SMALL) {
-      List((250, 400), (350, 525))
-    } else {
-      List((300, 350), (400, 500), (400, 700))
+//    val multiplier: Double = airplaneModel.airplaneType match {
+//      case Model.Type.PROPELLER_SMALL => 1.5
+//      case Model.Type.PROPELLER_MEDIUM => 2
+//      case Model.Type.SMALL => 2.25
+//      case Model.Type.REGIONAL => 2.5
+//      case Model.Type.MEDIUM | Model.Type.MEDIUM_XL => 3.5
+//      case Model.Type.HELICOPTER | Model.Type.AIRSHIP => 0
+//      case _ => 4
+//    }
+    val timeToCruise: Int = airplaneModel.airplaneType match {
+      case Model.Type.PROPELLER_SMALL => Model.TIME_TO_CRUISE_PROPELLER_SMALL
+      case Model.Type.PROPELLER_MEDIUM => Model.TIME_TO_CRUISE_PROPELLER_MEDIUM
+      case Model.Type.SMALL => Model.TIME_TO_CRUISE_SMALL
+      case Model.Type.REGIONAL => Model.TIME_TO_CRUISE_REGIONAL
+      case Model.Type.MEDIUM | Model.Type.MEDIUM_XL => Model.TIME_TO_CRUISE_MEDIUM
+      case Model.Type.HELICOPTER | Model.Type.AIRSHIP => Model.TIME_TO_CRUISE_HELICOPTER
+      case _ => Model.TIME_TO_CRUISE_OTHER
     }
-    calculateDuration(speed, distance, speedLimits)
-  }
-  def calculateDuration(airplaneSpeed : Int, distance : Int, speedLimits : List[(Int, Int)] = List((300, 350), (400, 500), (400, 700))) = {
-    var remainDistance = distance
-    var duration = 0;
-    for ((distanceBucket, maxSpeed) <- speedLimits if (remainDistance > 0)) {
-      val speed = Math.min(maxSpeed, airplaneSpeed)
-      if (distanceBucket >= remainDistance) {
-        duration += remainDistance * 60 / speed
-      } else {
-        duration += distanceBucket * 60 / speed
-      }
-      remainDistance -= distanceBucket
-    }
+    val cruiseTime = distance.toDouble * 60 / airplaneModel.speed
 
-    if (remainDistance > 0) {
-      duration += remainDistance * 60 / airplaneSpeed
-    }
-    duration
+    (timeToCruise + cruiseTime).toInt
   }
-
 
   def calculateFlightMinutesRequired(airplaneModel : Model, distance : Int) : Int = {
     val duration = calculateDuration(airplaneModel, distance)
@@ -104,38 +94,24 @@ object Computation {
     distanceCache.getOrElseUpdate(key, Util.calculateDistance(fromAirport.latitude, fromAirport.longitude, toAirport.latitude, toAirport.longitude).toInt)
   }
 
-  def getFlightType(fromAirport : Airport, toAirport : Airport) : FlightType.Value = {
-    val relationship = CountrySource.getCountryMutualRelationship(fromAirport.countryCode, toAirport.countryCode)
-    getFlightType(fromAirport, toAirport, calculateDistance(fromAirport, toAirport), relationship)
-  }
-
-  //not passing relationship in getRouteRejection()
-  def getFlightType(fromAirport : Airport, toAirport : Airport, distance : Int, relationship : Int = 0) = {
-    import FlightType._
-    //hard-coding some home markets into the computation function to allow for independent relation values
-    //https://en.wikipedia.org/wiki/European_Common_Aviation_Area
-    val ECAA = List("AL", "AM", "AT", "BA", "BE", "BG", "CH", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GE", "GR", "HR", "HU", "IE", "IS", "IT", "LT", "LU", "LV", "MD", "ME", "MK", "MT", "NL", "NO", "PL", "PT", "RO", "RS", "SI", "SK", "ES", "SE", "UA", "XK")
+  // is used independent of individual links, so must be globally accessible
+  def getFlightCategory(fromAirport : Airport, toAirport : Airport): FlightCategory.Value = {
+    //hard-coding home markets into the computation function to allow for independent "relation" values
+    val ECAA = List("AL", "AM", "AT", "BA", "BE", "BG", "CH", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GE", "GR", "HR", "HU", "IE", "IS", "IT", "LT", "LU", "LV", "MD", "ME", "MK", "MT", "NL", "NO", "PL", "PT", "RO", "RS", "SI", "SK", "ES", "SE", "UA", "XK") //https://en.wikipedia.org/wiki/European_Common_Aviation_Area
     val USA = List("US", "PR", "VI", "GU", "AS", "MP", "MH", "PW", "FM") //US & COFA Pacific
-    if (fromAirport.countryCode == toAirport.countryCode || relationship == 5 || ECAA.contains(fromAirport.countryCode) && ECAA.contains(toAirport.countryCode) || USA.contains(fromAirport.countryCode) && USA.contains(toAirport.countryCode)){
-      if (distance <= 1000) {
-        SHORT_HAUL_DOMESTIC
-      } else if (distance <= 3000) {
-        MEDIUM_HAUL_DOMESTIC
-      } else if (distance <= 9000) {
-        LONG_HAUL_DOMESTIC
-      } else {
-        ULTRA_LONG_HAUL_DOMESTIC
-      }
+    val GB = List("GB", "TC", "KY", "VG", "BM")
+    val ANZAC = List("AU", "NZ", "CK", "NU")
+    val CN = List("CN", "MO", "HK")
+    if (fromAirport.countryCode == toAirport.countryCode ||
+      ECAA.contains(fromAirport.countryCode) && ECAA.contains(toAirport.countryCode) ||
+      USA.contains(fromAirport.countryCode) && USA.contains(toAirport.countryCode) ||
+      GB.contains(fromAirport.countryCode) && GB.contains(toAirport.countryCode) ||
+      ANZAC.contains(fromAirport.countryCode) && ANZAC.contains(toAirport.countryCode) ||
+      CN.contains(fromAirport.countryCode) && CN.contains(toAirport.countryCode)
+    ){
+      FlightCategory.DOMESTIC
     } else {
-      if (distance <= 1000) {
-        SHORT_HAUL_INTERNATIONAL
-      } else if (distance <= 3000) {
-        MEDIUM_HAUL_INTERNATIONAL
-      } else if (distance <= 9000) {
-        LONG_HAUL_INTERNATIONAL
-      } else {
-        ULTRA_LONG_HAUL_INTERCONTINENTAL
-      }
+      FlightCategory.INTERNATIONAL
     }
   }
 
@@ -164,7 +140,12 @@ def calculateAffinityValue(fromZone : String, toZone : String, relationship : In
     }
 
   val affinitySet = affinityToSet(fromZone : String, toZone : String, relationship : Int)
-  affinityCountX2(affinitySet) + affinitySet.length + relationshipModifier
+  val baseAffinity = affinitySet.length + relationshipModifier
+  if (baseAffinity <= 1 && affinityCountX2(affinitySet) > 0) {
+    affinitySet.length + affinityCountX2(affinitySet) + 1 //ensure x2 affinities always hit strong
+  } else {
+    baseAffinity + affinityCountX2(affinitySet)
+  }
 }
 
 def affinityToSet(fromZone : String, toZone : String, relationship : Int) = {
@@ -331,7 +312,7 @@ def constructAffinityText(fromZone : String, toZone : String, fromCountry : Stri
     val airportSizeMultiplier = Math.pow(1.5, minAirportSize) 
     val distance = calculateDistance(from, to)
     val distanceMultiplier = distance.toDouble / 5000
-    val internationalMultiplier = if (from.countryCode == to.countryCode) 1 else 3
+    val internationalMultiplier = if (from.countryCode == to.countryCode) 1 else 2
     
     (baseCost * airportSizeMultiplier * distanceMultiplier * internationalMultiplier).toInt 
   }
@@ -376,17 +357,19 @@ def constructAffinityText(fromZone : String, toZone : String, fromCountry : Stri
     val overall = airplanes + bases + assets + loans + oilContracts + existingBalance
   }
 
-  val MAX_SATISFACTION_PRICE_RATIO_THRESHOLD = 0.7 //at 100% satisfaction is <= this threshold
-  val MIN_SATISFACTION_PRICE_RATIO_THRESHOLD = LINK_COST_TOLERANCE_FACTOR + 0.05 //0% satisfaction >= this threshold ... +0.05 so, there will be at least some satisfaction even at the LINK_COST_TOLERANCE_FACTOR
+  val SATISFACTION_MAX_PRICE_RATIO_THRESHOLD = 0.7 //at 100% satisfaction is <= this threshold
+  val SATISFACTION_MIN_PRICE_RATIO_THRESHOLD = LINK_COST_TOLERANCE_FACTOR + 0.05 //0% satisfaction >= this threshold ... +0.05 so, there will be at least some satisfaction even at the LINK_COST_TOLERANCE_FACTOR
+  val SATISFACTION_NOT_CROWDED_MAX_BONUS_THRESHOLD = 0.125
   /**
     * From 0 (not satisfied at all) to 1 (fully satisfied)
     *
     *
     */
-  val computePassengerSatisfaction = (cost: Double, standardPrice : Int) => {
+  val computePassengerSatisfaction = (cost: Double, standardPrice: Int, crowded: Double) => {
+    val crowdedMod = Math.max(1 - SATISFACTION_NOT_CROWDED_MAX_BONUS_THRESHOLD - crowded, 0) * SATISFACTION_NOT_CROWDED_MAX_BONUS_THRESHOLD
     val ratio = cost / standardPrice
-    var satisfaction = (MIN_SATISFACTION_PRICE_RATIO_THRESHOLD - ratio) / (MIN_SATISFACTION_PRICE_RATIO_THRESHOLD - MAX_SATISFACTION_PRICE_RATIO_THRESHOLD)
-    satisfaction = Math.min(1, Math.max(0, satisfaction))
+    var satisfaction = (SATISFACTION_MIN_PRICE_RATIO_THRESHOLD - ratio) / (SATISFACTION_MIN_PRICE_RATIO_THRESHOLD - SATISFACTION_MAX_PRICE_RATIO_THRESHOLD)
+    satisfaction = Math.min(1, Math.max(0, satisfaction + crowdedMod))
     //println(s"${cost} vs standard price $standardPrice. satisfaction : ${satisfaction}")
     satisfaction
   }
@@ -400,15 +383,8 @@ def constructAffinityText(fromZone : String, toZone : String, fromCountry : Stri
     }
   }
   private def internalComputeStandardFlightDuration(distance : Int) = {
-    val standardSpeed =
-      if (distance <= 1000) {
-        400
-      } else if (distance <= 2000) {
-        600
-      } else {
-        800
-      }
-    Computation.calculateDuration(standardSpeed, distance)
+    val mediumAirplaneModel = Model.modelByName("Airbus A320")
+    Computation.calculateDuration(mediumAirplaneModel, distance)
   }
 
   def getDomesticAirportWithinRange(principalAirport : Airport, range : Int) = { //range in km
