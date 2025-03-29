@@ -8,10 +8,10 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.immutable.ListMap
 
 case class Airline(name: String, var airlineType: AirlineType.AirlineType = AirlineType.LEGACY, var id : Int = 0) extends IdObject {
-  val airlineInfo = AirlineInfo(0, 0, 0, 0, 0, 0, 0)
+  val airlineInfo = AirlineInfo(0, 0, 0, 0, 0, 0)
   var allianceId : Option[Int] = None
   var bases : List[AirlineBase] = List.empty
-  var stats = AirlineStat(0, 0, 0, 0, 0, 0)
+  var stats = AirlineStat(0, 0, Period.WEEKLY, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
   def setBalance(balance : Long) = {
     airlineInfo.balance = balance
@@ -31,10 +31,6 @@ case class Airline(name: String, var airlineType: AirlineType.AirlineType = Airl
 
   def setReputation(reputation : Double) {
     airlineInfo.reputation = reputation
-  }
-
-  def setWeeklyDividends(weeklyDividends : Int) {
-    airlineInfo.weeklyDividends = weeklyDividends
   }
 
   def setStockPrice(stockPrice: Double) {
@@ -144,8 +140,6 @@ case class Airline(name: String, var airlineType: AirlineType.AirlineType = Airl
 
   def getReputation() = airlineInfo.reputation
 
-  def getWeeklyDividends() : Int = airlineInfo.weeklyDividends
-
   def getStockPrice() : Double = airlineInfo.stockPrice
 
   def getDefaultAirlineCode() : String = {
@@ -231,39 +225,49 @@ case class DelegateInfo(availableCount : Int, boosts : List[DelegateBoostAirline
 
 }
 
-case class AirlineInfo(var balance : Long, var currentServiceQuality : Double, var weeklyDividends : Int, var stockPrice : Double, var targetServiceQuality : Int, var reputation : Double, var minimumRenewalBalance: Long, var countryCode : Option[String] = None, var airlineCode : String = "", var skipTutorial : Boolean = false, var initialized : Boolean = false)
+case class AirlineInfo(var balance : Long, var currentServiceQuality : Double, var stockPrice : Double, var targetServiceQuality : Int, var reputation : Double, var minimumRenewalBalance: Long, var countryCode : Option[String] = None, var airlineCode : String = "", var skipTutorial : Boolean = false, var initialized : Boolean = false)
 
 object TransactionType extends Enumeration {
   type TransactionType = Value
-  val CAPITAL_GAIN, CREATE_LINK, PRIZE, DIVIDENDS = Value
+  val CAPITAL_GAIN, CREATE_LINK = Value
 }
 
 object OtherIncomeItemType extends Enumeration {
   type OtherBalanceItemType = Value
-  val NEGATIVE_CASH, LOAN_INTEREST, BASE_UPKEEP, OVERTIME_COMPENSATION, DIVIDENDS, LOUNGE_UPKEEP, LOUNGE_COST, LOUNGE_INCOME, ASSET_EXPENSE, ASSET_REVENUE, ADVERTISEMENT, DEPRECIATION, FUEL_PROFIT = Value
+  val LOAN_INTEREST, BASE_UPKEEP, OVERTIME_COMPENSATION, LOUNGE_UPKEEP, LOUNGE_COST, LOUNGE_INCOME, ASSET_EXPENSE, ASSET_REVENUE, ADVERTISEMENT, DEPRECIATION, FUEL_PROFIT = Value
 }
 
 object CashFlowType extends Enumeration {
   type CashFlowType = Value
-  val BASE_CONSTRUCTION, BUY_AIRPLANE, SELL_AIRPLANE, CREATE_LINK, FACILITY_CONSTRUCTION, OIL_CONTRACT, ASSET_TRANSACTION = Value
+  val BASE_CONSTRUCTION, BUY_AIRPLANE, SELL_AIRPLANE, CREATE_LINK, FACILITY_CONSTRUCTION, OIL_CONTRACT, ASSET_TRANSACTION, PRIZE, BUY_BACK = Value
 }
 
 object Period extends Enumeration {
   type Period = Value
-  val WEEKLY, MONTHLY, YEARLY = Value
+  val WEEKLY, QUARTER, PERIOD = Value
+
+  def numberWeeks(period : Period.Value) = {
+    period match {
+      case WEEKLY => 1
+      case QUARTER => 12
+      case PERIOD => 48
+    }
+  }
 }
 
 
 case class AirlineTransaction(airlineId : Int, transactionType : TransactionType.Value, amount : Long, var cycle : Int = 0)
-case class AirlineIncome(airlineId : Int, profit : Long = 0, revenue: Long = 0, expense: Long = 0, stockPrice: Double = 0, links : LinksIncome, transactions : TransactionsIncome, others : OthersIncome, period : Period.Value = Period.WEEKLY, var cycle : Int = 0) {
+case class AirlineIncome(airlineId : Int, profit : Long = 0, revenue: Long = 0, expense: Long = 0, stockPrice: Double = 0, totalValue: Long = 0, links : LinksIncome, transactions : TransactionsIncome, others : OthersIncome, period : Period.Value = Period.WEEKLY, var cycle : Int = 0) {
   /**
-   * Current income is expected to be MONTHLY/YEARLY. Adds parameter (WEEKLY income) to this current income object and return a new Airline income with period same as this object but cycle as the parameter
+   * Current income is expected to be QUARTER/PERIOD. Adds parameter (WEEKLY income) to this current income object and return a new Airline income with period same as this object but cycle as the parameter
    */
   def update(income2 : AirlineIncome) : AirlineIncome = {
     AirlineIncome(airlineId, 
         profit = profit + income2.profit,
         revenue = revenue + income2.revenue,
         expense = expense + income2.expense,
+        stockPrice = (stockPrice + income2.stockPrice) / 2,
+        totalValue = ((totalValue + income2.totalValue).toDouble / 2).toLong,
         links = links.update(income2.links),
         transactions = transactions.update(income2.transactions),
         others = others.update(income2.others),
@@ -291,7 +295,7 @@ case class LinksIncome(airlineId : Int, profit : Long = 0, revenue : Long = 0, e
         cycle = income2.cycle)
   }
 }
-case class TransactionsIncome(airlineId : Int, profit : Long = 0, revenue: Long = 0, expense: Long = 0, capitalGain : Long = 0, createLink : Long = 0,  period : Period.Value = Period.WEEKLY, var cycle : Int = 0) {
+case class TransactionsIncome(airlineId : Int, profit : Long = 0, revenue: Long = 0, expense: Long = 0, capitalGain : Long = 0, createLink : Long = 0,  prize : Long = 0, buyBack : Long = 0, period : Period.Value = Period.WEEKLY, var cycle : Int = 0) {
   def update(income2 : TransactionsIncome) : TransactionsIncome = {
     TransactionsIncome(airlineId, 
         profit = profit + income2.profit,
@@ -299,11 +303,13 @@ case class TransactionsIncome(airlineId : Int, profit : Long = 0, revenue: Long 
         expense = expense + income2.expense,
         capitalGain = capitalGain + income2.capitalGain,
         createLink = createLink + income2.createLink,
+        prize = prize + income2.prize,
+        buyBack = buyBack + income2.buyBack,
         period = period,
         cycle = income2.cycle)
   }  
 }
-case class OthersIncome(airlineId : Int, profit : Long = 0, revenue: Long = 0, expense: Long = 0, loanInterest : Long = 0, baseUpkeep : Long = 0, overtimeCompensation : Long = 0, dividends : Long = 0, advertisement : Long = 0, loungeUpkeep : Long = 0, loungeCost : Long = 0, loungeIncome : Long = 0, assetExpense : Long = 0, assetRevenue : Long = 0, fuelProfit : Long = 0, depreciation : Long = 0, period : Period.Value = Period.WEEKLY, var cycle : Int = 0) {
+case class OthersIncome(airlineId : Int, profit : Long = 0, revenue: Long = 0, expense: Long = 0, loanInterest : Long = 0, baseUpkeep : Long = 0, overtimeCompensation : Long = 0, advertisement : Long = 0, loungeUpkeep : Long = 0, loungeCost : Long = 0, loungeIncome : Long = 0, assetExpense : Long = 0, assetRevenue : Long = 0, fuelProfit : Long = 0, depreciation : Long = 0, period : Period.Value = Period.WEEKLY, var cycle : Int = 0) {
   def update(income2 : OthersIncome) : OthersIncome = {
     OthersIncome(airlineId, 
         profit = profit + income2.profit,
@@ -312,7 +318,6 @@ case class OthersIncome(airlineId : Int, profit : Long = 0, revenue: Long = 0, e
         loanInterest = loanInterest + income2.loanInterest,
         baseUpkeep = baseUpkeep + income2.baseUpkeep,
         overtimeCompensation = overtimeCompensation + income2.overtimeCompensation,
-        dividends = dividends + income2.dividends,
         advertisement = advertisement + income2.advertisement,
         loungeUpkeep = loungeUpkeep + income2.loungeUpkeep,
         loungeCost = loungeCost + income2.loungeCost,
@@ -330,7 +335,7 @@ case class OthersIncome(airlineId : Int, profit : Long = 0, revenue: Long = 0, e
 case class AirlineCashFlowItem(airlineId : Int, cashFlowType : CashFlowType.Value, amount : Long, var cycle : Int = 0)
 case class AirlineCashFlow(airlineId : Int, cashFlow : Long = 0, operation : Long = 0, loanInterest : Long = 0, loanPrincipal : Long = 0, baseConstruction : Long = 0, buyAirplane : Long = 0, sellAirplane : Long = 0,  createLink : Long = 0, facilityConstruction : Long = 0, oilContract : Long = 0, assetTransactions : Long = 0, period : Period.Value = Period.WEEKLY, var cycle : Int = 0) {
 /**
-   * Current income is expected to be MONTHLY/YEARLY. Adds parameter (WEEKLY income) to this current income object and return a new Airline income with period same as this object but cycle as the parameter
+   * Current income is expected to be QUARTER/PERIOD. Adds parameter (WEEKLY income) to this current income object and return a new Airline income with period same as this object but cycle as the parameter
    */
   def update(cashFlow2 : AirlineCashFlow) : AirlineCashFlow = {
     AirlineCashFlow(airlineId, 

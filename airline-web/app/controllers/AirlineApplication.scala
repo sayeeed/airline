@@ -33,7 +33,6 @@ class AirlineApplication @Inject()(cc: ControllerComponents) extends AbstractCon
       "fuelTaxRate" -> JsNumber(airline.fuelTaxRate),
       "serviceQuality" -> JsNumber(airline.airlineInfo.currentServiceQuality),
       "targetServiceQuality" -> JsNumber(airline.airlineInfo.targetServiceQuality),
-      "weeklyDividends" -> JsNumber(airline.airlineInfo.weeklyDividends/1000000),
       "gradeDescription" -> JsString(airline.airlineGrade.description),
       "gradeLevel" -> JsNumber(airline.airlineGrade.level),
       "gradeFloor" -> JsNumber(airline.airlineGrade.reputationFloor),
@@ -214,7 +213,8 @@ class AirlineApplication @Inject()(cc: ControllerComponents) extends AbstractCon
 
        val countriesServed = links.flatMap(_.to.countryCode).toSet.size
        val destinations = if (airportsServed > 0) airportsServed - 1 else 0 //minus home base
-       
+       val onTimeRate = links.map { link => link.majorDelayCount * 6 + link.minorDelayCount }.sum / (links.size * 6)
+
        val airplanes = AirplaneSource.loadAirplanesByOwner(airlineId).filter(_.isReady)
        val airplaneTypes = airplanes.flatMap {
          plane => List(plane.model)
@@ -222,6 +222,8 @@ class AirlineApplication @Inject()(cc: ControllerComponents) extends AbstractCon
        
        val fleetSize = airplanes.length
        val fleetCondition = if (fleetSize > 0) airplanes.map(_.condition).sum / fleetSize else 0
+       val fleetUtilization = if (fleetSize > 0) airplanes.map(_.utilizationRate).sum / fleetSize else 0
+
        val minimumRenewalBalance = airline.getMinimumRenewalBalance()
 
 
@@ -230,9 +232,11 @@ class AirlineApplication @Inject()(cc: ControllerComponents) extends AbstractCon
            ("linkCount" -> JsNumber(links.length)) +
            ("destinations"-> JsNumber(destinations)) +
            ("countriesServed"-> JsNumber(countriesServed)) +
+           ("onTimeRate"-> JsNumber(onTimeRate)) +
            ("fleetSize"-> JsNumber(fleetSize)) +
            ("fleetCondition"-> JsNumber(fleetCondition)) +
            ("fleetTypes"-> JsNumber(airplaneTypes)) +
+           ("fleetUtilization"-> JsNumber(fleetUtilization)) +
            ("minimumRenewalBalance" -> JsNumber(minimumRenewalBalance))
 
        val cooldown = getRenameCooldown(airline)
@@ -775,8 +779,8 @@ class AirlineApplication @Inject()(cc: ControllerComponents) extends AbstractCon
 
   def getAirlineFinances(airlineId : Int) = AuthenticatedAirline(airlineId) { request =>
      val airline = request.user
-     val incomes = IncomeSource.loadIncomesByAirline(airlineId)
-     val cashFlows = CashFlowSource.loadCashFlowsByAirline(airlineId)
+     val incomes = IncomeSource.loadIncomesByAirline(airlineId).filter {statement => (statement.cycle + 1) % Period.numberWeeks(statement.period) == 0}
+     val cashFlows = CashFlowSource.loadCashFlowsByAirline(airlineId).filter {statement => (statement.cycle + 1) % Period.numberWeeks(statement.period) == 0}
      val stats = AirlineStatisticsSource.loadAirlineStats(airlineId)
 
      Ok(Json.obj("incomes" -> Json.toJson(incomes), "cashFlows" -> Json.toJson(cashFlows), "airlineStats" -> Json.toJson(stats)))
@@ -925,28 +929,6 @@ class AirlineApplication @Inject()(cc: ControllerComponents) extends AbstractCon
 
     } else {
       BadRequest("Cannot Update minimum renewal balance")
-    }
-  }
-
-  def updateWeeklyDividends(airlineId: Int) = AuthenticatedAirline(airlineId) { request =>
-    if (request.body.isInstanceOf[AnyContentAsJson]) {
-      val weeklyDividendsTry = Try(request.body.asInstanceOf[AnyContentAsJson].json.\("weeklyDividends").as[Int])
-      weeklyDividendsTry match {
-        case Success(weeklyDividends) =>
-          if (weeklyDividends < 0) {
-            BadRequest("Cannot set negative dividends")
-          } else {
-            val airline = request.user
-            airline.setWeeklyDividends(weeklyDividends * 1000000)
-            AirlineSource.saveAirlineInfo(airline, updateBalance = false)
-            Ok(Json.obj("weeklyDividends" -> JsNumber(weeklyDividends / 1000000)))
-          }
-        case Failure(_) =>
-          BadRequest("Cannot update dividends")
-      }
-
-    } else {
-      BadRequest("Cannot updates dividends")
     }
   }
 

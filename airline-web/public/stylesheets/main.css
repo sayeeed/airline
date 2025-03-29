@@ -306,10 +306,10 @@ h1, h2, h3, h4, h5, h6, .font-display {
 }
 
 .officeCanvasLeftGroup  {
-    width: 66%;
+    width: 72%;
 }
 .officeCanvasRightGroup {
-    width: 34%;
+    width: 28%;
     gap: 8px;
     display: flex;
     flex-direction: column;
@@ -858,6 +858,10 @@ div.section div.section {
 
 .modal-content .table {
     margin-bottom: 1rem;
+}
+
+.modal-content .button:first-of-type {
+    margin-left: 0;
 }
 
 .googleMapButton {

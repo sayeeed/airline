@@ -908,3 +908,16 @@ function parseNumber(_str) {
         return _str
     }
 }
+
+function getGameDate(cycle, period = "WEEKLY") {
+    const periods = Math.floor(cycle / 48)
+    const remainder = cycle % 48
+
+    if (period == "WEEKLY") {
+        return `${periods}.${remainder}`;
+    } else if (period == "QUARTER") {
+        return `${periods}.${remainder - 3} - ${periods}.${remainder}`;
+    } else if (period == "PERIOD") {
+        return `${periods - 1}.${remainder} - ${periods}.${remainder}`;
+    }
+}

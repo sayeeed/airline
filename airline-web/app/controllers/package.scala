@@ -420,7 +420,6 @@ package object controllers {
         "othersLoungeIncome" -> JsNumber(airlineIncome.others.loungeIncome),
         "othersAssetExpense" -> JsNumber(airlineIncome.others.assetExpense),
         "othersAssetRevenue" -> JsNumber(airlineIncome.others.assetRevenue),
-        "othersDividends" -> JsNumber(airlineIncome.others.dividends),
         "othersAdvertisement" -> JsNumber(airlineIncome.others.advertisement),
         "othersFuelProfit" -> JsNumber(airlineIncome.others.fuelProfit),
         "othersDepreciation" -> JsNumber(airlineIncome.others.depreciation),
@@ -457,6 +456,7 @@ package object controllers {
         "elites" -> JsNumber(airlineStat.elites),
         "business" -> JsNumber(airlineStat.business),
         "total" -> JsNumber(airlineStat.total),
+        "allianceAssists" -> JsNumber(airlineStat.allianceAssists),
         "cycle" -> JsNumber(airlineStat.cycle)))
     }
   }

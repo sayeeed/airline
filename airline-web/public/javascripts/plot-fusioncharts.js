@@ -1070,7 +1070,7 @@ function plotIncomeChart(airlineIncomes, period, container) {
 		data["transactions"].push({ value : airlineIncome.transactionsProfit })
 		data["others"].push({ value : airlineIncome.othersProfit })
 		data["stockPrice"].push({ value : airlineIncome.stockPrice.toFixed(2) })
-		category.push({ "label" : airlineIncome.cycle.toString() })
+		category.push({ "label" : getGameDate(airlineIncome.cycle) })
 	})
 
 	var chartConfig = {
@@ -1126,7 +1126,7 @@ function plotCashFlowChart(airlineCashFlows, period, container) {
 	
 	$.each(airlineCashFlows, function(key, airlineCashFlow) {
 		data["cashFlow"].push({ value : airlineCashFlow.totalCashFlow })
-		category.push({ "label" : airlineCashFlow.cycle.toString() })
+		category.push({ "label" : getGameDate(airlineCashFlow.cycle) })
 	})
 
 	var chartConfig = {
@@ -1169,29 +1169,32 @@ function plotAirlineStats(stats, container) {
 
 	var data = {}
     	data["total"] = []
+    	data["traveler"] = []
     	data["tourists"] = []
     	data["elites"] = []
     	data["business"] = []
+    	data["allianceAssists"] = []
     	var category = []
 
 
 	$.each(stats, function(key, stat) {
         data["total"].push({ value : stat.total })
+        data["traveler"].push({ value : stat.total - (stat.tourists + stat.elites + stat.business) })
         data["tourists"].push({ value : stat.tourists })
         data["elites"].push({ value : stat.elites })
         data["business"].push({ value : stat.business })
+        data["allianceAssists"].push({ value : stat.allianceAssists })
         category.push({ "label" : stat.cycle.toString() })
     })
 
 	var chartConfig = {
-	//40 weeks
-                      	    		"xAxisname": "Week",
-                      	    		"yAxisName": "Passengers",
-                      	    		"numMinorDivLines": 1,
-//                      	    		"divLineAlpha": 0,
-                                      "showValues":"0",
-                                      "showZeroPlane": "0",
-                      	    	}
+                        "xAxisname": "Week",
+                        "yAxisName": "Passengers",
+                        "numMinorDivLines": 1,
+                        "divLineAlpha": 0,
+                        "showValues":"0",
+                        "showZeroPlane": "0",
+                        }
     checkDarkTheme(chartConfig)
 
 	var chart = container.insertFusionCharts({
@@ -1208,6 +1211,8 @@ function plotAirlineStats(stats, container) {
                 { "seriesname": "Tourist", "data" : data["tourists"]},
                 { "seriesname": "Elite", "data" : data["elites"]},
                 { "seriesname": "Business", "data" : data["business"]},
+                { "seriesname": "Traveler", "data" : data["traveler"]},
+                { "seriesname": "Alliance Assists", "data" : data["allianceAssists"]},
 			]
 	    }
 	})

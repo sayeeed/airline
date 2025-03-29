@@ -124,6 +124,7 @@ function loadAirlines() {
 function selectAirline(airlineId) {
 	initWebSocket(airlineId)
 	updateAllPanels(airlineId)
+	loadAndWatchAirlineNotes()
 }
 
 function selectHeadquarters(airportId) {
@@ -3355,3 +3356,104 @@ function addAirlineTooltip($target, airlineId, slogan, airlineName) {
     })
 }
 
+function loadAndWatchAirlineNotes() {
+    const airlineId = activeAirline.id;
+    const notesOffice = document.getElementById('airlineNotes');
+    const notesLink = document.getElementById('linkNotes');
+    const notesAirport = document.getElementById('airportNotes');
+
+    // Load the current note
+    fetch(`/airlines/${airlineId}/notes`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Failed to fetch notes: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            notes = data.notes || []; // Initialize notes if not present
+            notesOffice.value = data?.airlineNotes[0] || ''; // Populate office textarea with the note
+        })
+        .catch(error => {
+            console.error('Error loading notes:', error);
+        });
+
+    let debounceTimeout;
+    const debounceDelay = 1000;
+
+    notesOffice.addEventListener('input', () => {
+        clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(() => {
+            const sanitizedNote = notesOffice.value.replace(/</g, "&lt;").replace(/>/g, "&gt;"); // Basic sanitization
+
+            fetch(`/airlines/${airlineId}/notes`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ note: sanitizedNote }),
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Failed to save note: ${response.statusText}`);
+                    }
+                    console.log('Note saved successfully');
+                })
+                .catch(error => {
+                    console.error('Error saving note:', error);
+                });
+        }, debounceDelay);
+    });
+
+    notesLink.addEventListener('input', () => {
+        clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(() => {
+            const sanitizedNote = notesLink.value.replace(/</g, "&lt;").replace(/>/g, "&gt;"); // Basic sanitization
+
+			if (!selectedLink) return;
+
+            fetch(`/airlines/${airlineId}/notes/link/${selectedLink}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json; charset=utf-8',
+                },
+                body: JSON.stringify({ note: sanitizedNote }),
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Failed to save note: ${response.statusText}`);
+                    }
+                    console.log('Note saved successfully');
+                })
+                .catch(error => {
+                    console.error('Error saving note:', error);
+                });
+        }, debounceDelay);
+    });
+
+    notesAirport.addEventListener('input', () => {
+        clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(() => {
+            const sanitizedNote = notesAirport.value.replace(/</g, "&lt;").replace(/>/g, "&gt;"); // Basic sanitization
+
+			if (!activeAirportId) return;
+
+            fetch(`/airlines/${airlineId}/notes/airport/${activeAirportId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json; charset=utf-8',
+                },
+                body: JSON.stringify({ note: sanitizedNote }),
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Failed to save note: ${response.statusText}`);
+                    }
+                    console.log('Note saved successfully');
+                })
+                .catch(error => {
+                    console.error('Error saving note:', error);
+                });
+        }, debounceDelay);
+    });
+}

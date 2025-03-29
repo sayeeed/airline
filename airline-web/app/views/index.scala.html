@@ -614,6 +614,7 @@
 									<div id=linkCompetitionsPie align="center"></div>
 								</div>
 								<div id="linkCharts">
+									<textarea id="linkNotes" style="width: 90%; margin:1rem auto;" placeholder="Add notes here..."></textarea>
 									<fieldset>
 										<div class="switch" style="float: right;">
 											<input type="radio" class="switch-input" name="view" value="month" id="switchMonth" onchange="refreshLinkCharts()">
@@ -1245,9 +1246,6 @@
 										   onmouseover="showAppealBreakdown($(this), $('#appealBonusDetailsTooltip').data('loyaltyBreakdown'))"
 										   onmouseout="hideAppealBreakdown()">
 								  </div>
-								  <div class="i-value airportLoyalty">
-									  <span id="airportDetailsLoyalty"></span><span class="airportLoyaltyBonus"></span>
-								  </div>
 							  </div>
 							  <div class="item">
 								  <div class="i-label">Staff required / capacity</div>
@@ -1267,7 +1265,7 @@
 							  Base</button>
 						  <button type="button" class="button ml-0" id="upgradeBaseButton" data-scale=""
 								  style="display: none;"
-								  onclick='promptConfirm("Upgrade this base to scale " + (parseInt(airportBase.scale) + 1) + "?", data => {console.log(data); buildBase(airportBase.headquarter, parseInt(airportBase.scale) + 1)})'>Upgrade</button>
+								  onclick='promptConfirm("Upgrade this base to scale " + (parseInt(targetBase.scale)) + "?", data => {console.log(data); buildBase(targetBase.headquarter, parseInt(targetBase.scale))})'>Upgrade</button>
 						  <button type="button" class="button" id="downgradeBaseButton" style="display: none;"
 								  onclick='promptConfirm("Downgrade this base?", downgradeBase)'>Downgrade</button>
 						  <button type="button" class="button" id="deleteBaseButton" style="display: none;"
@@ -1283,7 +1281,7 @@
 						  <span class="tooltip">
 								<img class="info svg" src='@routes.Assets.versioned("images/icons/information.svg")'>
 								<span class="tooltiptext below alignLeft" style="width: 400px;">
-									<p>Loyalist are gained by providing satisfying services to passengers originate from this
+									<p>Loyalists are gained by providing satisfying services to passengers originate from this
 										airport.</p>
 									<p>Passenger satisfaction is reflected by Satisfaction Factor (SF) of a flight.</p>
 									<p>For more info, please refer to the survey</p>
@@ -1316,7 +1314,7 @@
 						  <div class="table-header">
 							  <div class="cell" style="width: 5%">&nbsp;</div>
 							  <div class="cell" style="width: 40%">Airline</div>
-							  <div class="cell" style="width: 20%; text-align: right;">Loyalist</div>
+							  <div class="cell" style="width: 20%; text-align: right;">Loyalists</div>
 							  <div class="cell" style="width: 20%; text-align: right;">Loyalty</div>
 							  <div class="cell" style="width: 25%; text-align: right;">Reputation Boost</div>
 						  </div>
@@ -1395,15 +1393,15 @@
 				  </div>
 				  <div id="airportStatistics" class="py-2 flex-row overflow-x-auto" style="width: 100%;height: 180px;">
 					  <div>
-						  <h5 align="center">Airline share (as Departure)</h5>
+						  <h5 align="center">Outbound Airline Share<br>(includes transfers)</h5>
 						  <div id="airlineDeparturePie" style="height: 160px; width: 250px;" align="center"></div>
 					  </div>
 					  <div>
-						  <h5 align="center">Airline share (as Arrival)</h5>
+						  <h5 align="center">Inbound Airline Share<br>(includes transfers)</h5>
 						  <div id="airlineArrivalPie" style="height: 160px; width: 250px;" align="center"></div>
 					  </div>
 					  <div>
-						  <h5 align="center">Passenger Transit Type</h5>
+						  <h5 align="center">Local vs Transit Passengers</h5>
 						  <div id="transitTypePie" style="height: 160px; width: 250px;" align="center"></div>
 					  </div>
 				  </div>
@@ -1962,13 +1960,13 @@
 						</div>
 
 						<div class="section min-w-80" style="flex:1; max-width: 100%;">
-							<h4>Reputation tracks
-								<span class="tooltip">
+							<h4>Reputation tracks<div class="tooltip">
 									<img src='@routes.Assets.versioned("images/icons/information.svg")'>
-									<span class="tooltiptext alignLeft below" style="width: 280px;">
-										Achieving a level on a reputation track earns an additional 20 reputation.
-									</span>
-								</span>
+									<div class="tooltiptext alignLeft below p-4" style="width: 320px;">
+										<p>Achieving a level on a reputation track earns an additional 25 reputation.</p>
+										<p>The tourist & elite track each time a passenger of that type takes your airline during their journey.</p>
+									</div>
+								</div>
 							</h4>
 <!--							<div class="threshold-section" id="stockProgress">-->
 <!--								<div class="flex-row items-end">-->
@@ -2030,9 +2028,9 @@
 
 							<div id="milestones" class="pt-8">
 								<h4>Milestones</h4>
-								<div class="flex-container-width-third py-2">
+								<div class="flex-container-width-quarter py-2">
 									<div>
-										<h5 id="paxKM">Passenger Km</h5>
+										<h5 id="paxKM">Passenger KM</h5>
 										<div style="width: 150px;justify-content: space-between;" class="flex-row py-1">
 											<div class="font-mono text-sm flex-center">
 												50 thousand<img height="16" id="m-pax1" class="pl-1" src="/assets/images/icons/cross.png"></div><div style="color:gold;display: flex;flex-direction: row;" class="">15 <img height="16" src="/assets/images/icons/reputation.svg">
@@ -2075,6 +2073,34 @@
 											<div class="font-mono flex-center">
 												100<img height="16" id="m-country4" class="pl-1" src="/assets/images/icons/cross.png"></div><div style="color:gold;display: flex;flex-direction: row;" class="">30 <img height="16" src="/assets/images/icons/reputation.svg">
 											</div>
+										</div>
+									</div>
+									<div>
+										<h5>Alliance Assists<div class="tooltip">
+											<img src='@routes.Assets.versioned("images/icons/information.svg")'>
+											<div class="tooltiptext alignLeft below" style="width: 280px;">
+												<p>An alliance assist is when a passenger travels on your airline and an alliance partner's in one journey.</p>
+											</div>
+										</div></h5>
+										<div style="width: 120px;justify-content: space-between;" class="flex-row py-1">
+											<div class="font-mono text-sm flex-center">
+												500<img height="16" id="m-allianceAssists1" class="pl-1" src="/assets/images/icons/cross.png"></div><div style="color:gold;display: flex;flex-direction: row;" class="">15 <img height="16" src="/assets/images/icons/reputation.svg">
+										</div>
+										</div>
+										<div style="width: 120px;justify-content: space-between;" class="flex-row py-1">
+											<div class="font-mono flex-center">
+												5,000<img height="16" id="m-allianceAssists2" class="pl-1" src="/assets/images/icons/cross.png"></div><div style="color:gold;display: flex;flex-direction: row;" class="">15 <img height="16" src="/assets/images/icons/reputation.svg">
+										</div>
+										</div>
+										<div style="width: 120px;justify-content: space-between;" class="flex-row py-1">
+											<div class="font-mono flex-center">
+												75,000<img height="16" id="m-allianceAssists3" class="pl-1" src="/assets/images/icons/cross.png"></div><div style="color:gold;display: flex;flex-direction: row;" class="">20 <img height="16" src="/assets/images/icons/reputation.svg">
+										</div>
+										</div>
+										<div style="width: 120px;justify-content: space-between;" class="flex-row py-1">
+											<div class="font-mono flex-center">
+												500,000<img height="16" id="m-allianceAssists4" class="pl-1" src="/assets/images/icons/cross.png"></div><div style="color:gold;display: flex;flex-direction: row;" class="">30 <img height="16" src="/assets/images/icons/reputation.svg">
+										</div>
 										</div>
 									</div>
 									<div>
@@ -2136,8 +2162,8 @@
                                     &nbsp;
                                     <select class="select-css period" onchange="changeOfficePeriod($(this).val())">
                                         <option value="WEEKLY" selected="selected">Week</option>
-                                        <option value="MONTHLY">Month</option>
-                                        <option value="YEARLY">Year</option>
+                                        <option value="QUARTER">Quarter</option>
+                                        <option value="PERIOD">Period</option>
                                     </select>
                                     &nbsp;<span id="officeCycleText"></span>
                                     &nbsp;
@@ -2426,16 +2452,20 @@
 					</div>
 <!-- end left section  -->
 					<div class="vertical-group officeCanvasRightGroup">
-                        <div class="section">
+						<div class="section">
+							<h4>Notes</h4>
+							<textarea id="airlineNotes" style="width:99%;"></textarea>
+						</div>
+						<div class="section">
                             <h4>Headquarters</h4>
 							<div style="position: relative; height: 125px; width: 150px; margin: auto;box-sizing: border-box;" class="headquartersMap"></div>
 							<h4>Airline Bases</h4>
 							<div style="width: 100%;" class="table">
 								<div class="table-header">
 									<div class="cell" style="width: 14%">Scale</div>
-									<div class="cell" style="width: 33%">Airport</div>
+									<div class="cell" style="width: 35%">Airport</div>
 									<div class="cell" style="width: 31%">Staff <br><small>Required | Available</small></div>
-									<div class="cell" style="width: 22%">Overtime</div>
+									<div class="cell" style="width: 20%">Overtime</div>
 								</div>
 							</div>
 							<div style="width: 100%;  overflow-y:auto; flex: 1;">
@@ -2484,7 +2514,7 @@
 							<h4 style="margin-top: 5px;">Company Slogan
 								<img src='@routes.Assets.versioned("images/icons/tick.png")' class='button' style="vertical-align: middle;" onclick="saveSlogan()">
 							</h4>
-							<textarea rows="3" cols="40" maxlength="200" class="slogan" style="width:95%; height: 50px;" placeholder="Your airline slogan..."></textarea>
+							<textarea rows="3" cols="40" maxlength="200" class="slogan" style="width:99%; height: 50px;" placeholder="Your airline slogan..."></textarea>
 						</div>
 
                         <div class="section" >
@@ -2522,9 +2552,9 @@
 							<div class="table data" style="width: 100%;">
 								<div class="table-header">
 									<div class="cell" style="width: 5%">&nbsp;</div>
-									<div class="cell" style="width: 60%">Airport</div>
-									<div class="cell" style="width: 20%">Loyalist</div>
-									<div class="cell" style="width: 15%">Reputation Bonus</div>
+									<div class="cell" style="width: 55%">Airport</div>
+									<div class="cell" style="width: 20%">Loyalists</div>
+									<div class="cell" style="width: 20%">Reputation Bonus</div>
 								</div>
 							</div>
 							<div style="max-height: 250px; overflow: auto;">
@@ -3263,7 +3293,7 @@
 										<div class="cell value totalRevenue"></div>
 									</div>
 									<div class="table-row">
-										<div class="cell label">Total Loyalist:</div>
+										<div class="cell label">Total Loyalists:</div>
 										<div class="cell value totalLoyalist"></div>
 									</div>
 									<div class="table-row">
@@ -3408,7 +3438,7 @@
 										<div class="cell" style="width: 10%">Ranking</div>
 										<div class="cell" style="width: 30%">Airport</div>
 										<div class="cell" style="width: 30%">Airline</div>
-										<div class="cell" style="width: 20% align='right'">Loyalist</div>
+										<div class="cell" style="width: 20% align='right'">Loyalists</div>
 										<div class="cell" style="width: 10% align='right'">Reputation Bonus</div>
 									</div>
 								</div>
@@ -4259,7 +4289,7 @@
 			  </div>
 		  </div>
 
-		  <p class="helper-rule my-2">The further the distance, the more a passenger prefers to stay in their home airport.</p>
+		  <p class="helper-rule py-2">The further the distance, the more a passenger prefers to stay in their home airport.</p>
 		  <button type="button" class="button confirmButton" onclick="closeModal($(this).closest('.modal'))">OK</button>
 	  </div>
 	</div>
@@ -5867,15 +5897,15 @@
   <link rel="preload" href="https://p.typekit.net" crossorigin>
   <link rel="stylesheet" href="https://use.typekit.net/plw0ulw.css">
   <script src='@routes.Assets.versioned("javascripts/main.js?=2")'></script>
-  <script defer src='@routes.Assets.versioned("javascripts/airport.js?=1")'></script>
+  <script defer src='@routes.Assets.versioned("javascripts/airport.js?=5")'></script>
   <script src='@routes.Assets.versioned("javascripts/airport-asset.js")'></script>
-  <script src='@routes.Assets.versioned("javascripts/airplane.js?=2")'></script>
-  <script src='@routes.Assets.versioned("javascripts/model-configuration.js?=1")'></script>
-  <script src='@routes.Assets.versioned("javascripts/airline.js?=3")'></script>
+  <script src='@routes.Assets.versioned("javascripts/airplane.js?=5")'></script>
+  <script src='@routes.Assets.versioned("javascripts/model-configuration.js?=5")'></script>
+  <script src='@routes.Assets.versioned("javascripts/airline.js?=5")'></script>
   <script src='@routes.Assets.versioned("javascripts/link-history.js")'></script>
   <script src='@routes.Assets.versioned("javascripts/delegate.js")'></script>
   <script src='@routes.Assets.versioned("javascripts/country.js")'></script>
-  <script src='@routes.Assets.versioned("javascripts/office.js")'></script>
+  <script src='@routes.Assets.versioned("javascripts/office.js?=5")'></script>
   <script src='@routes.Assets.versioned("javascripts/tiles.js")'></script>
   <script src='@routes.Assets.versioned("javascripts/ranking.js")'></script>
   <script src='@routes.Assets.versioned("javascripts/bank.js")'></script>

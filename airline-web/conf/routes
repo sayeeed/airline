@@ -77,7 +77,6 @@ GET		 /airlines/:airlineId/service-funding-projection		    controllers.AirlineAp
 PUT      /airlines/:airlineId/minimum-renewal-balance           controllers.AirlineApplication.setMinimumRenewalBalance(airlineId: Int)
 GET		 /airlines/:airlineId/airplane-renewal			controllers.AirlineApplication.getAirplaneRenewal(airlineId: Int)
 PUT		 /airlines/:airlineId/airplane-renewal			controllers.AirlineApplication.updateAirplaneRenewal(airlineId: Int)
-PUT		 /airlines/:airlineId/weeklyDividends			controllers.AirlineApplication.updateWeeklyDividends(airlineId: Int)
 POST	 /airlines/:airlineId/plan-link	  controllers.LinkApplication.planLink(airlineId : Int)
 POST	 /airlines/:airlineId/get-link-negotiation	  controllers.LinkApplication.getLinkNegotiation(airlineId : Int)
 GET	     /airlines/:airlineId/office-capacity	  controllers.AirlineApplication.getOfficeCapacity(airlineId : Int)
@@ -171,6 +170,11 @@ POST      /airlines/:airlineId/tutorial               controllers.TutorialApplic
 POST      /airlines/:airlineId/completed-notice/:noticeId     controllers.NoticeApplication.saveCompletedNotice(airlineId: Int, noticeId: String, category : String)
 GET     /airlines/:airlineId/profiles   controllers.ProfileApplication.getProfiles(airlineId : Int, airportId : Int)
 PUT     /airlines/:airlineId/profiles/:profileId     controllers.ProfileApplication.buildHqWithProfile(airlineId : Int, airportId : Int, profileId : Int)
+
+GET    /airlines/:airlineId/notes   controllers.NotesApplication.getNotesByAirline(airlineId : Int)
+PUT    /airlines/:airlineId/notes   controllers.NotesApplication.saveNoteToAirline(airlineId : Int)
+PUT    /airlines/:airlineId/notes/link/:linkId   controllers.NotesApplication.saveNoteToLink(airlineId : Int, linkId: Int)
+PUT    /airlines/:airlineId/notes/airport/:airportId   controllers.NotesApplication.saveNoteToAirport(airlineId : Int, airportId: Int)
 
 GET     /airlines/:airlineId/headquarters-map       controllers.TileApplication.getHeadquartersTiles(airlineId : Int)
 

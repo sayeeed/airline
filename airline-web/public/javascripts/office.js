@@ -60,7 +60,6 @@ function showOfficeCanvas() {
 	updateMinimumRenewalBalanceDetails()
 	updateAirplaneRenewalDetails()
 	updateAirlineBases()
-	updateDividends()
 	updateAirlineColorPicker()
 	updateHeadquartersMap($('#officeCanvas .headquartersMap'), activeAirline.id)
 	updateLiveryInfo()
@@ -298,6 +297,19 @@ function updateMilestones(breakdowns) {
         if(breakdown.value >= 75){
             document.getElementById("m-country4").src = "/assets/images/icons/tick.png"
         }
+      } else if(breakdown.description === "Milestone Alliance Assists" && breakdown.value >= 0){
+        if(breakdown.value >= 15){
+            document.getElementById("m-country1").src = "/assets/images/icons/tick.png"
+        }
+        if(breakdown.value >= 30){
+            document.getElementById("m-country2").src = "/assets/images/icons/tick.png"
+        }
+        if(breakdown.value >= 45){
+            document.getElementById("m-country3").src = "/assets/images/icons/tick.png"
+        }
+        if(breakdown.value >= 75){
+            document.getElementById("m-country4").src = "/assets/images/icons/tick.png"
+        }
       } else if(breakdown.description === "Milestone Passenger Miles" && breakdown.value >= 0){
         if(breakdown.value >= 15){
             document.getElementById("m-pax1").src = "/assets/images/icons/tick.png"
@@ -387,13 +399,13 @@ function loadSheets() {
 	//reset values
 	loadedIncomes = {}
 	loadedIncomes['WEEKLY'] = []
-	loadedIncomes['MONTHLY'] = []
-	loadedIncomes['YEARLY'] = []
+	loadedIncomes['QUARTER'] = []
+	loadedIncomes['PERIOD'] = []
 
 	loadedCashFlows = {}
     loadedCashFlows['WEEKLY'] = []
-    loadedCashFlows['MONTHLY'] = []
-    loadedCashFlows['YEARLY'] = []
+    loadedCashFlows['QUARTER'] = []
+    loadedCashFlows['PERIOD'] = []
 
 	officeSheetPage = 0
 	officePeriod = 'WEEKLY'
@@ -490,22 +502,8 @@ function changeOfficePeriod(period, type) {
 }
 
 function updateIncomeSheet(airlineIncome) {
-	if (airlineIncome) {
-		var periodCount
-		var inProgress
-		if (airlineIncome.period == "WEEKLY") {
-			periodCount= airlineIncome.cycle
-		} else if (airlineIncome.period == "MONTHLY") {
-			periodCount = Math.ceil(airlineIncome.cycle / 4)
-			inProgress = (airlineIncome.cycle + 1) % 4
-		} else if (airlineIncome.period == "YEARLY") {
-			periodCount = Math.ceil(airlineIncome.cycle / 52)
-			inProgress = (airlineIncome.cycle + 1) % 52
-		}
-		
-		var cycleText = periodCount + (inProgress ? " (In Progress)" : "")
-		
-		$("#officeCycleText").text(cycleText)
+	if (airlineIncome) {		
+		$("#officeCycleText").text(getGameDate(airlineIncome.cycle, airlineIncome.period))
 		$("#totalProfit").text('$' + commaSeparateNumber(airlineIncome.totalProfit))
         $("#totalRevenue").text('$' + commaSeparateNumber(airlineIncome.totalRevenue))
         $("#totalExpense").text('$' + commaSeparateNumber(airlineIncome.totalExpense))
@@ -531,7 +529,6 @@ function updateIncomeSheet(airlineIncome) {
         $("#othersRevenue").text('$' + commaSeparateNumber(airlineIncome.othersRevenue))
         $("#othersExpense").text('$' + commaSeparateNumber(airlineIncome.othersExpense))
         $("#othersLoanInterest").text('$' + commaSeparateNumber(airlineIncome.othersLoanInterest))
-        $("#othersDividends").text('$' + commaSeparateNumber(airlineIncome.othersDividends))
         $("#othersBaseUpkeep").text('$' + commaSeparateNumber(airlineIncome.othersBaseUpkeep))
         $("#othersOvertimeCompensation").text('$' + commaSeparateNumber(airlineIncome.othersOvertimeCompensation))
         $("#othersLoungeUpkeep").text('$' + commaSeparateNumber(airlineIncome.othersLoungeUpkeep))
@@ -558,21 +555,7 @@ function changeCashFlowPeriod(period) {
 
 function updateCashFlowSheet(airlineCashFlow) {
 	if (airlineCashFlow) {
-		var periodCount
-		var inProgress
-		if (airlineCashFlow.period == "WEEKLY") {
-			periodCount= airlineCashFlow.cycle
-		} else if (airlineCashFlow.period == "MONTHLY") {
-			periodCount = Math.ceil(airlineCashFlow.cycle / 4)
-			inProgress = (airlineCashFlow.cycle + 1) % 4
-		} else if (airlineCashFlow.period == "YEARLY") {
-			periodCount = Math.ceil(airlineCashFlow.cycle / 52)
-			inProgress = (airlineCashFlow.cycle + 1) % 52
-		}
-		
-		var cycleText = periodCount + (inProgress ? " (In Progress)" : "")
-		
-		$("#officeCycleText").text(cycleText)
+		$("#officeCycleText").text(getGameDate(airlineCashFlow.cycle, airlineCashFlow.period))
 		$("#cashFlowSheet .totalCashFlow").text('$' + commaSeparateNumber(airlineCashFlow.totalCashFlow))
         $("#cashFlowSheet .operation").text('$' + commaSeparateNumber(airlineCashFlow.operation))
         $("#cashFlowSheet .loanInterest").text('$' + commaSeparateNumber(airlineCashFlow.loanInterest))
@@ -1125,50 +1108,6 @@ function updateAirplaneRenewalDetails() {
 	});
 }
 
-function editDividends() {
-	$('#weeklyDividendsDisplaySpan').hide()
-	$('#weeklyDividendsInputSpan').show()
-}
-
-function setDividendsLevel(dividends) {
-    $('#weeklyDividendsDisplaySpan .warning').hide()
-    if(companyValue < 100000000){
-        return;
-    }
-	var airlineId = activeAirline.id
-	var url = "airlines/" + airlineId + "/weeklyDividends"
-    var data = { "weeklyDividends" : parseInt(dividends) }
-	$.ajax({
-		type: 'PUT',
-		url: url,
-	    data: JSON.stringify(data),
-	    contentType: 'application/json; charset=utf-8',
-	    dataType: 'json',
-	    success: function() {
-	    	activeAirline.weeklyDividends = dividends
-	    	updateDividends()
-	    },
-        error: function(jqXHR, textStatus, errorThrown) {
-            console.log(JSON.stringify(jqXHR));
-            console.log("AJAX error: " + textStatus + ' : ' + errorThrown);
-            $('#weeklyDividendsInputSpan .warning').text(jqXHR.responseText)
-            $('#weeklyDividendsInputSpan .warning').show()
-	    }
-	});
-}
-
-function updateDividends() {
-    if(companyValue < 100000000){
-        $('#weeklyDividendsDisplaySpan').hide()
-    } else {
-        $('#weeklyDividendsMin').hide()
-        $('#dividends').text("$" + activeAirline.weeklyDividends + "m")
-        $('#dividendsInput').val(activeAirline.weeklyDividends)
-        $('#weeklyDividendsDisplaySpan').show()
-        $('#weeklyDividendsInputSpan').hide()
-    }
-}
-
 function updateChampionedCountriesDetails() {
 	$('#championedCountriesList').children('div.table-row').remove()
 
@@ -1267,7 +1206,6 @@ function updateResetAirlineInfo() {
 	    dataType: 'json',
 	    success: function(result) {
 	        companyValue = result.overall;
-	        updateDividends();
 
 	    	if (result.rebuildRejection) {
 	    		disableButton($("#officeCanvas .button.resetAirline.rebuild"), result.rebuildRejection)

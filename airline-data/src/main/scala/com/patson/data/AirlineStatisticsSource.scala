@@ -1,10 +1,8 @@
 package com.patson.data
 
 import java.sql.Connection
-import java.sql.Statement
 import com.patson.data.Constants._
 import com.patson.model._
-import com.patson.util.{AirlineCache}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -13,8 +11,7 @@ import scala.collection.mutable.ListBuffer
 object AirlineStatisticsSource {
 
   def saveAirlineStats(stats: List[AirlineStat]) = {
-    //could add total? pax km?
-    val queryString = s"REPLACE INTO $AIRLINE_STATISTICS_TABLE (airline, cycle, tourists, elites, business, total) VALUES(?,?,?,?,?,?)";
+    val queryString = s"REPLACE INTO $AIRLINE_STATISTICS_TABLE (airline, cycle, period, tourists, elites, business, total, alliance_assists, rask, cask, satisfaction, load_factor, on_time, hub_dominance) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
     val connection = Meta.getConnection()
     try {
       connection.setAutoCommit(false)
@@ -22,10 +19,18 @@ object AirlineStatisticsSource {
       stats.foreach { entry =>
         preparedStatement.setInt(1, entry.airlineId)
         preparedStatement.setInt(2, entry.cycle)
-        preparedStatement.setInt(3, entry.tourists)
-        preparedStatement.setInt(4, entry.elites)
-        preparedStatement.setInt(5, entry.business)
-        preparedStatement.setInt(6, entry.total)
+        preparedStatement.setInt(3, entry.period.id)
+        preparedStatement.setInt(4, entry.tourists)
+        preparedStatement.setInt(5, entry.elites)
+        preparedStatement.setInt(6, entry.business)
+        preparedStatement.setInt(7, entry.total)
+        preparedStatement.setInt(8, entry.allianceAssists)
+        preparedStatement.setDouble(9, entry.RASK)
+        preparedStatement.setDouble(10, entry.CASK)
+        preparedStatement.setDouble(11, entry.satisfaction)
+        preparedStatement.setDouble(12, entry.loadFactor)
+        preparedStatement.setDouble(13, entry.onTime)
+        preparedStatement.setDouble(14, entry.hubDominance)
         preparedStatement.executeUpdate()
       }
       preparedStatement.close()
@@ -36,17 +41,25 @@ object AirlineStatisticsSource {
   }
 
   def saveAirlineStat(stat: AirlineStat) = {
-    val queryString = s"REPLACE INTO $AIRLINE_STATISTICS_TABLE (airline, cycle, tourists, elites, business, total) VALUES(?,?,?,?,?,?)";
+    val queryString = s"REPLACE INTO $AIRLINE_STATISTICS_TABLE (airline, cycle, period, tourists, elites, business, total, alliance_assists, rask, cask, satisfaction, load_factor, on_time, hub_dominance) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
     val connection = Meta.getConnection()
     try {
       connection.setAutoCommit(false)
       val preparedStatement = connection.prepareStatement(queryString)
       preparedStatement.setInt(1, stat.airlineId)
       preparedStatement.setInt(2, stat.cycle)
-      preparedStatement.setInt(3, stat.tourists)
-      preparedStatement.setInt(4, stat.elites)
-      preparedStatement.setInt(5, stat.business)
-      preparedStatement.setInt(6, stat.total)
+      preparedStatement.setInt(3, stat.period.id)
+      preparedStatement.setInt(4, stat.tourists)
+      preparedStatement.setInt(5, stat.elites)
+      preparedStatement.setInt(6, stat.business)
+      preparedStatement.setInt(7, stat.total)
+      preparedStatement.setInt(8, stat.allianceAssists)
+      preparedStatement.setDouble(9, stat.RASK)
+      preparedStatement.setDouble(10, stat.CASK)
+      preparedStatement.setDouble(12, stat.satisfaction)
+      preparedStatement.setDouble(13, stat.loadFactor)
+      preparedStatement.setDouble(14, stat.onTime)
+      preparedStatement.setDouble(15, stat.hubDominance)
       preparedStatement.executeUpdate()
       preparedStatement.close()
       connection.commit()
@@ -96,11 +109,19 @@ object AirlineStatisticsSource {
         while (resultSet.next()) {
           val airlineId = resultSet.getInt("airline")
           val cycle = resultSet.getInt("cycle")
+          val period = Period(resultSet.getInt("period"))
           val tourists = resultSet.getInt("tourists")
           val elites = resultSet.getInt("elites")
           val business = resultSet.getInt("business")
           val total = resultSet.getInt("total")
-          airlineStats += AirlineStat(airlineId, cycle, tourists, elites, business, total)
+          val allianceAssists = resultSet.getInt("alliance_assists")
+          val rask = resultSet.getDouble("rask")
+          val cask = resultSet.getDouble("cask")
+          val satisfaction = resultSet.getDouble("satisfaction")
+          val loadFactor = resultSet.getDouble("load_factor")
+          val onTime = resultSet.getDouble("on_time")
+          val hubDominance = resultSet.getDouble("hub_dominance")
+          airlineStats += AirlineStat(airlineId, cycle, period, tourists, elites, business, total, allianceAssists, rask, cask, satisfaction, loadFactor, onTime, hubDominance)
         }
 
         airlineStats.toList
@@ -137,12 +158,19 @@ object AirlineStatisticsSource {
       while (resultSet.next()) {
         val airlineId = resultSet.getInt("airline")
         val cycle = resultSet.getInt("cycle")
+        val period = Period(resultSet.getInt("period"))
         val tourists = resultSet.getInt("tourists")
         val elites = resultSet.getInt("elites")
         val business = resultSet.getInt("business")
         val total = resultSet.getInt("total")
-
-        airlineStats += AirlineStat(airlineId, cycle, tourists, elites, business, total)
+        val allianceAssists = resultSet.getInt("alliance_assists")
+        val rask = resultSet.getDouble("rask")
+        val cask = resultSet.getDouble("cask")
+        val satisfaction = resultSet.getDouble("satisfaction")
+        val loadFactor = resultSet.getDouble("load_factor")
+        val onTime = resultSet.getDouble("on_time")
+        val hubDominance = resultSet.getDouble("hub_dominance")
+        airlineStats += AirlineStat(airlineId, cycle, period, tourists, elites, business, total, allianceAssists, rask, cask, satisfaction, loadFactor, onTime, hubDominance)
       }
 
       airlineStats.toList

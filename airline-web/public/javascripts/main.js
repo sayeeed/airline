@@ -12,6 +12,7 @@ var airlineLabelColors = {}
 var polylines = []
 var airports = undefined
 var gameConstants
+var notes = {}
 
 $( document ).ready(function() {
 	mobileCheck()

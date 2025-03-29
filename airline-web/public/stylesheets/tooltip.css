@@ -38,7 +38,7 @@
 }
 
 .customTooltip .tooltiptext {
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.8);
     color: #fff;
     border-radius: 6px;
     padding: 10px 10px;

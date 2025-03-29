@@ -14,6 +14,7 @@ libraryDependencies ++= Seq(
   "com.google.inject.extensions" % "guice-assistedinject" % "5.1.0",
   specs2 % Test,
   "org.apache.pekko" %% "pekko-remote" % "1.0.3",
+  "org.apache.commons" % "commons-text" % "1.13.0",
   "default" %% "airline-data" % "2.1",
   "com.google.api-client" % "google-api-client" % "1.30.4",
   "com.google.oauth-client" % "google-oauth-client-jetty" % "1.34.1",
@@ -25,9 +26,6 @@ libraryDependencies ++= Seq(
 
 // https://mvnrepository.com/artifact/org.elasticsearch.client/elasticsearch-rest-client
 libraryDependencies += "org.elasticsearch.client" % "elasticsearch-rest-high-level-client" % "7.17.21"
-
-
-
 
 resolvers += "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases"
 

@@ -23,7 +23,7 @@ object LinkSimulation {
   val CREW_EQ_EXPONENT = 1.95
 
 
-  def linkSimulation(cycle: Int) : (List[LinkConsumptionDetails], scala.collection.immutable.Map[Lounge, LoungeConsumptionDetails], immutable.Map[(PassengerGroup, Airport, Route), Int], List[AirlineStat]) = {
+  def linkSimulation(cycle: Int) : (List[LinkConsumptionDetails], scala.collection.immutable.Map[Lounge, LoungeConsumptionDetails], immutable.Map[(PassengerGroup, Airport, Route), Int], immutable.Map[Int, AirlinePaxStat]) = {
     println("Loading all links")
     val links = LinkSource.loadAllLinks(LinkSource.FULL_LOAD)
     val flightLinks = links.filter(_.transportType == TransportType.FLIGHT).map(_.asInstanceOf[Link])
@@ -41,9 +41,7 @@ object LinkSimulation {
     val PassengerConsumptionResult(consumptionResult: scala.collection.immutable.Map[(PassengerGroup, Airport, Route), Int], missedPassengerResult : immutable.Map[(PassengerGroup, Airport), Int])= PassengerSimulation.passengerConsume(demand, links)
 
     println("Generating Airline Stats")
-    val airlineStats = tallyPassengerTypesByAirline(consumptionResult, cycle)
-    AirlineStatisticsSource.deleteAirlineStatsBeforeCycle(cycle - 40)
-    AirlineStatisticsSource.saveAirlineStats(airlineStats)
+    val airlineStats = tallyPassengerTypesByAirline(consumptionResult)
 
     //used for airport stats
     println("Generating flight stats")
@@ -160,11 +158,8 @@ object LinkSimulation {
           if (airplaneCount > 0) {
             val airplane = assignedInServiceAirplanes.toList.map(_._1)(i % airplaneCount) //round-robin
             val errorValue = ThreadLocalRandom.current().nextDouble()
-            val hangarCountTo = link.from.getAirlineBase(link.airline.id).get.specializations.count(_.getType == BaseSpecializationType.HANGAR)
-            val hangarCountFrom = link.to.getAirlineBase(link.airline.id) match {
-              case Some(base: AirlineBase) => base.specializations.count(_.getType == BaseSpecializationType.HANGAR)
-              case None => 0
-            }
+            val hangarCountFrom = link.from.getAirlineBase(link.airline.id).map(_.specializations.count(_.getType == BaseSpecializationType.HANGAR)).getOrElse(0)
+            val hangarCountTo = link.to.getAirlineBase(link.airline.id).map(_.specializations.count(_.getType == BaseSpecializationType.HANGAR)).getOrElse(0)
             val airplaneCondition = Math.min(100, (hangarCountTo + hangarCountFrom) * 4 + airplane.condition)
             val conditionMultiplier = (Airplane.MAX_CONDITION - airplaneCondition * 0.75).toDouble / Airplane.MAX_CONDITION
 
@@ -468,27 +463,54 @@ object LinkSimulation {
     
   }
 
-  def tallyPassengerTypesByAirline(consumptionResult: scala.collection.immutable.Map[(PassengerGroup, Airport, Route), Int], cycle: Int): List[AirlineStat] = {
-    val passengerTypeCountsByAirline = Map[Int, (Int, Int, Int, Int)]()
+  def tallyPassengerTypesByAirline(consumptionResult: scala.collection.immutable.Map[(PassengerGroup, Airport, Route), Int]): immutable.Map[Int, AirlinePaxStat] = {
+    // Create a mutable map to accumulate stats per airline
+    val airlineStatsMap = mutable.Map[Int, (Int, Int, Int, Int, Int)]() // (tourist, elite, business, total, allianceRoute)
 
-    consumptionResult.foreach {
-      case ((passengerGroup, _, route), passengerCount) =>
+    // First, group by route to avoid double-counting alliance assists
+    val routesByPassengerType = consumptionResult.groupBy(_._1._3)
+
+    routesByPassengerType.foreach {
+      case (route, passengerTypes) =>
+        // Check if this route has alliance partners for each airline
+        def hasAlliancePartners(airlineId: Int) = route.links.exists(linkConsideration =>
+          linkConsideration.link.transportType == TransportType.FLIGHT &&
+            linkConsideration.link.airline.id == airlineId &&
+            linkConsideration.link.airline.getAllianceId().isDefined &&
+          route.links.exists(otherLink => 
+            otherLink.link.transportType == TransportType.FLIGHT &&
+            otherLink.link.airline.id != airlineId &&
+            otherLink.link.airline.getAllianceId().isDefined &&
+            otherLink.link.airline.getAllianceId() == linkConsideration.link.airline.getAllianceId()
+          )
+        )
+
+        // Process each airline in the route
         route.links.filter(_.link.transportType == TransportType.FLIGHT).foreach { link =>
           val airlineId = link.link.airline.id
-          val countInstance = passengerTypeCountsByAirline.getOrElse(airlineId, (0, 0, 0, 0))
-          val paxTypeCount = passengerGroup.passengerType match {
-            case PassengerType.TOURIST => passengerTypeCountsByAirline.put(airlineId, (countInstance._1 + passengerCount, countInstance._2, countInstance._3, countInstance._4 + passengerCount))
-            case PassengerType.ELITE => passengerTypeCountsByAirline.put(airlineId, (countInstance._1, countInstance._2 + passengerCount, countInstance._3, countInstance._4 + passengerCount))
-            case PassengerType.BUSINESS => passengerTypeCountsByAirline.put(airlineId, (countInstance._1, countInstance._2, countInstance._3 + passengerCount, countInstance._4 + passengerCount))
-            case _ => passengerTypeCountsByAirline.put(airlineId, (countInstance._1, countInstance._2, countInstance._3, countInstance._4 + passengerCount))
+          val currentStats = airlineStatsMap.getOrElse(airlineId, (0, 0, 0, 0, 0))
+          val allianceAssists = if (hasAlliancePartners(airlineId)) passengerTypes.values.sum else 0
+          
+          // Process each passenger type for this airline
+          val newStats = passengerTypes.foldLeft(currentStats) {
+            case ((tourist, elite, business, total, alliance), ((passengerGroup, _, _), passengerCount)) =>
+              passengerGroup.passengerType match {
+                case PassengerType.TOURIST => (tourist + passengerCount, elite, business, total + passengerCount, alliance)
+                case PassengerType.ELITE => (tourist, elite + passengerCount, business, total + passengerCount, alliance)
+                case PassengerType.BUSINESS => (tourist, elite, business + passengerCount, total + passengerCount, alliance)
+                case _ => (tourist, elite, business, total + passengerCount, alliance)
+              }
           }
+
+          // Add alliance assists after processing all passenger types
+          airlineStatsMap.put(airlineId, (newStats._1, newStats._2, newStats._3, newStats._4, newStats._5 + allianceAssists))
         }
     }
 
-    passengerTypeCountsByAirline.map {
-      case (airlineId, (tourist, elite, business, total)) =>
-        AirlineStat(airlineId, cycle, tourist, elite, business, total)
-    }.toList
+    airlineStatsMap.map {
+    case (airlineId, (tourist, elite, business, total, allianceRoute)) =>
+      airlineId -> AirlinePaxStat(tourist, elite, business, total, allianceRoute)
+    }.toMap
   }
   
   def generateCountryMarketShares(consumptionResult: scala.collection.immutable.Map[(PassengerGroup, Airport, Route), Int]) : List[CountryMarketShare] = {

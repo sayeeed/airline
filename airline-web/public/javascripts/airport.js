@@ -4,7 +4,8 @@ var activeAirportId
 var activeAirportPopupInfoWindow
 var airportMapMarkers = []
 var airportMapCircle
-var airportBase
+var targetBase
+var airportBaseScale
 
 
 function showAirportDetails(airportId) {
@@ -119,8 +120,13 @@ function updateAirportDetails(airport, cityImageUrl, airportImageUrl) {
 		    contentType: 'application/json; charset=utf-8',
 		    dataType: 'json',
 		    success: function(baseDetails) {
-		    	airportBase = baseDetails.targetBase
+		    	targetBase = baseDetails.targetBase
+		    	airportBaseScale = baseDetails.baseScale ?? 0
+
 		    	populateBaseUpkeepModal(baseDetails.targetBase)
+                const baseType = targetBase.headquarter ? "Headquarters" : "Base"
+                const upkeepByLevel = baseDetails.targetBase.upkeepByLevel
+
 		    	if (!baseDetails.baseScale) { //new base
 		    	    document.getElementById('airportBaseDetailsHeading').innerHTML = `Build base`
 	    			$('#airportDetailsBaseUpkeep').text('0')
@@ -133,13 +139,12 @@ function updateAirportDetails(airport, cityImageUrl, airportImageUrl) {
 
 	    			$('#baseDetailsModal').removeData('scale')
 	    		} else {
-	    		    const baseType = airportBase.headquarter ? "Headquarters" : "Base"
                     let specializationList = "";
-                    if (airportBase.specializations) {
+                    if (targetBase.specializations) {
                         specializationList = document.createElement('span');
 
 
-                        airportBase.specializations.forEach(specialization => {
+                        targetBase.specializations.forEach(specialization => {
                             const img = document.createElement('img');
                             img.src = `assets/images/icons/specialization/${specialization.id}.png`;
                             img.title = specialization.label;
@@ -151,7 +156,7 @@ function updateAirportDetails(airport, cityImageUrl, airportImageUrl) {
                     }
                     const smallTextUnderLine = document.createElement("small")
                     smallTextUnderLine.classList.add('text-underline',"pl-2")
-                    smallTextUnderLine.innerText = `Scale ${airportBase.scale}`;
+                    smallTextUnderLine.innerText = `Scale ${airportBaseScale}`;
 
                     const airportBaseDetailsHeadingELM = document.getElementById('airportBaseDetailsHeading')
                     airportBaseDetailsHeadingELM.innerText = `${activeAirline.name} ${baseType}`
@@ -162,12 +167,12 @@ function updateAirportDetails(airport, cityImageUrl, airportImageUrl) {
 //                        airportBaseDetailsHeadingELM.appendChild(specializationList);
 //                    }
 
-	    			if (airportBase.delegatesRequired == 0) {
+	    			if (targetBase.delegatesRequired == 0) {
 	    			    $('#airportDetailsBaseDelegatesRequired').text('None')
                     } else {
                         $('#airportDetailsBaseDelegatesRequired').empty()
                         var $delegatesSpan = $('<span style="display: flex;"></span>')
-                        for (i = 0 ; i < airportBase.delegatesRequired; i ++) {
+                        for (i = 0 ; i < targetBase.delegatesRequired; i ++) {
                             var $delegateIcon = $('<img src="assets/images/icons/user-silhouette-available.png"/>')
                             $delegatesSpan.append($delegateIcon)
                         }
@@ -188,19 +193,19 @@ function updateAirportDetails(airport, cityImageUrl, airportImageUrl) {
                     }
                     $capacitySpan.text(capacityText)
 
-	    			$('#airportDetailsBaseUpkeep').text('$' + commaSeparateNumber(airportBase.upkeep))
-                    $('.upgradeCostLabel').text('Upgrade base cost')
+	    			$('#airportDetailsBaseUpkeep').text('$' + commaSeparateNumber(upkeepByLevel[airportBaseScale - 1]))
+//                    $('.upgradeCostLabel').text('Upgrade base cost')
 
-	    			$('#baseDetailsModal').data('scale', airportBase.scale)
-	    			$('#upgradeBaseButton').data('scale', airportBase.scale)
+	    			$('#baseDetailsModal').data('scale', airportBaseScale)
+	    			$('#upgradeBaseButton').data('scale', airportBaseScale)
 	    			updateFacilityIcons(airport)
 	    			enableButton($('#airportBaseDetails .specialization.button'))
 	    		}
 
 		    	var targetBaseScale = baseDetails.targetBase.scale
-				const upgradeText = targetBaseScale === 1 ? "Build base" : "Upgrade base"
+				const upgradeText = targetBaseScale === 1 ? `Build ${baseType}` : `Upgrade ${baseType}`
 		    	$('#upgradeBaseButton').text(upgradeText + " for $" + commaSeparateNumber(baseDetails.targetBase.upgradeCostByLevel[targetBaseScale - 1]))
-    			$('#airportDetailsBaseUpgradeUpkeep').text('$' + commaSeparateNumber(baseDetails.targetBase.upkeepByLevel[targetBaseScale - 1]))
+    			$('#airportDetailsBaseUpgradeUpkeep').text('$' + commaSeparateNumber(upkeepByLevel[airportBaseScale - 1]))
 
 	    		
 	    		//update buttons and reject reasons
@@ -208,7 +213,7 @@ function updateAirportDetails(airport, cityImageUrl, airportImageUrl) {
 	    			$('#buildHeadquarterButton').hide()
 	    			$('#buildBaseButton').hide()
                     $('#upgradeBaseButton').hide()
-	    			if (!airportBase) {
+	    			if (!airportBaseScale) {
 	    			    disableButton($('#buildBaseButton'), baseDetails.rejection)
 	    			    $('#buildBaseButton').show()
 	    			} else {
@@ -216,7 +221,7 @@ function updateAirportDetails(airport, cityImageUrl, airportImageUrl) {
 	    			    $('#upgradeBaseButton').show()
 	    			}
 	    		} else {
-	    			if (!airportBase) {
+	    			if (!airportBaseScale) {
 	    				if (activeAirline.headquarterAirport) {
 		    				$('#buildHeadquarterButton').hide()
 		    				enableButton($('#buildBaseButton'))
@@ -239,7 +244,7 @@ function updateAirportDetails(airport, cityImageUrl, airportImageUrl) {
                     disableButton($('#downgradeBaseButton'), baseDetails.downgradeRejection)
 	    			$('#downgradeBaseButton').show()
 		    	} else {
-		    		if (airportBase) {
+		    		if (airportBaseScale > 0) {
                         enableButton($('#downgradeBaseButton'))
 		    			$('#downgradeBaseButton').show()
 		    		} else {
@@ -251,7 +256,7 @@ function updateAirportDetails(airport, cityImageUrl, airportImageUrl) {
                     disableButton($('#deleteBaseButton'), baseDetails.deleteRejection)
                     $('#deleteBaseButton').show()
                 } else {
-                    if (!airportBase) {
+                    if (!airportBaseScale) {
                         $('#deleteBaseButton').hide()
                     } else {
                         enableButton($('#deleteBaseButton'))
@@ -1608,13 +1613,11 @@ function populateBaseUpkeepModal(targetBase) {
     const existingRows = tableContainer.querySelectorAll('.table-row:not(.table-header)');
     existingRows.forEach(row => row.remove());
 
-	const currentScale = targetBase.scale - 1;
-
     targetBase.upkeepByLevel.forEach((upkeep, index) => {
         const row = document.createElement('div');
         row.className = 'table-row';
         row.setAttribute('data-scale', index);
-		if (index === currentScale) {
+		if (index + 1 === airportBaseScale) {
             row.classList.add('selected');
         }
 
