@@ -193,14 +193,14 @@ object Link {
   }
 
   def getStaffRequired(distance: Int, flightCategory: FlightCategory.Value, airlineType: AirlineType.AirlineType) : StaffSchemeBreakdown = {
-    val base = if (flightCategory == FlightCategory.INTERNATIONAL) 6 else 3
     val multiplier = if (flightCategory == FlightCategory.INTERNATIONAL) {
-      Math.pow(distance + 1600, 0.16) - 1.5
+      Math.pow(distance + 1000, 0.16) - 1.5
     } else {
-      Math.pow(distance + 1000, 0.15) - 2
+      Math.pow(distance + 600, 0.15) - 2
     }
+    val base = if (flightCategory == FlightCategory.INTERNATIONAL) 6 else 3 //todo: add multiplier
     val staffPerFrequency = if (airlineType == AirlineType.REGIONAL) {0.1 * multiplier} else {0.5 * multiplier}
-    val staffPer500Pax = 1.25 * multiplier
+    val staffPer500Pax = 1.35 * multiplier
     StaffSchemeBreakdown(base, staffPerFrequency, staffPer500Pax)
   }
 }

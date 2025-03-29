@@ -11,8 +11,8 @@ object Pricing {
   val modifierBrackets: Map[LinkClass, List[(Int, Double)]] = Map(
     DISCOUNT_ECONOMY  -> List((400, 0.13), (800, 0.070), (3800, 0.071), (3000, 0.09), (Int.MaxValue, 0.15)),
     ECONOMY           -> List((400, 0.16), (800, 0.077), (3800, 0.076), (3000, 0.09), (Int.MaxValue, 0.16)),
-    BUSINESS          -> List((400, 0.39), (800, 0.240), (3800, 0.173), (3000, 0.27), (Int.MaxValue, 0.27)),
-    FIRST             -> List((400, 1.17), (800, 0.356), (3800, 0.465), (3000, 0.58), (Int.MaxValue, 0.62))
+    BUSINESS          -> List((400, 0.42), (800, 0.239), (3800, 0.173), (3000, 0.27), (Int.MaxValue, 0.27)),
+    FIRST             -> List((400, 1.24), (800, 0.354), (3800, 0.465), (3000, 0.58), (Int.MaxValue, 0.62))
   )
   val INTERNATIONAL_PRICE_MULTIPLIER = 1.05
   val PRICE_BASE = 15

@@ -6,7 +6,7 @@ case class Lounge(airline : Airline, allianceId : Option[Int], airport : Airport
   }
   
   val getUpkeep : Long = {
-    if (status == LoungeStatus.ACTIVE) (50000 + airport.baseIncome) * level else 0 //use base income for calculation here
+    if (status == LoungeStatus.ACTIVE) (40000 + airport.baseIncome) * level else 0 //use base income for calculation here
   }
 
   val rankingThreshold = Map(
@@ -25,8 +25,8 @@ case class Lounge(airline : Airline, allianceId : Option[Int], airport : Airport
 }
 
 object Lounge {
-  val PER_VISITOR_COST = 20 //how much extra cost to serve 1 visitor
-  val PER_VISITOR_CHARGE = 45 //how much to charge an airline (self and alliance member) per 1 visitor. This has to be higher to make popular lounge profitable
+  val PER_VISITOR_COST = 13 //how much extra cost to serve 1 visitor
+  val PER_VISITOR_CHARGE = 30 //how much to charge an airline (self and alliance member) per 1 visitor. This has to be higher to make popular lounge profitable
   val MAX_LEVEL = 4
 
   def priceAdjustRatio (loungeLevel : Int, loungeLevelRequired : Int, distance : Int): Double = {

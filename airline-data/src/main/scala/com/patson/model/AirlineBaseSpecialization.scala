@@ -16,18 +16,18 @@ object AirlineBaseSpecialization extends Enumeration {
     def unapply(airline: Airline, airport : Airport) {}
   }
 
-  case class DelegateSpecialization1() extends Specialization {
-    override val getType = BaseSpecializationType.DELEGATE
-    override val label = "Public Affairs I"
-    override val scaleRequirement : Int = 12
-    override def descriptions(airport : Airport) = List(s"Gives 1 extra delegate")
-  }
-  case class DelegateSpecialization2() extends Specialization {
-    override val getType = BaseSpecializationType.DELEGATE
-    override val label = "Public Affairs II"
-    override val scaleRequirement : Int = 14
-    override def descriptions(airport : Airport) = List(s"Gives 1 extra delegate")
-  }
+//  case class DelegateSpecialization1() extends Specialization {
+//    override val getType = BaseSpecializationType.DELEGATE
+//    override val label = "Public Affairs I"
+//    override val scaleRequirement : Int = 12
+//    override def descriptions(airport : Airport) = List(s"Gives 1 extra delegate")
+//  }
+//  case class DelegateSpecialization2() extends Specialization {
+//    override val getType = BaseSpecializationType.DELEGATE
+//    override val label = "Public Affairs II"
+//    override val scaleRequirement : Int = 14
+//    override def descriptions(airport : Airport) = List(s"Gives 1 extra delegate")
+//  }
 
   case class PowerhouseSpecialization() extends Specialization {
     override val getType = BaseSpecializationType.AIRPORT_POWER
@@ -310,17 +310,20 @@ object AirlineBaseSpecialization extends Enumeration {
     )
   }
 
-  case class HangarSpecialization1() extends Specialization {
+  abstract class HangarSpecialization extends Specialization {
+    val HANGAR_CANCELATION_REDUCTION : Double = 0.04
     override val getType = BaseSpecializationType.HANGAR
+  }
+
+  case class HangarSpecialization1() extends HangarSpecialization {
     override val label = "Maintenance Hangar"
     override val scaleRequirement : Int = 10
-    override def descriptions(airport : Airport) = List(s"4% reduction in delays / cancellations.", "Each hangar on a link is a cumulative.")
+    override def descriptions(airport : Airport) = List(s"${HANGAR_CANCELATION_REDUCTION} reduction in delays / cancellations.", "Each hangar on a link is a cumulative.")
   }
-  case class HangarSpecialization2() extends Specialization {
-    override val getType = BaseSpecializationType.HANGAR
+  case class HangarSpecialization2() extends HangarSpecialization {
     override val label = "Maintenance Hangar II"
     override val scaleRequirement : Int = 14
-    override def descriptions(airport : Airport) = List(s"4% reduction in delays / cancellations.", "Each hangar on a link is a cumulative.")
+    override def descriptions(airport : Airport) = List(s"${HANGAR_CANCELATION_REDUCTION * 100}% reduction in delays / cancellations.", "Each hangar on a link is a cumulative.")
   }
 
   implicit def valueToSpecialization(x: Value) = x.asInstanceOf[Specialization]
@@ -335,8 +338,8 @@ object AirlineBaseSpecialization extends Enumeration {
   val SERVICE_3 = ServiceSpecialization3()
   val SERVICE_5 = ServiceSpecialization5()
   val SPORTS_SPONSORSHIP = LoyaltySpecialization()
-  val DELEGATE_RECRUITER_1 = DelegateSpecialization1()
-  val DELEGATE_RECRUITER_2 = DelegateSpecialization2()
+//  val DELEGATE_RECRUITER_1 = DelegateSpecialization1()
+//  val DELEGATE_RECRUITER_2 = DelegateSpecialization2()
   val BRANDING_BUDGET = BudgetAirlineSpecialization()
   val BRANDING_PREMIUM = PremiumAirlineSpecialization()
   val BRANDING_WIFI = WifiSpecialization()
