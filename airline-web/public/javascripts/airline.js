@@ -23,7 +23,7 @@ $( document ).ready(function() {
 function updateAirlineInfo(airlineId) {
 	$.ajax({
 		type: 'GET',
-		url: "airlines/" + airlineId,
+		url: "airlines/" + airlineId + "?extendedInfo=true",
 	    contentType: 'application/json; charset=utf-8',
 	    dataType: 'json',
 	    async: false,

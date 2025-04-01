@@ -30,7 +30,6 @@ GET		 /airports/:fromAirportId/to/:toAirportId				controllers.Application.getAir
 GET		 /airports/:airportId/links	controllers.Application.getLinksByAirport(airportId : Int)
 GET	 	 /airports/:airportId/assets	      controllers.AirportAssetApplication.getAirportAssets(airportId : Int)
 GET	 	 /airports/:airportId/champions	      controllers.Application.getAirportChampions(airportId : Int, airlineId: Option[Int])
-GET		 /airports/base/scale-details			  controllers.Application.getScaleDetails()
 GET      /airports/:airportId/generic-transits     controllers.GenericTransitApplication.getGenericTransits(airportId: Int)
 
 GET		 /cities/:cityId/airportShares	  controllers.Application.getAirportSharesOnCity(cityId: Int)

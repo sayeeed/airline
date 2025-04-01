@@ -333,10 +333,13 @@ object GeoDataGenerator extends App {
 
     println(s"Calculating incomes with gini: ${giniMap}")
 
-    val popOverrideMap : Map[String, (Int, Int, Int)] = scala.io.Source.fromFile("population_override.csv").getLines().map(_.split(",", -1)).map { tokens =>
-      (tokens(0), (tokens(4).toInt, if (tokens(5).isEmpty) 0 else tokens(5).toInt, tokens(2).toInt))
+    val popOverrideMap: Map[String, (Int, Int, Int)] = scala.io.Source.fromFile("population_override.csv").getLines().map(_.split(",", -1)).map { tokens =>
+      val basePopulation = if (tokens(4).isEmpty) 0 else tokens(4).toInt
+      val elitePopulation = if (tokens(5).isEmpty) 0 else tokens(5).toInt
+      val baseIncome = if (tokens(2).isEmpty) 0 else tokens(2).toInt
+      (tokens(0), (basePopulation, elitePopulation, baseIncome))
     }.toMap
-    println(s"manually set population override ${popOverrideMap}")
+    println(s"manually set population override ${popOverrideMap.size}")
 
     val airports = airportResult.map { airport =>
       val power = airport.citiesServed.foldLeft(0.toLong) {
