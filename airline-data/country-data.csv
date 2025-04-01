@@ -1,6 +1,6 @@
 ,,,,,group,group2,lang,lang2,,religion
 AF,Afghanistan,1,68.9,5.947,None|,Sunni|,,,,Muslim
-AL,Albania,6,68.6,4.567,None|,Sunni|,Albanian|,,,Muslim
+AL,Albania,7,68.6,4.567,None|,Sunni|,Albanian|,,,Muslim
 DZ,Algeria,5,84.8,4.223,Sunni|,,Arabic|,,,
 AS,American Samoa,4,,1.000,PIF|,,Anglophone|,,,
 AO,Angola,3,81.4,3.304,SADC|,,Lusophone|,,,
@@ -95,7 +95,7 @@ HK,Hong Kong,10,73.8,1.468,ASEAN|,,Sinophone|,Anglophone|,,
 HU,Hungary,8,68,2.920,EU|,,Hungarian|,,,
 IS,Iceland,10,64.6,1.089,Nordic / Lutheran|,,Anglophone|,,,
 IN,India,4,82.3,4.884,SASEC|,|AU|Indian-|US|Indian-|GB|Indian-|NZ|Indian,,Sunni|,,Muslim
-ID,Indonesia,5,78.2,1.531,ASEAN|,,Malay|,Sunni|,,Muslim
+ID,Indonesia,5,78.2,1.531,ASEAN|,|TW|Indonesian-|KA|Indonesian-|SA|Indonesian-,Malay|,Sunni|,,Muslim
 IR,Iran,1,79.2,4.362,Shia|,,Farsi|,,,
 IQ,Iraq,2,71,2.570,Sunni|,,Arabic|,,,
 IE,Ireland,10,80,1.284,EU|,,Anglophone|,,,
@@ -133,11 +133,11 @@ MQ,Martinique,4,,1.000,CC|,,Francophonie|,,,
 MR,Mauritania,3,75.8,4.140,None|,,Arabic|,Francophonie|-Sunni|,,Muslim
 MU,Mauritius,9,71.6,3.311,SADC|,,Francophonie|,,,
 YT,Mayotte,4,,1.000,None|,Sunni|,Francophonie|,,,Muslim
-MX,Mexico,6,80.4,2.532,,,Hispanic|,,,
+MX,Mexico,6,80.4,2.532,Hispanic|,,,,,
 FM,Micronesia,4,,1.308,PIF|,,Anglophone|,,,
 MD,Moldova,7,69.1,3.484,None|,,Russian|,,,
 MN,Mongolia,5,74.2,3.825,None|,,Mongolian|,,,
-ME,Montenegro,7,68.1,3.331,None|,,Serbo Croatian|,,,
+ME,Montenegro,6,68.1,3.331,None|,,Serbo Croatian|,,,
 MS,Montserrat,6,,1.000,CC|,,Anglophone|,,,
 MA,Morocco,6,82.4,3.225,Sunni|,|NL|Moroccan-|FR|Moroccan,Arabic|,,,
 MZ,Mozambique,4,75,3.204,SADC|,,Lusophone|,,,

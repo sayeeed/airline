@@ -39,7 +39,7 @@ object GeoDataGenerator extends App {
       "AU"
 //    } else if (List("NU", "CK").contains(countryCode)) {
 //      "NZ"
-    } else if (List("PM", "WF", "GF", "GP", "MF", "MQ", "PM", "BL", "RE", "NC", "PF").contains(countryCode)) {
+    } else if (List("PM", "WF", "GF", "GP", "MF", "MQ", "PM", "BL", "RE", "NC", "PF", "MC").contains(countryCode)) {
       "FR"
     } else if (List("BQ").contains(countryCode)) {
       "NL"
@@ -246,8 +246,8 @@ object GeoDataGenerator extends App {
   def generateAirportData(rawAirportResult : List[CsvAirport], runwayResult : Map[Int, List[Runway]], cities : List[City]) : List[Airport] = {
     val removalAirportIatas = AdditionalLoader.loadRemovalAirportIatas()
 
-    println(s"Removal iatas")
-    removalAirportIatas.foreach(println)
+    println(s">> ${removalAirportIatas.size} removal iatas")
+//    removalAirportIatas.foreach(println)
 
     setAirportRunwayDetails(rawAirportResult, runwayResult)
 
@@ -530,7 +530,7 @@ object GeoDataGenerator extends App {
     }.toMap
 
     val countries = ArrayBuffer[Country]()
-    println(airportsByCountry)
+//    println(airportsByCountry)
     airportsByCountry.foreach {
       case (countryCode, airports) =>
         val totalAirportPopulation = airports.map {

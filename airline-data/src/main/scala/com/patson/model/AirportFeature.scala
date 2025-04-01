@@ -181,7 +181,9 @@ sealed case class DomesticAirportFeature() extends AirportFeature {
   val featureType = AirportFeatureType.DOMESTIC_AIRPORT
   def strength = 0
   override def demandAdjustment(rawDemand : Double, passengerType : PassengerType.Value, airportId : Int, fromAirport : Airport, toAirport : Airport, affinity : Int, distance : Int) : Int = {
-    if (affinity >= 5) {//domestic
+    if (fromAirport.countryCode == "CN") { //otherwise demand gets too big...
+      0
+    } else if (affinity >= 5) { //domestic
       (DemandGenerator.launchDemandFactor * rawDemand / 3).toInt
     } else {
        (-1 * rawDemand / 2).toInt
