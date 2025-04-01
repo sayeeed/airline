@@ -1083,7 +1083,7 @@ function plotIncomeChart(airlineIncomes, period, container) {
                                   "toolTipBorderRadius": "2",
                                   "toolTipPadding": "5",
                                   "bgAlpha":"0",
-                                  "showValues":"1",
+                                  "showValues":"0",
                                   "showZeroPlane": "1",
                                   "zeroPlaneColor": "#222222",
                                   "zeroPlaneThickness": "2",
@@ -1102,11 +1102,11 @@ function plotIncomeChart(airlineIncomes, period, container) {
 	    	"chart": chartConfig,
 	    	"categories" : [{ "category" : category}],
 			"dataset" : [ 
-				{ "seriesname": "Total Income", "data" : data["total"]},
-				{ "seriesname": "Flight Income", "data" : data["links"], "visible" : "0"},
-				{ "seriesname": "Transaction Income", "data" : data["transactions"], "visible" : "0"},
-				{ "seriesname": "Other Income", "data" : data["others"], "visible" : "0"},
-				{ "seriesname": "Stock Price", "data" : data["stockPrice"], "visible" : "0"},
+				{ "seriesname": "Total Income", "data" : showEveryNthLabel(data["total"], 2), "visible" : "0"},
+				{ "seriesname": "Flight Income", "data" : showEveryNthLabel(data["links"], 2)},
+				{ "seriesname": "Transaction Income", "data" : showEveryNthLabel(data["transactions"], 2), "visible" : "0"},
+				{ "seriesname": "Other Income", "data" : showEveryNthLabel(data["others"], 2), "visible" : "0"},
+				{ "seriesname": "Stock Price", "data" : showEveryNthLabel(data["stockPrice"], 2), "visible" : "0"},
             ]
 	    }
 	})
@@ -1139,7 +1139,7 @@ function plotCashFlowChart(airlineCashFlows, period, container) {
                                       "toolTipBorderRadius": "2",
                                       "toolTipPadding": "5",
                                       "bgAlpha":"0",
-                                      "showValues":"1",
+                                      "showValues":"0",
                                       "showZeroPlane": "1",
                                       "zeroPlaneColor": "#222222",
                                       "zeroPlaneThickness": "2",
@@ -1156,66 +1156,132 @@ function plotCashFlowChart(airlineCashFlows, period, container) {
 	    	"chart": chartConfig,
 	    	"categories" : [{ "category" : category}],
 			"dataset" : [ 
-				{ "seriesname": "Total CashFlow", "data" : data["cashFlow"] }
+				{ "seriesname": "Total CashFlow", "data" : showEveryNthLabel(data["cashFlow"], 2) }
 			]
 	    }
 	})
 }
 
-function plotAirlineStats(stats, container) {
-	container.children(':FusionCharts').each((function(i) {
-		  $(this)[0].dispose();
-	}))
+function plotOpsChart(stats, container) {
+	container.children(':FusionCharts').each(function () {
+		$(this)[0].dispose();
+	});
 
-	var data = {}
-    	data["total"] = []
-    	data["traveler"] = []
-    	data["tourists"] = []
-    	data["elites"] = []
-    	data["business"] = []
-    	data["allianceAssists"] = []
-    	var category = []
+	const data = {
+		RASK: [],
+		CASK: [],
+		satisfaction: [],
+		loadFactor: [],
+		onTime: [],
+		hubDominance: []
+	};
+	const category = [];
 
+	stats.forEach(stat => {
+		data.RASK.push({ value: stat.RASK });
+		data.CASK.push({ value: stat.CASK });
+		data.satisfaction.push({ value: stat.satisfaction });
+		data.loadFactor.push({ value: stat.loadFactor });
+		data.onTime.push({ value: stat.onTime });
+		data.hubDominance.push({ value: stat.hubDominance });
+		category.push({ label: stat.cycle.toString() });
+	});
 
-	$.each(stats, function(key, stat) {
-        data["total"].push({ value : stat.total })
-        data["traveler"].push({ value : stat.total - (stat.tourists + stat.elites + stat.business) })
-        data["tourists"].push({ value : stat.tourists })
-        data["elites"].push({ value : stat.elites })
-        data["business"].push({ value : stat.business })
-        data["allianceAssists"].push({ value : stat.allianceAssists })
-        category.push({ "label" : stat.cycle.toString() })
-    })
+	const chartConfig = {
+		xAxisname: "Week",
+		yAxisName: "Performance",
+		numMinorDivLines: 1,
+		divLineAlpha: 0,
+		showValues: "0",
+		showZeroPlane: "0",
+		showBorder: "0",
+		toolTipBorderRadius: "2",
+		toolTipPadding: "5"
+	};
+	checkDarkTheme(chartConfig);
 
-	var chartConfig = {
-                        "xAxisname": "Week",
-                        "yAxisName": "Passengers",
-                        "numMinorDivLines": 1,
-                        "divLineAlpha": 0,
-                        "showValues":"0",
-                        "showZeroPlane": "0",
-                        }
-    checkDarkTheme(chartConfig)
+	const dataset = [
+		{ seriesname: "RASK", data: showEveryNthLabel(data.RASK, 2) },
+		{ seriesname: "CASK", data: showEveryNthLabel(data.CASK, 2) },
+		{ seriesname: "Satisfaction", data: showEveryNthLabel(data.satisfaction, 2) },
+		{ seriesname: "Load Factor", data: showEveryNthLabel(data.loadFactor, 2) },
+		{ seriesname: "On Time", data: showEveryNthLabel(data.onTime, 2), "visible" : "0" },
+		{ seriesname: "Hub Dominance", data: showEveryNthLabel(data.hubDominance, 2) }
+	];
 
-	var chart = container.insertFusionCharts({
+	container.insertFusionCharts({
 		type: 'LogMSLine',
-	    width: '100%',
-	    height: '100%',
-	    dataFormat: 'json',
-	    containerBackgroundOpacity :'0',
+		width: '100%',
+		height: '100%',
+		dataFormat: 'json',
+		containerBackgroundOpacity: '0',
 		dataSource: {
-	    	"chart": chartConfig,
-	    	"categories" : [{ "category" : category}],
-			"dataset" : [
-				{ "seriesname": "Total", "data" : data["total"]},
-                { "seriesname": "Tourist", "data" : data["tourists"]},
-                { "seriesname": "Elite", "data" : data["elites"]},
-                { "seriesname": "Business", "data" : data["business"]},
-                { "seriesname": "Traveler", "data" : data["traveler"]},
-                { "seriesname": "Alliance Assists", "data" : data["allianceAssists"]},
-			]
-	    }
-	})
+			chart: chartConfig,
+			categories: [{ category }],
+			dataset
+		}
+	});
+}
+
+function plotAirlineStats(stats, container) {
+    container.children(':FusionCharts').each(function () {
+        $(this)[0].dispose();
+    });
+
+    const data = {
+        total: [],
+        traveler: [],
+        tourists: [],
+        elites: [],
+        business: [],
+        codeshares: []
+    };
+    const category = [];
+
+    stats.forEach(stat => {
+        data.total.push({ value: stat.total });
+        data.traveler.push({ value: stat.traveler, color: defaultPieColors["Traveler"] });
+        data.tourists.push({ value: stat.tourists, color: defaultPieColors["Tourist"] });
+        data.elites.push({ value: stat.elites, color: defaultPieColors["Elite"] });
+        data.business.push({ value: stat.business, color: defaultPieColors["Business"] });
+        data.codeshares.push({ value: stat.codeshares });
+        category.push({ label: stat.cycle.toString() });
+    });
+
+    const chartConfig = {
+        xAxisname: "Week",
+        yAxisName: "Passengers",
+        numMinorDivLines: 1,
+        divLineAlpha: 0,
+        showValues: "0",
+        showZeroPlane: "0",
+        showBorder: "0",
+        toolTipBorderRadius: "2",
+        toolTipPadding: "5"
+    };
+    checkDarkTheme(chartConfig);
+
+    const dataset = [
+        { seriesname: "Total", data: showEveryNthLabel(data.total, 2) },
+        { seriesname: "Tourist", data: showEveryNthLabel(data.tourists, 2) },
+        { seriesname: "Elite", data: showEveryNthLabel(data.elites, 2) },
+        { seriesname: "Business", data: showEveryNthLabel(data.business, 2) },
+        { seriesname: "Traveler", data: showEveryNthLabel(data.traveler, 2), "visible" : "0" },
+        { seriesname: "Codeshares", data: showEveryNthLabel(data.codeshares, 2) }
+    ];
+
+    container.insertFusionCharts({
+        type: 'LogMSLine',
+        width: '100%',
+        height: '100%',
+        dataFormat: 'json',
+        containerBackgroundOpacity: '0',
+        dataSource: {
+            chart: chartConfig,
+            categories: [{ category }],
+            dataset
+        }
+    });
 }
 
 function plotOilPriceChart(oilPrices, container) {
@@ -1625,3 +1691,20 @@ function checkDarkTheme(chartConfig, keepPallette) {
     }
 }
 
+function showEveryNthLabel(rawData, displayInterval) {
+	let data = [];
+	for (let i = 0; i < rawData.length; i++) {
+		const dataPoint = {
+			value: rawData[i].value
+		};
+	
+		// Check if this is the Nth item (using 1-based index logic)
+		if ((i + 1) % displayInterval === 0) {
+			// Add displayValue only for every 4th item
+			dataPoint.showValue = "1"; // Or format as needed, e.g., "$" + rawData[i].value
+		}
+	
+		data.push(dataPoint);
+	}
+	return data;
+}

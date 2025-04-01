@@ -85,6 +85,7 @@ object Constants {
   val ALLIANCE_TABLE = "alliance"
   val ALLIANCE_MEMBER_TABLE = "alliance_member"
   val ALLIANCE_HISTORY_TABLE = "alliance_history"
+  val ALLIANCE_META_TABLE = "alliance_meta"
   val AIRPLANE_RENEWAL_TABLE = "airline_renewal"
   val AIRPLANE_CONFIGURATION_TABLE = "airplane_configuration"
   val AIRPLANE_CONFIGURATION_TEMPLATE_TABLE = "airplane_configuration_template"

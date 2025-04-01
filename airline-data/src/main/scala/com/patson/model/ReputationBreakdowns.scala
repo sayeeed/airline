@@ -23,8 +23,8 @@ object ReputationType extends Enumeration {
     override val label = "Milestone Countries Served"
   }
 
-  val MILESTONE_ALLIANCE_ASSISTS = new AbstractReputationType {
-    override val label = "Milestone Alliance Assists"
+  val MILESTONE_codeshares = new AbstractReputationType {
+    override val label = "Milestone Codeshares"
   }
 
   val MILESTONE_AIRCRAFT_TYPES = new AbstractReputationType {

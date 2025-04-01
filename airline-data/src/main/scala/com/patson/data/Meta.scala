@@ -322,6 +322,7 @@ object Meta {
     createAllianceMission(connection)
     createAirportAsset(connection)
     createDestinations(connection)
+    createNotes(connection)
 
     statement = connection.prepareStatement("CREATE TABLE " + AIRPORT_CITY_SHARE_TABLE + "(" +
       "airport INTEGER," +
@@ -1055,6 +1056,18 @@ object Meta {
       "alliance_name VARCHAR(256)," +
       "event VARCHAR(256), " +
       "FOREIGN KEY(airline) REFERENCES " + AIRLINE_TABLE + "(id) ON DELETE CASCADE ON UPDATE CASCADE" +
+      ")")
+    statement.execute()
+
+    statement = connection.prepareStatement("DROP TABLE IF EXISTS " + ALLIANCE_META_TABLE)
+    statement.execute()
+    statement.close()
+
+    statement = connection.prepareStatement("CREATE TABLE " + ALLIANCE_META_TABLE + "(" +
+      "alliance INTEGER," +
+      "alliance_slogan VARCHAR(512)," +
+      "PRIMARY KEY (alliance)," +
+      "FOREIGN KEY(alliance) REFERENCES " + ALLIANCE_TABLE + "(id) ON DELETE CASCADE ON UPDATE CASCADE" +
       ")")
     statement.execute()
 
@@ -2059,7 +2072,7 @@ object Meta {
       "elites INTEGER, " +
       "business INTEGER, " +
       "total INTEGER, " +
-      "alliance_assists INTEGER, " +
+      "codeshares INTEGER, " +
       "rask DOUBLE, " +
       "cask DOUBLE, " +
       "satisfaction DOUBLE, " +
@@ -2358,34 +2371,32 @@ object Meta {
     statement = connection.prepareStatement("CREATE TABLE " + NOTES_AIRLINE_TABLE + "(" +
       "airline INTEGER PRIMARY KEY, " +
       "notes TEXT, " +
-      "FOREIGN KEY(airline) REFERENCES " + AIRLINE_TABLE + "(id) ON DELETE CASCADE ON UPDATE NO ACTION" +
-      ")"
-    )
-    statement.execute()
-    statement.close()
-    statement = connection.prepareStatement("CREATE TABLE " + NOTES_AIRPORT_TABLE + "(" +
-      "link INTEGER PRIMARY KEY, " +
-      "airline INTEGER, " +
-      "notes TEXT, " +
-      "FOREIGN KEY(link) REFERENCES " + AIRLINE_TABLE + "(id) ON DELETE CASCADE ON UPDATE NO ACTION" +
-      "FOREIGN KEY(airline) REFERENCES " + AIRLINE_TABLE + "(id) ON DELETE CASCADE ON UPDATE NO ACTION" +
+      "FOREIGN KEY(airline) REFERENCES " + AIRLINE_TABLE + "(id) ON DELETE CASCADE ON UPDATE CASCADE" +
       ")"
     )
     statement.execute()
     statement.close()
     statement = connection.prepareStatement("CREATE TABLE " + NOTES_LINK_TABLE + "(" +
-      "airport INTEGER, " +
+      "link INTEGER PRIMARY KEY, " +
       "airline INTEGER, " +
       "notes TEXT, " +
-      "PRIMARY KEY (airport, airline)," +
-      "FOREIGN KEY(airport) REFERENCES " + AIRPORT_TABLE + "(id) ON DELETE CASCADE ON UPDATE NO ACTION" +
-      "FOREIGN KEY(airline) REFERENCES " + AIRLINE_TABLE + "(id) ON DELETE CASCADE ON UPDATE NO ACTION" +
+      "FOREIGN KEY(link) REFERENCES " + LINK_TABLE + "(id) ON DELETE CASCADE ON UPDATE CASCADE," +
+      "FOREIGN KEY(airline) REFERENCES " + AIRLINE_TABLE + "(id) ON DELETE CASCADE ON UPDATE CASCADE" +
       ")"
     )
     statement.execute()
     statement.close()
-
-
+    statement = connection.prepareStatement("CREATE TABLE " + NOTES_AIRPORT_TABLE + "(" +
+      "airport INTEGER, " +
+      "airline INTEGER, " +
+      "notes TEXT, " +
+      "PRIMARY KEY (airport, airline)," +
+      "FOREIGN KEY(airport) REFERENCES " + AIRPORT_TABLE + "(id) ON DELETE CASCADE ON UPDATE CASCADE," +
+      "FOREIGN KEY(airline) REFERENCES " + AIRLINE_TABLE + "(id) ON DELETE CASCADE ON UPDATE CASCADE" +
+      ")"
+    )
+    statement.execute()
+    statement.close()
   }
 
 
@@ -2397,12 +2408,3 @@ object Meta {
   }
 
 }
-
-
-//     statement = connection.prepareStatement("CREATE TABLE " + AIRPORT_SLOT_ASSIGNMENT_TABLE + "(" + 
-//                                             "airport INTEGER REFERENCES " + AIRPORT_TABLE + "(id) ON DELETE CASCADE ON UPDATE CASCADE, " +
-//                                             "airline INTEGER REFERENCES " + AIRLINE_TABLE + "(id) ON DELETE CASCADE ON UPDATE CASCADE, " +
-//                                             "assignment_value INTEGER," +
-//                                             "PRIMARY KEY (airport, airline))")
-//     statement.execute()
-//     statement.close()

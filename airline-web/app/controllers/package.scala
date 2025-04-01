@@ -451,13 +451,21 @@ package object controllers {
   implicit object AirlineStatWrite extends Writes[AirlineStat] {
     def writes(airlineStat: AirlineStat): JsValue = {
       JsObject(List(
+        "cycle" -> JsNumber(airlineStat.cycle),
+        "period" -> JsString(airlineStat.period.toString()),
         "airlineId" -> JsNumber(airlineStat.airlineId),
         "tourists" -> JsNumber(airlineStat.tourists),
         "elites" -> JsNumber(airlineStat.elites),
         "business" -> JsNumber(airlineStat.business),
         "total" -> JsNumber(airlineStat.total),
-        "allianceAssists" -> JsNumber(airlineStat.allianceAssists),
-        "cycle" -> JsNumber(airlineStat.cycle)))
+        "codeshares" -> JsNumber(airlineStat.codeshares),
+        "RASK" -> JsNumber(BigDecimal(airlineStat.RASK  * 100).setScale(2, RoundingMode.HALF_EVEN)),
+        "CASK" -> JsNumber(BigDecimal(airlineStat.CASK * 100).setScale(2, RoundingMode.HALF_EVEN)),
+        "satisfaction" -> JsNumber(BigDecimal(airlineStat.satisfaction * 100).setScale(2, RoundingMode.HALF_EVEN)),
+        "loadFactor" -> JsNumber(BigDecimal(airlineStat.loadFactor * 100).setScale(2, RoundingMode.HALF_EVEN)),
+        "onTime" -> JsNumber(BigDecimal(airlineStat.onTime * 100).setScale(2, RoundingMode.HALF_EVEN)),
+        "hubDominance" -> JsNumber(BigDecimal(airlineStat.hubDominance * 100).setScale(2, RoundingMode.HALF_EVEN)),
+      ))
     }
   }
 

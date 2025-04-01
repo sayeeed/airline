@@ -10,7 +10,7 @@ case class AirlineStat(
                         var elites : Int,
                         var business : Int,
                         var total : Int,
-                        var allianceAssists : Int,
+                        var codeshares : Int,
                         var RASK: Double,
                         var CASK: Double,
                         var satisfaction: Double,
@@ -25,5 +25,5 @@ case class AirlinePaxStat(
                         var elites : Int,
                         var business : Int,
                         var total : Int,
-                        var allianceAssists : Int,
+                        var codeshares : Int,
                       )

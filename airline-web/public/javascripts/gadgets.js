@@ -916,7 +916,7 @@ function getGameDate(cycle, period = "WEEKLY") {
     if (period == "WEEKLY") {
         return `${periods}.${remainder}`;
     } else if (period == "QUARTER") {
-        return `${periods}.${remainder - 3} - ${periods}.${remainder}`;
+        return `${periods}.${remainder - 11} - ${periods}.${remainder}`;
     } else if (period == "PERIOD") {
         return `${periods - 1}.${remainder} - ${periods}.${remainder}`;
     }

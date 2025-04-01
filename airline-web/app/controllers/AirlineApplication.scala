@@ -18,6 +18,8 @@ import javax.inject.Inject
 import scala.collection.immutable.SortedSet
 import scala.collection.mutable
 import scala.concurrent.duration.{DAYS, Duration, MILLISECONDS}
+import scala.math.BigDecimal
+import scala.math.BigDecimal.RoundingMode
 import scala.util.{Failure, Success, Try}
 
 
@@ -211,9 +213,8 @@ class AirlineApplication @Inject()(cc: ControllerComponents) extends AbstractCon
          link => List(link.from, link.to)
        }.toSet.size
 
-       val countriesServed = links.flatMap(_.to.countryCode).toSet.size
+       val countriesServed = links.map(link => link.to.countryCode ++ link.from.countryCode).toSet.size
        val destinations = if (airportsServed > 0) airportsServed - 1 else 0 //minus home base
-       val onTimeRate = links.map { link => link.majorDelayCount * 6 + link.minorDelayCount }.sum / (links.size * 6)
 
        val airplanes = AirplaneSource.loadAirplanesByOwner(airlineId).filter(_.isReady)
        val airplaneTypes = airplanes.flatMap {
@@ -227,17 +228,17 @@ class AirlineApplication @Inject()(cc: ControllerComponents) extends AbstractCon
        val minimumRenewalBalance = airline.getMinimumRenewalBalance()
 
 
-       airlineJson =
-         airlineJson +
-           ("linkCount" -> JsNumber(links.length)) +
-           ("destinations"-> JsNumber(destinations)) +
-           ("countriesServed"-> JsNumber(countriesServed)) +
-           ("onTimeRate"-> JsNumber(onTimeRate)) +
-           ("fleetSize"-> JsNumber(fleetSize)) +
-           ("fleetCondition"-> JsNumber(fleetCondition)) +
-           ("fleetTypes"-> JsNumber(airplaneTypes)) +
-           ("fleetUtilization"-> JsNumber(fleetUtilization)) +
-           ("minimumRenewalBalance" -> JsNumber(minimumRenewalBalance))
+       val statsJson = Json.obj(
+         "linkCount" -> JsNumber(links.length),
+         "destinations"-> JsNumber(destinations),
+         "countriesServed"-> JsNumber(countriesServed),
+         "fleetSize"-> JsNumber(fleetSize),
+         "fleetCondition"-> JsNumber(BigDecimal(fleetCondition).setScale(2, RoundingMode.HALF_EVEN)),
+         "fleetTypes"-> JsNumber(airplaneTypes),
+         "fleetUtilization"-> JsNumber(BigDecimal(fleetUtilization * 100).setScale(2, RoundingMode.HALF_EVEN)),
+       )
+
+       airlineJson = airlineJson + ("stats" -> Json.toJson(statsJson)) + ("minimumRenewalBalance" -> JsNumber(minimumRenewalBalance)) + ("extendedStats" -> statsJson)
 
        val cooldown = getRenameCooldown(airline)
        if (getRenameCooldown(airline) > 0) {
