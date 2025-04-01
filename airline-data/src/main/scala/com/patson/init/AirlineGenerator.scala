@@ -410,7 +410,7 @@ object AirlineGenerator extends App {
         val priceMod = if (fromAirport.popMiddleIncome < 100_000 || toAirport.popMiddleIncome < 100_000)
           0.8
         else if (fromAirport.popMiddleIncome > 1_000_000 || toAirport.popMiddleIncome > 1_000_000)
-          1.2
+          1.1
         else
           1.0
 

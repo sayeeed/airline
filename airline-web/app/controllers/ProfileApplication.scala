@@ -138,19 +138,19 @@ class ProfileApplication @Inject()(cc: ControllerComponents) extends AbstractCon
     )
     profiles.append(megaHQ)
 
-    val ULCCAirplanes = generateAirplanes((capital * 2.75).toInt, (airport.size * 14 to airport.size * 22), 3, airport, 85, airline, random)
-    if (!ULCCAirplanes.isEmpty) {
+    val DiscountAirplanes = generateAirplanes((capital * 2.75).toInt, (airport.size * 14 to airport.size * 22), 3, airport, 85, airline, random)
+    if (!DiscountAirplanes.isEmpty) {
       val cheapAirplaneProfile = Profile(
-        name = "ULCC Airline",
-        airlineType = AirlineType.ULCC,
+        name = "Discount Airline",
+        airlineType = AirlineType.Discount,
         difficulty = "Hard",
         description = "Time to pack in the masses!",
         rule = List("You can never add business or first class!","2x reputation from tourist track","Base crew costs are 25% lower"),
-        cash = (capital * 3.5).toInt - ULCCAirplanes.map(_.value).sum,
+        cash = (capital * 3.5).toInt - DiscountAirplanes.map(_.value).sum,
         airport = airport,
         reputation = 20,
         quality = 0,
-        airplanes = ULCCAirplanes,
+        airplanes = DiscountAirplanes,
         loan = Bank.getLoan(airline.id, (capital * 2.25).toInt, BASE_INTEREST_RATE, CycleSource.loadCycle(), LOAN_YEARS)
       )
       profiles.append(cheapAirplaneProfile)
@@ -162,7 +162,7 @@ class ProfileApplication @Inject()(cc: ControllerComponents) extends AbstractCon
         airlineType = AirlineType.REGIONAL,
         difficulty = "Hard",
         description = "Work with your alliance partners!",
-        rule = List("Can only buy regional or smaller aircraft!","3x alliance points","Need 80% less staff to support frequency","Base crew costs are 25% lower","May build overlapping bases with alliance mates (one plus per airport)"),
+        rule = List("Can only buy regional or smaller aircraft!","3x alliance points","Need 80% less staff to support frequency","May build overlapping bases with alliance mates (one plus per airport)"),
         cash = (capital * 3.5).toInt - regionalAirplanes.map(_.value).sum,
         airport = airport,
         reputation = 20,
@@ -180,11 +180,11 @@ class ProfileApplication @Inject()(cc: ControllerComponents) extends AbstractCon
         airlineType = AirlineType.LUXURY,
         difficulty = "Very Hard",
         description = "A highly motivated team with high quality aircraft. Perfect for premium service!",
-        rule = List("You can never add an economy class!","2x reputation from elite track","Service quality costs are 30% lower"),
+        rule = List("You can never add an economy class!","2x reputation from elite track","Need 50% less staff to support frequency","Bonus loyalty where you have a base"),
         cash = (capital * 3.75).toInt - fancyAirplanes.map(_.value).sum,
         airport = airport,
         reputation = 25,
-        quality = 90,
+        quality = 70,
         airplanes = fancyAirplanes,
         loan = Bank.getLoan(airline.id, (capital * 2).toInt, BASE_INTEREST_RATE, CycleSource.loadCycle(), LOAN_YEARS)
       )

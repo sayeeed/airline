@@ -516,19 +516,20 @@ class Application @Inject()(cc: ControllerComponents, val configuration: play.ap
   }
 
   def getGameRules() = Action {
-    //todo add: constants for fuel formula, deprecation, etc (but not things that may become airline specific)
     var scaleProgressionResult = Json.arr()
     (1 to 18).map { scale =>
       var perScaleResult = Json.obj("scale" -> scale)
       var maxFrequencyJson = Json.obj()
+      var maxFrequencyDomesticJson = Json.obj()
       FlightCategory.values.foreach { group =>
-        maxFrequencyJson = maxFrequencyJson + (group.toString -> JsNumber(NegotiationUtil.getMaxFrequencyByGroup(scale, group)))
+        maxFrequencyJson = maxFrequencyJson + (group.toString -> JsNumber(NegotiationUtil.getMaxFrequencyByGroup(scale, group, false)))
+        maxFrequencyDomesticJson = maxFrequencyDomesticJson + (group.toString -> JsNumber(NegotiationUtil.getMaxFrequencyByGroup(scale, group, true)))
       }
-
       perScaleResult =  perScaleResult +
         ("maxFrequency" -> maxFrequencyJson) +
-        ("baseStaffCapacity" -> JsNumber(AirlineBase.getOfficeStaffCapacity(scale, false))) +
-        ("headquartersStaffCapacity" -> JsNumber(AirlineBase.getOfficeStaffCapacity(scale, true)))
+        ("maxFrequencyDomestic" -> maxFrequencyDomesticJson) +
+        ("baseStaffCapacity" -> JsNumber(AirlineBase.getOfficeStaffCapacity(scale, isHeadquarters = false))) +
+        ("headquartersStaffCapacity" -> JsNumber(AirlineBase.getOfficeStaffCapacity(scale, isHeadquarters = true)))
       scaleProgressionResult = scaleProgressionResult.append(perScaleResult)
     }
 
@@ -563,8 +564,8 @@ class Application @Inject()(cc: ControllerComponents, val configuration: play.ap
         "Regional Jet" -> JsNumber(Model.TIME_TO_CRUISE_REGIONAL),
         "Narrow-body" ->  JsNumber(Model.TIME_TO_CRUISE_MEDIUM),
         "Narrow-body XL" ->  JsNumber(Model.TIME_TO_CRUISE_MEDIUM),
-        "Helicopter" ->  JsNumber(Model.TIME_TO_CRUISE_MEDIUM),
-        "Airship" -> JsNumber(Model.TIME_TO_CRUISE_MEDIUM),
+        "Helicopter" ->  JsNumber(Model.TIME_TO_CRUISE_HELICOPTER),
+        "Airship" -> JsNumber(Model.TIME_TO_CRUISE_HELICOPTER),
         "Other" -> JsNumber(Model.TIME_TO_CRUISE_OTHER),
       )
     )
@@ -585,29 +586,6 @@ class Application @Inject()(cc: ControllerComponents, val configuration: play.ap
       "aircraft" -> aircraft,
       "linkCosts" -> linkCosts
     )
-    Ok(result)
-  }
-
-
-  def getScaleDetails() = Action {
-    var scaleProgressionResult = Json.arr()
-    (1 to 15).map { scale =>
-      var perScaleResult = Json.obj("scale" -> scale)
-      var maxFrequencyJson = Json.obj()
-      FlightCategory.values.foreach { group =>
-        maxFrequencyJson = maxFrequencyJson + (group.toString -> JsNumber(NegotiationUtil.getMaxFrequencyByGroup(scale, group)))
-      }
-
-      perScaleResult =  perScaleResult +
-        ("maxFrequency" -> maxFrequencyJson) +
-        ("baseStaffCapacity" -> JsNumber(AirlineBase.getOfficeStaffCapacity(scale, false))) +
-        ("headquartersStaffCapacity" -> JsNumber(AirlineBase.getOfficeStaffCapacity(scale, true)))
-
-      scaleProgressionResult = scaleProgressionResult.append(perScaleResult)
-    }
-
-    var result = Json.obj("scaleProgression" -> scaleProgressionResult)
-
     Ok(result)
   }
 

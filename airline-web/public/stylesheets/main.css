@@ -552,6 +552,11 @@ div.section.clickable:hover, div.section.clickable.selected, .allianceMissionCan
     padding-bottom: 8px;
 }
 
+.item-grid > .divider {
+    grid-column: 1 / -1;
+    margin: 0.5 rem;
+}
+
 .i-label {
     font-size: 13px;
     color: var(--item-label-color);
@@ -824,6 +829,9 @@ div.section {
 }
 div.section.tight {
 	padding: 4px 4px;
+}
+.section textarea {
+    border-radius: 8px;
 }
 .officeCanvasRightGroup h4, .officeCanvasRightGroup li, .officeCanvasRightGroup .button, .sidePanel .tight h4 {
     padding-left: 8px;

@@ -30,7 +30,7 @@ case class Airplane(model : Model, var owner : Airline, constructedCycle : Int, 
     val configurationOptions = AirplaneSource.loadAirplaneConfigurationsByCriteria(List(("airline", owner.id), ("model", model.id)))
     val pickedConfiguration =
       if (configurationOptions.isEmpty) { //create one for this airline
-        val newConfiguration = if (this.owner.airlineType == AirlineType.ULCC) {
+        val newConfiguration = if (this.owner.airlineType == AirlineType.Discount) {
           AirplaneConfiguration.economy(this.owner, this.model)
         } else if (this.owner.airlineType == AirlineType.LUXURY) {
           AirplaneConfiguration.business(this.owner, this.model)

@@ -679,7 +679,7 @@ class LinkApplication @Inject()(cc: ControllerComponents) extends AbstractContro
 
         val availableModelsAndCustoms = if (flightCategory == FlightCategory.INTERNATIONAL && fromAirport.isDomesticAirport() || flightCategory == FlightCategory.INTERNATIONAL && toAirport.isDomesticAirport()) {
           import Model.Category._
-          availableModels.filter(_.capacity <= 115)
+          availableModels.filter(_.capacity <= 150)
         } else {
           availableModels
         }

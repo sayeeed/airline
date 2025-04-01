@@ -1,17 +1,23 @@
-SP1,AQ,128900,Amundsen-Scott South Pole Station,1500,40
-EG9,AQ,128900,Halley Research Station,70,
-YW9,AQ,128900,Casey Station,99,
+DJG,AG,12400,Djanet,14655,
+NSP,AQ,138900,Amundsen-Scott South Pole Station,170,
+NZF,AQ,138900,McMurdo Station,1500,40
+EGA,AQ,128900,Halley Research Station,70,
+YAQ,AQ,128900,Casey Station,99,
+EGR,AQ,128900,Rothera Research Station,160,
+QAB,AQ,108900,Marambio Base,195,
+QAO,AQ,102100,Novolazarevskaya Station,110,
 BEU,AU,78993,Bedourie Airport,100,
 BQL,AU,78993,Boulia Airport,307,
 BVI,AU,78993,Birdsville Airport,115,
 WNR,AU,78993,Windorah Airport,90,
-9PB,BR,29000,Petrobras P-20 Platform Helideck,130,
+PBS,BR,29000,Petrobras P-20 Platform Helideck,130,
 AFL,BR,29000,Piloto Osvaldo Marques Dias Airport,4215,
-GR0,BR,2000,Helicentro Morumbí Heliport,5000,750
+SKM,BR,2000,Helicentro Morumbí Heliport,5000,750
 JPY,BR,78993,Paraty Airport,4310,
-SW1,BR,29000,Rolim de Moura,55407,
-J3H,BR,90000,Rio,2000,500
-CB7,CA,2000,Harbour (Public) Heliport,5000,550
+SWB,BR,29000,Rolim de Moura,55407,
+SDB,BR,90000,Rio,2000,500
+SIH,BR,90000,Rio,2000,500
+CBC,CA,2000,Harbour (Public) Heliport,5000,550
 MSA,CA,39461,Muskrat Dam Airport,346,
 XLB,CA,39461,Lac Brochet Airport,1026,
 XPP,CA,39461,Poplar River Airport,261,
@@ -44,12 +50,16 @@ ZSJ,CA,39461,Sandy Lake Airport,1356,
 ZTM,CA,39461,Shamattawa Airport,128,
 ZWL,CA,39461,Wollaston Lake Airport,1272,
 CXH,CA,39461,Vancouver Harbour,2500,250
+YDP,CA,39461,Nain,1204,
+YWB,CA,39461,Kangiqsujuaq,837,
 RQA,CN,11300,Ruoqiang Loulan Airport,11351,
 TCG,CN,14234,Tacheng Airport,244675,
 LCX,CN,16575,Longyan,2559545,
 GOQ,CN,1945,Golmud,221863,
 DNH,CN,4994,Dunhuang,185231,
 IQM,CN,4994,Qiemo,18893,
+JZH,CN,2945,Jiuzhai,12361,
+XYI,CN,1450,Woody Island,,
 HGL,DE,55000,Heide-Büsum Airport,4929,
 BYR,DK,59000,Læsø Airport,1787,
 GMZ,ES,17000,La Gomera Airport,22947,
@@ -57,6 +67,9 @@ JCU,ES,17000,Ceuta Heliport,85144,
 GDE,ET,2700,Gode Airport,9804,
 ABK,ET,2700,Kebri Dahar,363000,
 CMF,FR,143100,Mont Blanc,64217,215
+LFP,FR,103000,Paris Heliport,2500,450
+MCM,FR,220862,Monaco,1900,700
+HOI,FR,21615,Hao,1101,
 JNX,GR,51454,Naxos Island National Airport,1862,
 KZS,GR,51454,Kastelorizo Airport,492,
 HHP,HK,120000,Hong Kong,500,725
@@ -77,10 +90,9 @@ MK1,JP,37134,Mikurajima Heliport,297,
 MMD,JP,39134,Minamidaito Airport,1418,
 NTQ,JP,37134,Noto Satoyama Airport,34444,20
 OIM,JP,39134,Oshima Airport,7982,
-OIR,JP,37134,Okushiri Airport,2925,
 OIR,JP,39134,Okushiri Airport,2925,
 OKE,JP,37134,Okinoerabu Airport,11892,
-RJ1,JP,39134,Chofu Airport,216117,25
+RJT,JP,39134,Chofu Airport,216117,40
 RNJ,JP,39134,Yoron Airport,6176,
 TKN,JP,37134,Tokunoshima Airport,23647,
 TSJ,JP,37134,Tsushima Airport,31457,
@@ -89,15 +101,17 @@ HAC,JP,37134,Hachijō-jima,7522,
 KPO,KR,39134,Pohang Airport (G-815/K-3),508198,15
 USN,KR,39134,Ulsan Airport,1177,
 EH1,NO,113000,A12-CPP Platform Helipad,80,
-EN1,NO,113000,Draupner Platform,110,
-EN2,NO,113000,Tambar Platform,110,
+END,NO,113000,Draupner Platform,110,
+ENX,NO,113000,Tambar Platform,110,
 EN3,NO,113000,Valhall Flank South Platform,110,
-EN4,NO,135000,Oslo Heliport,500,270
-EN9,NO,113000,Troll A Platform,110,
+ENR,NO,135000,Oslo Heliport,500,270
+ENQ,NO,113000,Troll A Platform,110,
 HAA,NO,113000,Hasvik Airport,110,
 SDN,NO,113000,Sandane Airport,110,
 SBT,RU,57454,Sabetta,33000,
+BVJ,RU,70271,Bovanenkovo gas field,1200,
 SHW,SA,24411,Sharurah,85977,
+RAH,SA,24411,Rafha,84536,
 ARK,TZ,3892,Arusha,92450,
 AKN,US,78993,King Salmon Airport,374,
 ARC,US,78993,Arctic Village Airport,152,
@@ -113,7 +127,7 @@ HTO,US,78993,Town of East Hampton Airport,28394,725
 JRA,US,220000,West 30th Street Heliport,1000,725
 JRB,US,220000,Downtown Manhattan Heliport,1000,725
 KCG,US,78993,Chignik Airport,74,
-LW0,US,190000,London,1000,600
+GLW,US,190000,London,1000,600
 MLY,US,78993,Manley Hot Springs Airport,125,
 NUP,US,78993,Nunapitchuk Airport,539,
 PDB,US,78993,Pedro Bay Airport,48,
@@ -151,5 +165,5 @@ DUT,US,78993,Tom Madsen (Dutch Harbor) Airport,4283,
 DLG,US,78993,Dillingham Airport,2329,
 ADK,US,78993,Adak Airport,326,
 PHO,US,78993,Point Hope,830,
+WTK,US,78993,Notak,570,
 UNI,VC,62300,Union Island International Airport,2884,
-MCM,,240862,Monaco,1900,700

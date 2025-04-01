@@ -254,23 +254,25 @@ object DemandGenerator {
         6.5 //very busy domestic routes
       } else if (List("BZ", "CY", "FO", "GL", "GU", "GR", "IS").contains(fromAirport.countryCode)) {
         2.25 //very high per capita flights https://ourworldindata.org/grapher/air-trips-per-capita
-      } else if (List("AE", "BS", "CH", "CL", "DK", "FJ", "GB", "KR", "IE", "LU", "QA", "SE").contains(fromAirport.countryCode)) {
+      } else if (fromAirport.countryCode == toAirport.countryCode && List("CA", "KR", "SE", "FI").contains(fromAirport.countryCode)) {
+        2.0 //boost domestic
+      } else if (List("AE", "BS", "CH", "CL", "DK", "FJ", "GB", "KR", "SG", "MY", "IE", "LU", "QA", "SE").contains(fromAirport.countryCode)) {
         1.5 // high per capita flights
       } else if (List("CD", "CG", "CV", "CI", "GN", "GW", "LR", "ML", "MR", "NE", "SD", "SO", "SS", "TD", "TG").contains(fromAirport.countryCode)) {
         4.0 //very poor roads but unstable governance
       } else if (List("AO", "BI", "BJ", "BW", "CM", "CV", "DJ", "ET", "GA", "GH", "GM", "GQ", "KE", "KM", "LS", "MG", "MU", "MW", "MZ", "NA", "NG", "RW", "SC", "SL", "SN", "ST", "SZ", "TZ", "UG", "ZA", "ZM", "ZW").contains(fromAirport.countryCode)) {
         6.0 //very poor roads
       } else if (fromAirport.countryCode == "IN" && toAirport.countryCode == "IN") {
-        0.67 //pops are just very large
+        0.63 //pops are just very large
       } else if (fromAirport.countryCode == "CN") {
-        (distance.toDouble / 1600) * 0.65 //China has a very extensive highspeed rail network, pops are just very large
+        (distance.toDouble / 1600) * 0.575 //China has a very extensive highspeed rail network, pops are just very large
       } else if (fromAirport.countryCode == "JP" && toAirport.countryCode == "JP") {
         if (distance < 500) {
           0.1 //HSR / rail
         } else {
           2.25 //but otherwise quite high per captia flights
         }
-      } else if (List("FR","IT","ES","NL","BE").contains(fromAirport.countryCode) && distance < 700 && toAirport.countryCode != "GB" && ! GameConstants.isIsland(fromAirport.iata) && ! GameConstants.isIsland(toAirport.iata)) {
+      } else if (List("FR","IT","ES","NL","BE","LU").contains(fromAirport.countryCode) && distance < 700 && toAirport.countryCode != "GB" && ! GameConstants.isIsland(fromAirport.iata) && ! GameConstants.isIsland(toAirport.iata)) {
         0.2 //EU rail & climate demand mod
       } else if (distance < 260 && fromAirport.zone.contains("EU")) {
         0.6

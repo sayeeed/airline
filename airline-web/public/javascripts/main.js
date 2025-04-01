@@ -74,7 +74,6 @@ async function getGameConstants() {
     }
 
     gameConstants = await response.json();
-    populateBaseDetailsModal();
   } catch (error) {
     console.error(error.message);
   }

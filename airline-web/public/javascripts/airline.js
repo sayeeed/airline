@@ -23,7 +23,7 @@ $( document ).ready(function() {
 function updateAirlineInfo(airlineId) {
 	$.ajax({
 		type: 'GET',
-		url: "airlines/" + airlineId,
+		url: "airlines/" + airlineId + "?extendedInfo=true",
 	    contentType: 'application/json; charset=utf-8',
 	    dataType: 'json',
 	    async: false,
@@ -657,6 +657,10 @@ function refreshLinkDetails(linkId) {
 	$("#linkCompetitons .data-row").remove()
 	$("#actionLinkId").val(linkId)
 
+	const notesLink = document.getElementById('linkNotes');
+    const linkNote = notes.linkNotes.find(note => note.id === linkId);
+    notesLink.value = linkNote?.note || '';
+
 	//load link
 	$.ajax({
 		type: 'GET',
@@ -892,6 +896,7 @@ function planToAirport(toAirportId, toAirportName) {
 	}
 }
 
+//i.e. plan route
 function planLink(fromAirport, toAirport, isRefresh) {
     checkTutorial("planLink")
 	var airlineId = activeAirline.id
@@ -3371,7 +3376,7 @@ function loadAndWatchAirlineNotes() {
             return response.json();
         })
         .then(data => {
-            notes = data.notes || []; // Initialize notes if not present
+            notes = data || {}; // Initialize notes if not present
             notesOffice.value = data?.airlineNotes[0] || ''; // Populate office textarea with the note
         })
         .catch(error => {
@@ -3408,9 +3413,15 @@ function loadAndWatchAirlineNotes() {
     notesLink.addEventListener('input', () => {
         clearTimeout(debounceTimeout);
         debounceTimeout = setTimeout(() => {
-            const sanitizedNote = notesLink.value.replace(/</g, "&lt;").replace(/>/g, "&gt;"); // Basic sanitization
-
 			if (!selectedLink) return;
+
+			const sanitizedNote = linkNotes.value.replace(/</g, "&lt;").replace(/>/g, "&gt;"); // Basic sanitization
+			const existsingNote = notes.linkNotes.find(note => note.id === Number(selectedLink));
+			if (existsingNote) {
+				existsingNote.note = sanitizedNote;
+			} else {
+				notes.linkNotes.push({id: Number(selectedLink), note: sanitizedNote});
+			}
 
             fetch(`/airlines/${airlineId}/notes/link/${selectedLink}`, {
                 method: 'PUT',
@@ -3434,9 +3445,15 @@ function loadAndWatchAirlineNotes() {
     notesAirport.addEventListener('input', () => {
         clearTimeout(debounceTimeout);
         debounceTimeout = setTimeout(() => {
-            const sanitizedNote = notesAirport.value.replace(/</g, "&lt;").replace(/>/g, "&gt;"); // Basic sanitization
-
 			if (!activeAirportId) return;
+
+			const sanitizedNote = notesAirport.value.replace(/</g, "&lt;").replace(/>/g, "&gt;"); // Basic sanitization
+			const existsingNote = notes.airportNotes.find(note => note.id === Number(activeAirportId));
+			if (existsingNote) {
+				existsingNote.note = sanitizedNote;
+			} else {
+				notes.airportNotes.push({id: Number(activeAirportId), note: sanitizedNote});
+			}
 
             fetch(`/airlines/${airlineId}/notes/airport/${activeAirportId}`, {
                 method: 'PUT',

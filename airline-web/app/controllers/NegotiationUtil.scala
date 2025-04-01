@@ -31,21 +31,14 @@ object NegotiationUtil {
 
   val NO_NEGOTIATION_REQUIRED = NegotiationInfo(List (), List (), List (), List (), 0, 0, 0, Map(0 -> 1))
 
-  val normalizedCapacity : LinkClassValues => Double = (capacity : LinkClassValues) => {
-    capacity(ECONOMY) * ECONOMY.spaceMultiplier + capacity(BUSINESS) * BUSINESS.spaceMultiplier + capacity(FIRST) * FIRST.spaceMultiplier
-  }
-
-  def getMaxFrequencyByFlightType(baseScale : Int, flightCategory: FlightCategory.Value) : Int = {
-    getMaxFrequencyByGroup(baseScale, flightCategory)
-  }
-
-  def getMaxFrequencyByGroup(baseScale : Int, flightCategory : FlightCategory.Value) : Int = {
-    var maxFrequency = flightCategory match {
+  def getMaxFrequencyByGroup(baseScale : Int, flightCategory : FlightCategory.Value, isDomesticAirport: Boolean) : Int = {
+    val domesticAirportBonus = if (isDomesticAirport) 6 else 0
+    val maxFrequency = flightCategory match {
       case FlightCategory.DOMESTIC => 3 + (baseScale * 2.9).toInt
       case FlightCategory.INTERNATIONAL => 4 + (baseScale * 1.9).toInt
     }
 
-    maxFrequency
+    maxFrequency + domesticAirportBonus
   }
 
   def getRequirementMultiplier(flightCategory : FlightCategory.Value) : Int = {
@@ -86,7 +79,7 @@ object NegotiationUtil {
     if (frequencyDelta > 0) {
       val helicopterBonus = if(newLink.getAssignedModel().getOrElse(Model.fromId(0)).airplaneType == HELICOPTER) 6 else 0
       val baseLevel = baseOption.map(_.scale).getOrElse(0)
-      val maxFrequency = getMaxFrequencyByFlightType(baseLevel, flightCategory) + helicopterBonus
+      val maxFrequency = getMaxFrequencyByGroup(baseLevel, flightCategory, airport.isDomesticAirport()) + helicopterBonus
       val multiplier = getRequirementMultiplier(flightCategory)
 
       if (newFrequency > maxFrequency) {

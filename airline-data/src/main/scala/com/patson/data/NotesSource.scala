@@ -7,22 +7,23 @@ import scala.collection.mutable.ListBuffer
 
 object NotesSource {
 
-  case class AirlineNotes(airlineNotes: List[String], airportNotes: List[String], linkNotes: List[String])
+  case class UserNotes(airlineNotes: List[String], airportNotes: List[UserNote], linkNotes: List[UserNote])
+  case class UserNote(id: Int, note: String)
 
   /**
     * Retrieves all notes for a given airlineId across all three notes tables.
     * @param airlineId
     * @return List of notes
     */
-  def loadNotesByAirline(airlineId: Int): AirlineNotes = {
+  def loadNotesByAirline(airlineId: Int): UserNotes = {
     val connection = Meta.getConnection()
     try {
       val airlineNotes = ListBuffer[String]()
-      val airportNotes = ListBuffer[String]()
-      val linkNotes = ListBuffer[String]()
+      val airportNotes = ListBuffer[UserNote]()
+      val linkNotes = ListBuffer[UserNote]()
 
       // Query NOTES_AIRLINE_TABLE
-      val airlineStatement = connection.prepareStatement(s"SELECT notes FROM $NOTES_AIRLINE_TABLE WHERE airline = ?")
+      val airlineStatement = connection.prepareStatement(s"SELECT * FROM $NOTES_AIRLINE_TABLE WHERE airline = ?")
       airlineStatement.setInt(1, airlineId)
       val airlineResultSet = airlineStatement.executeQuery()
       while (airlineResultSet.next()) {
@@ -32,26 +33,26 @@ object NotesSource {
       airlineStatement.close()
 
       // Query NOTES_AIRPORT_TABLE
-      val airportStatement = connection.prepareStatement(s"SELECT notes FROM $NOTES_AIRPORT_TABLE WHERE airline = ?")
+      val airportStatement = connection.prepareStatement(s"SELECT * FROM $NOTES_AIRPORT_TABLE WHERE airline = ?")
       airportStatement.setInt(1, airlineId)
       val airportResultSet = airportStatement.executeQuery()
       while (airportResultSet.next()) {
-        airportNotes += airportResultSet.getString("notes")
+        airportNotes.append(UserNote(airportResultSet.getInt("airport"), airportResultSet.getString("notes")))
       }
       airportResultSet.close()
       airportStatement.close()
 
       // Query NOTES_LINK_TABLE
-      val linkStatement = connection.prepareStatement(s"SELECT notes FROM $NOTES_LINK_TABLE WHERE airline = ?")
+      val linkStatement = connection.prepareStatement(s"SELECT * FROM $NOTES_LINK_TABLE WHERE airline = ?")
       linkStatement.setInt(1, airlineId)
       val linkResultSet = linkStatement.executeQuery()
       while (linkResultSet.next()) {
-        linkNotes += linkResultSet.getString("notes")
+        linkNotes.append(UserNote(linkResultSet.getInt("link"), linkResultSet.getString("notes")))
       }
       linkResultSet.close()
       linkStatement.close()
 
-      AirlineNotes(airlineNotes.toList, airportNotes.toList, linkNotes.toList)
+      UserNotes(airlineNotes.toList, airportNotes.toList, linkNotes.toList)
     } finally {
       connection.close()
     }
@@ -76,15 +77,15 @@ object NotesSource {
   }
 
   /**
-    * Saves a note to the NOTES_AIRPORT_TABLE.
+    * Saves a note to NOTES_LINK.
     * @param linkId The link ID
     * @param airlineId The airline ID
     * @param note The note text
     */
-  def saveNoteToAirportTable(linkId: Int, airlineId: Int, note: String): Unit = {
+  def saveNoteToLinkTable(linkId: Int, airlineId: Int, note: String): Unit = {
     val connection = Meta.getConnection()
     try {
-      val statement = connection.prepareStatement(s"REPLACE INTO $NOTES_AIRPORT_TABLE (link, airline, notes) VALUES(?, ?, ?)")
+      val statement = connection.prepareStatement(s"REPLACE INTO $NOTES_LINK_TABLE (link, airline, notes) VALUES(?, ?, ?)")
       statement.setInt(1, linkId)
       statement.setInt(2, airlineId)
       statement.setString(3, note)
@@ -96,15 +97,15 @@ object NotesSource {
   }
 
   /**
-    * Saves a note to the NOTES_LINK_TABLE.
+    * Saves a note to the NOTES_AIRPORT.
     * @param airportId The airport ID
     * @param airlineId The airline ID
     * @param note The note text
     */
-  def saveNoteToLinkTable(airportId: Int, airlineId: Int, note: String): Unit = {
+  def saveNoteToAirportTable(airportId: Int, airlineId: Int, note: String): Unit = {
     val connection = Meta.getConnection()
     try {
-      val statement = connection.prepareStatement(s"REPLACE INTO $NOTES_LINK_TABLE (airport, airline, notes) VALUES(?, ?, ?)")
+      val statement = connection.prepareStatement(s"REPLACE INTO $NOTES_AIRPORT_TABLE (airport, airline, notes) VALUES(?, ?, ?)")
       statement.setInt(1, airportId)
       statement.setInt(2, airlineId)
       statement.setString(3, note)

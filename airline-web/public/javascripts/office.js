@@ -297,18 +297,18 @@ function updateMilestones(breakdowns) {
         if(breakdown.value >= 75){
             document.getElementById("m-country4").src = "/assets/images/icons/tick.png"
         }
-      } else if(breakdown.description === "Milestone Alliance Assists" && breakdown.value >= 0){
+      } else if(breakdown.description === "Milestone Codeshares" && breakdown.value >= 0){
         if(breakdown.value >= 15){
-            document.getElementById("m-country1").src = "/assets/images/icons/tick.png"
+            document.getElementById("m-codeshares1").src = "/assets/images/icons/tick.png"
         }
         if(breakdown.value >= 30){
-            document.getElementById("m-country2").src = "/assets/images/icons/tick.png"
+            document.getElementById("m-codeshares2").src = "/assets/images/icons/tick.png"
         }
         if(breakdown.value >= 45){
-            document.getElementById("m-country3").src = "/assets/images/icons/tick.png"
+            document.getElementById("m-codeshares3").src = "/assets/images/icons/tick.png"
         }
         if(breakdown.value >= 75){
-            document.getElementById("m-country4").src = "/assets/images/icons/tick.png"
+            document.getElementById("m-codeshares4").src = "/assets/images/icons/tick.png"
         }
       } else if(breakdown.description === "Milestone Passenger Miles" && breakdown.value >= 0){
         if(breakdown.value >= 15){
@@ -340,57 +340,40 @@ function updateAirlineColorPicker() {
 }
 
 function updateAirlineDetails() {
-	var airlineId = activeAirline.id
-	var url = "airlines/" + airlineId + "?extendedInfo=true"
-    $.ajax({
-		type: 'GET',
-		url: url,
-	    contentType: 'application/json; charset=utf-8',
-	    dataType: 'json',
-	    success: function(airline) {
-            var breakdownList = $("<ul></ul>")
-            $.each(airline.reputationBreakdowns.breakdowns, function(index, breakdown) {
-                if (!breakdown.description.toLowerCase().includes("milestone")) {
-                    breakdownList.append("<li>" + breakdown.description + ": <span class='rep-value'>" + breakdown.value.toFixed(2) + "</span></li>")
-                }
-            })
-			document.getElementById("aircraftTypes").innerText = `${airline.fleetTypes ?? 0} Aircraft Types`;
-			document.getElementById("countriesServed").innerText = `${airline.countriesServed ?? 0} Countries Served`;
-			document.getElementById("paxKM").innerText = `Passenger KM`;
-            const milestoneValue = updateMilestones(airline.reputationBreakdowns.breakdowns)
-            breakdownList.append("<li>Milestones: <span class='rep-value'>" + milestoneValue.toFixed(2) + "</span></li>")
-            $('#officeCanvas .reputationDetails').html(breakdownList)
+    const airline = activeAirline
+	var breakdownList = $("<ul></ul>")
+	$.each(airline.reputationBreakdowns.breakdowns, function(index, breakdown) {
+		if (!breakdown.description.toLowerCase().includes("milestone")) {
+			breakdownList.append("<li>" + breakdown.description + ": <span class='rep-value'>" + breakdown.value.toFixed(2) + "</span></li>")
+		}
+	})
 
-            $('#officeCanvas .airlineName').text(airline.name)
-            $('#officeCanvas .airlineType').text(airline.type)
-            cancelAirlineRename()
-            if (isPremium()) {
-                if (airline.renameCooldown) {
-                    disableButton($('#officeCanvas .airlineNameDisplaySpan .editButton'), "Cannot rename yet. Cooldown: " + toReadableDuration(airline.renameCooldown))
-                } else {
-                    enableButton($('#officeCanvas .airlineNameDisplaySpan .editButton'))
-                }
-            } else {
-                disableButton($('#officeCanvas .airlineNameDisplaySpan .editButton'), "Airline rename is only available to Patreon members")
-            }
+    const milestoneValue = updateMilestones(airline.reputationBreakdowns.breakdowns)
+    breakdownList.append("<li>Milestones: <span class='rep-value'>" + milestoneValue.toFixed(2) + "</span></li>")
+    $('#officeCanvas .reputationDetails').html(breakdownList)
 
-	    	$('#airlineCode').text(airline.airlineCode)
-	    	$('#airlineCodeInput').val(airline.airlineCode)
-	    	$(".fuelTaxRate").text(airline.fuelTaxRate + "% ")
-	    	// $('#destinations').text(airline.destinations)
-	    	// $('#fleetSize').text(airline.fleetSize)
-	    	// $('#fleetAge').text(getYearMonthText(airline.fleetAge))
+    $('#officeCanvas .airlineName').text(airline.name)
+    $('#officeCanvas .airlineType').text(airline.type)
+    cancelAirlineRename()
+    if (isPremium()) {
+        if (airline.renameCooldown) {
+            disableButton($('#officeCanvas .airlineNameDisplaySpan .editButton'), "Cannot rename yet. Cooldown: " + toReadableDuration(airline.renameCooldown))
+        } else {
+            enableButton($('#officeCanvas .airlineNameDisplaySpan .editButton'))
+        }
+    } else {
+        disableButton($('#officeCanvas .airlineNameDisplaySpan .editButton'), "Airline rename is only available to Patreon members")
+    }
+
+    $('#airlineCode').text(airline.airlineCode)
+    $('#airlineCodeInput').val(airline.airlineCode)
+    $(".fuelTaxRate").text(airline.fuelTaxRate + "% ")
+    // $('#destinations').text(airline.destinations)
+    // $('#fleetSize').text(airline.fleetSize)
+    // $('#fleetAge').text(getYearMonthText(airline.fleetAge))
 //	    	$('#assets').text('$' + commaSeparateNumber(airline.assets))
-	    	// $('#officeCanvas .linkCount').text(airline.linkCount)
-			$('#minimumRenewalBalance').text('$' + commaSeparateNumber(airline.minimumRenewalBalance))
-
-
-	    },
-        error: function(jqXHR, textStatus, errorThrown) {
-	            console.log(JSON.stringify(jqXHR));
-	            console.log("AJAX error: " + textStatus + ' : ' + errorThrown);
-	    }
-	});
+    // $('#officeCanvas .linkCount').text(airline.linkCount)
+    $('#minimumRenewalBalance').text('$' + commaSeparateNumber(airline.minimumRenewalBalance))
 }
 
 
@@ -446,11 +429,19 @@ function loadSheets() {
 	    	
 	    	updateCashFlowChart()
 
+			data.airlineStats.forEach(stat => {
+				stat.traveler = stat.total - (stat.tourists + stat.elites + stat.business);
+			});
+
 	    	plotAirlineStats(data.airlineStats, $("#officeCanvas #airlineStatsChart"))
+			plotOpsChart(data.airlineStats, $("#officeCanvas #opsChart"))
+
 
 	    	var stockPrice = loadedIncomes['WEEKLY'].length > 0 ? loadedIncomes['WEEKLY'][loadedIncomes['WEEKLY'].length - 1].stockPrice : null
-            var airlineStats = data.airlineStats[data.airlineStats.length - 1] ?? null
-            updateProgress(airlineStats, stockPrice)
+            const airlineStat = data.airlineStats[data.airlineStats.length - 1] ?? null
+			updateOpsDataSheet(airlineStat)
+			updateAirlineStatsSheet(airlineStat)
+            updateProgress(airlineStat, stockPrice)
 	    },
 	    error: function(jqXHR, textStatus, errorThrown) {
             console.log(JSON.stringify(jqXHR));
@@ -548,6 +539,7 @@ function changeCashFlowPeriod(period) {
 	officePeriod = period
 	var totalPages = loadedCashFlows[officePeriod].length
 	officeSheetPage = totalPages - 1
+	// updateAirlineStatsSheet(loadedIncomes[officePeriod][officeSheetPage].airlineStats)
 	updateCashFlowSheet(loadedCashFlows[officePeriod][officeSheetPage])
 	updateCashFlowChart()
 }
@@ -568,6 +560,34 @@ function updateCashFlowSheet(airlineCashFlow) {
         $("#cashFlowSheet .oilContract").text('$' + commaSeparateNumber(airlineCashFlow.oilContract))
         $("#cashFlowSheet .assetTransactions").text('$' + commaSeparateNumber(airlineCashFlow.assetTransactions))
 	}
+}
+
+function updateAirlineStatsSheet(airlineStats) {
+    if (airlineStats) {
+        Object.keys(airlineStats).forEach((key) => {
+            const element = document.querySelector(`#airlineStatsSheet .${key}`);
+            if (element) {
+                element.textContent = commaSeparateNumber(airlineStats[key]);
+            }
+        });
+    }
+}
+
+function updateOpsDataSheet(opsData) {
+    if (opsData) {
+        Object.keys(opsData).forEach((key) => {
+            const element = document.querySelector(`#opsSheet .${key}`);
+            if (element) {
+                element.textContent = commaSeparateNumber(opsData[key]);
+            }
+        });
+    }
+	Object.keys(activeAirline.stats).forEach((key) => {
+		const element = document.querySelector(`#opsSheet .${key}`);
+		if (element) {
+			element.textContent = commaSeparateNumber(activeAirline.stats[key]);
+		}
+	});
 }
 
 function setTargetServiceQuality(targetServiceQuality) {

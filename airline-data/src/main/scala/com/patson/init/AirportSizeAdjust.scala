@@ -245,7 +245,7 @@ object AirportSizeAdjust {
         "CCP" -> 5,
         //https://en.wikipedia.org/wiki/List_of_the_busiest_airports_in_China
         //listing 2022 order + PVG
-        "CTU" -> 7,
+        "CTU" -> 6,
         "SHA" -> 7,
         "WUH" -> 7,
         "CSX" -> 7,
@@ -341,6 +341,7 @@ object AirportSizeAdjust {
         "HSG" -> 3,
         "TKS" -> 3,
         "IWJ" -> 3,
+        "SDS" -> 3,
         "NKM" -> 2,
         //https://en.wikipedia.org/wiki/List_of_airports_in_Kazakhstan
         "PLX" -> 3,
@@ -385,6 +386,7 @@ object AirportSizeAdjust {
         "HDO" -> 3,
         "PGH" -> 3,
         "HSS" -> 3,
+        "NAG" -> 3,
         "KNU" -> 2,
         //https://en.wikipedia.org/wiki/List_of_the_busiest_airports_in_Indonesia
         "DPS" -> 6,
@@ -811,6 +813,7 @@ object AirportSizeAdjust {
         //https://en.wikipedia.org/wiki/List_of_airports_in_Vietnam
         "VDO" -> 4,
         "HPH" -> 4,
+        "DLI" -> 4,
         //https://en.wikipedia.org/wiki/List_of_airports_in_Venezuela
         //https://en.wikipedia.org/wiki/List_of_airports_in_Kosovo
         //https://en.wikipedia.org/wiki/List_of_airports_in_Yemen

@@ -614,7 +614,7 @@
 									<div id=linkCompetitionsPie align="center"></div>
 								</div>
 								<div id="linkCharts">
-									<textarea id="linkNotes" style="width: 90%; margin:1rem auto;" placeholder="Add notes here..."></textarea>
+									<textarea id="linkNotes" style="width: 90%; margin:1rem auto; border-radius: 0;" placeholder="Add notes here..."></textarea>
 									<fieldset>
 										<div class="switch" style="float: right;">
 											<input type="radio" class="switch-input" name="view" value="month" id="switchMonth" onchange="refreshLinkCharts()">
@@ -1275,37 +1275,40 @@
 					  </div>
 				  </div>
 
-				  <div class="section loyalistDetails" style="flex-basis: 33%; flex-grow: 1; box-sizing:border-box;">
-					  <h5>
-						  Loyalist Trend
-						  <span class="tooltip">
-								<img class="info svg" src='@routes.Assets.versioned("images/icons/information.svg")'>
-								<span class="tooltiptext below alignLeft" style="width: 400px;">
-									<p>Loyalists are gained by providing satisfying services to passengers originate from this
-										airport.</p>
-									<p>Passenger satisfaction is reflected by Satisfaction Factor (SF) of a flight.</p>
-									<p>For more info, please refer to the survey</p>
-									<br /><br />
-									<img src='@routes.Assets.versioned("images/tutorial/survey-button.png")'
-										 style="box-shadow: 0 0 2px 1px rgba(255, 255, 255, 0.2);">
-								</span>
-						  </span>
-						  <img src='@routes.Assets.versioned("images/icons/chart-up.png")' class="clickable"
-							   title="View History" onclick="showLoyalistHistoryModal()" style="vertical-align: text-bottom">
-					  </h5>
-					  <div>
-						  <div class="loyalistPie" style="height: 160px; width:100%;">
-						  </div>
-						  <div class="table data loyalistDelta" style="width: 100%">
-							  <div class="table-header">
-								  <div class="cell" style="width: 70%">Airline</div>
-								  <div class="cell" style="width: 30%; text-align: right;">Trend</div>
-							  </div>
-						  </div>
-					  </div>
-					  <p class="pt-2">Loyalty is very important. With more loyalty a passenger is more likely to choose your airline and to pay higher ticket prices.</p>
-				  </div>
-			  </div>
+				<div class="vertical-group" style="flex-basis: 33%; flex-grow: 1; box-sizing:border-box;">
+					<div class="section tight">
+						<textarea id="airportNotes" style="width: 99%; min-height: 80px;" placeholder="Add notes here..."></textarea>
+					</div>
+					<div class="section loyalistDetails">
+						<h5>
+							Loyalist Trend
+							<span class="tooltip">
+									<img class="info svg" src='@routes.Assets.versioned("images/icons/information.svg")'>
+									<span class="tooltiptext below alignLeft" style="width: 400px;">
+										<p>Loyalty is very important. With more loyalty a passenger is more likely to choose your airline and to pay higher ticket prices.</p>
+										<p>Gain loyalists by providing satisfying service! Different passenger types care for different attributes, for example flight quality or price. For more info, please refer to the survey</p>
+										<img src='@routes.Assets.versioned("images/tutorial/survey-button.png")'
+											style="box-shadow: 0 0 2px 1px rgba(255, 255, 255, 0.2);">
+										<p>Having the most loyalists at an airport also makes you the "champion" of the airport, giving you additional reputation.</p>
+									</span>
+							</span>
+							<img src='@routes.Assets.versioned("images/icons/chart-up.png")' class="clickable"
+								title="View History" onclick="showLoyalistHistoryModal()" style="vertical-align: text-bottom">
+						</h5>
+						<div>
+							<div class="loyalistPie" style="height: 160px; width:100%;">
+							</div>
+							<div class="table data loyalistDelta" style="width: 100%">
+								<div class="table-header">
+									<div class="cell" style="width: 70%">Airline</div>
+									<div class="cell" style="width: 30%; text-align: right;">Trend</div>
+								</div>
+							</div>
+						</div>
+						<p class="pt-2"></p>
+					</div>
+				</div>
+			</div>
 
 			  <div class="section-grid">
 				  <div class="section tight">
@@ -2076,30 +2079,30 @@
 										</div>
 									</div>
 									<div>
-										<h5>Alliance Assists<div class="tooltip">
+										<h5>Codeshares<div class="tooltip">
 											<img src='@routes.Assets.versioned("images/icons/information.svg")'>
 											<div class="tooltiptext alignLeft below" style="width: 280px;">
-												<p>An alliance assist is when a passenger travels on your airline and an alliance partner's in one journey.</p>
+												<p>A codeshare is when a passenger travels on your airline and an alliance partner's in one journey.</p>
 											</div>
 										</div></h5>
 										<div style="width: 120px;justify-content: space-between;" class="flex-row py-1">
 											<div class="font-mono text-sm flex-center">
-												500<img height="16" id="m-allianceAssists1" class="pl-1" src="/assets/images/icons/cross.png"></div><div style="color:gold;display: flex;flex-direction: row;" class="">15 <img height="16" src="/assets/images/icons/reputation.svg">
+												500<img height="16" id="m-codeshares1" class="pl-1" src="/assets/images/icons/cross.png"></div><div style="color:gold;display: flex;flex-direction: row;" class="">15 <img height="16" src="/assets/images/icons/reputation.svg">
 										</div>
 										</div>
 										<div style="width: 120px;justify-content: space-between;" class="flex-row py-1">
 											<div class="font-mono flex-center">
-												5,000<img height="16" id="m-allianceAssists2" class="pl-1" src="/assets/images/icons/cross.png"></div><div style="color:gold;display: flex;flex-direction: row;" class="">15 <img height="16" src="/assets/images/icons/reputation.svg">
+												5,000<img height="16" id="m-codeshares2" class="pl-1" src="/assets/images/icons/cross.png"></div><div style="color:gold;display: flex;flex-direction: row;" class="">15 <img height="16" src="/assets/images/icons/reputation.svg">
 										</div>
 										</div>
 										<div style="width: 120px;justify-content: space-between;" class="flex-row py-1">
 											<div class="font-mono flex-center">
-												75,000<img height="16" id="m-allianceAssists3" class="pl-1" src="/assets/images/icons/cross.png"></div><div style="color:gold;display: flex;flex-direction: row;" class="">20 <img height="16" src="/assets/images/icons/reputation.svg">
+												75,000<img height="16" id="m-codeshares3" class="pl-1" src="/assets/images/icons/cross.png"></div><div style="color:gold;display: flex;flex-direction: row;" class="">20 <img height="16" src="/assets/images/icons/reputation.svg">
 										</div>
 										</div>
 										<div style="width: 120px;justify-content: space-between;" class="flex-row py-1">
 											<div class="font-mono flex-center">
-												500,000<img height="16" id="m-allianceAssists4" class="pl-1" src="/assets/images/icons/cross.png"></div><div style="color:gold;display: flex;flex-direction: row;" class="">30 <img height="16" src="/assets/images/icons/reputation.svg">
+												500,000<img height="16" id="m-codeshares4" class="pl-1" src="/assets/images/icons/cross.png"></div><div style="color:gold;display: flex;flex-direction: row;" class="">30 <img height="16" src="/assets/images/icons/reputation.svg">
 										</div>
 										</div>
 									</div>
@@ -2150,11 +2153,12 @@
 
 						<div style="width: 100%; min-height: 1000px;" class="section tight">
                             <div class="controllers" style="margin: 5px;">
-                                <div class="table" style="width: 38%; float: left;">
+                                <div class="table" style="width: 440px; float: left;">
                                     <div class="table-header sheetOptions">
                                         <div class="cell clickable selected" data-type="income" onclick="selectSheet($(this), $('#incomeSheet')); $('.controllers-period').show();">Income</div>
 										<div class="cell clickable" data-type="cashFlow" onclick="selectSheet($(this), $('#cashFlowSheet')); $('.controllers-period').show();">Cash Flow</div>
 										<div class="cell clickable" data-type="airlineStats" onclick="selectSheet($(this), $('#airlineStatsSheet')); $('.controllers-period').hide();">Passenger Stats</div>
+										<div class="cell clickable" data-type="opsSheet" onclick="selectSheet($(this), $('#opsSheet')); $('.controllers-period').hide();">Operating Metrics</div>
                                     </div>
                                 </div>
                                 <div style="display: flex; align-items: center; float: right;" class="controllers-period">
@@ -2172,8 +2176,8 @@
                                 <div style="clear: both;"></div>
                             </div>
 
-							<div style="width : 100%;" id="incomeSheet" class="sheet">
-								<div id="totalProfitChart" style="width: 100%; height: 300px; margin: 2rem auto;"></div>
+							<div style="width: 100%; overflow:hidden;" id="incomeSheet" class="sheet">
+								<div id="totalProfitChart" style="width: 100%; max-width: 100%; overflow-x:scroll; height: 300px; margin: 2rem auto;"></div>
 
 								<div style="display: flex; flex-wrap: wrap;" class="">
 
@@ -2408,6 +2412,96 @@
 		<!--          		end cashflow sheet -->
 							<div style="width : 100%; display: none;" id="airlineStatsSheet" class="sheet">
 								<div id="airlineStatsChart" style="width: 100%; height: 700px; margin: 0 auto;"></div>
+								<div style="display: flex; flex-wrap: wrap;">
+									<div class="table data rounded-none" style="min-width: 200px; max-width: 300px;">
+										<h4>Passenger Stats</h4>
+										<div class="table-row">
+											<div class="cell">Total unique:</div>
+											<div class="total cell" style="text-align: right;"></div>
+										</div>
+										<div class="table-row">
+											<div class="cell">Business:</div>
+											<div class="business cell" style="text-align: right;"></div>
+										</div>
+										<div class="table-row">
+											<div class="cell">Tourist:</div>
+											<div class="tourists cell" style="text-align: right;"></div>
+										</div>
+										<div class="table-row">
+											<div class="cell">Elite:</div>
+											<div class="elites cell" style="text-align: right;"></div>
+										</div>
+										<div class="table-row">
+											<div class="cell">Traveler & other:</div>
+											<div class="traveler cell" style="text-align: right;"></div>
+										</div>
+										<div class="table-row">
+											<div class="cell">Codeshares:</div>
+											<div class="codeshares cell" style="text-align: right;"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<div style="width : 100%; display: none;" id="opsSheet" class="sheet">
+								<div id="opsChart" style="width: 100%; height: 400px; margin: 0 auto;"></div>
+								<div class="item-grid pt-4" id="opsSheetContent">
+									<div class="item">
+										<div class="i-label">Tickets Sold</div>
+										<div class="i-value total"></div>
+									</div>
+									<div class="item">
+										<div class="i-label">Codeshares</div>
+										<div class="i-value codeshares"></div>
+									</div>
+									<div class="item">
+										<div class="i-label">Revenue Available<br>Seat km</div>
+										<div class="i-value RASK"></div>
+									</div>
+									<div class="item">
+										<div class="i-label">Cost Available<br>Seat km</div>
+										<div class="i-value CASK"></div>
+									</div>
+									<div class="item">
+										<div class="i-label">Satisfaction</div>
+										<div class="i-value satisfaction"></div>
+									</div>
+									<div class="item">
+										<div class="i-label">Load Factor</div>
+										<div class="i-value loadFactor"></div>
+									</div>
+									<div class="item">
+										<div class="i-label">On-Time Performance</div>
+										<div class="i-value onTime"></div>
+									</div>
+									<div class="divider"></div>
+									<div class="item">
+										<div class="i-label">Routes</div>
+										<div class="i-value linkCount"></div>
+									</div>
+									<div class="item">
+										<div class="i-label">Destinations</div>
+										<div class="i-value destinations"></div>
+									</div>
+									<div class="item">
+										<div class="i-label">Countries Served</div>
+										<div class="i-value countriesServed"></div>
+									</div>
+									<div class="divider"></div>
+									<div class="item">
+										<div class="i-label">Fleet size</div>
+										<div class="i-value fleetSize"></div>
+									</div>
+									<div class="item">
+										<div class="i-label">Fleet condition</div>
+										<div class="i-value fleetCondition"></div>
+									</div>
+									<div class="item">
+										<div class="i-label">Fleet Utilization</div>
+										<div class="i-value fleetUtilization"></div>
+									</div>
+									
+								</div>
 							</div>
 						</div>
 	<!-- 					end statements -->
@@ -2453,8 +2547,7 @@
 <!-- end left section  -->
 					<div class="vertical-group officeCanvasRightGroup">
 						<div class="section">
-							<h4>Notes</h4>
-							<textarea id="airlineNotes" style="width:99%;"></textarea>
+							<textarea id="airlineNotes" style="width:99%;" placeholder="Add notes here..."></textarea>
 						</div>
 						<div class="section">
                             <h4>Headquarters</h4>

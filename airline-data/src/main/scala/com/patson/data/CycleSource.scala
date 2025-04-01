@@ -13,7 +13,7 @@ object CycleSource {
       
       val preparedStatement = connection.prepareStatement(queryString)
       val resultSet = preparedStatement.executeQuery()
-      val cycle = if (resultSet.next()) { resultSet.getInt("cycle") } else 0
+      val cycle = if (resultSet.next()) { resultSet.getInt("cycle") } else 1
       
       resultSet.close()
       preparedStatement.close()

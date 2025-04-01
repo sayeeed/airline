@@ -39,7 +39,7 @@ object GeoDataGenerator extends App {
       "AU"
 //    } else if (List("NU", "CK").contains(countryCode)) {
 //      "NZ"
-    } else if (List("PM", "WF", "GF", "GP", "MF", "MQ", "PM", "BL", "RE", "NC", "PF").contains(countryCode)) {
+    } else if (List("PM", "WF", "GF", "GP", "MF", "MQ", "PM", "BL", "RE", "NC", "PF", "MC").contains(countryCode)) {
       "FR"
     } else if (List("BQ").contains(countryCode)) {
       "NL"
@@ -246,8 +246,8 @@ object GeoDataGenerator extends App {
   def generateAirportData(rawAirportResult : List[CsvAirport], runwayResult : Map[Int, List[Runway]], cities : List[City]) : List[Airport] = {
     val removalAirportIatas = AdditionalLoader.loadRemovalAirportIatas()
 
-    println(s"Removal iatas")
-    removalAirportIatas.foreach(println)
+    println(s">> ${removalAirportIatas.size} removal iatas")
+//    removalAirportIatas.foreach(println)
 
     setAirportRunwayDetails(rawAirportResult, runwayResult)
 
@@ -333,10 +333,13 @@ object GeoDataGenerator extends App {
 
     println(s"Calculating incomes with gini: ${giniMap}")
 
-    val popOverrideMap : Map[String, (Int, Int, Int)] = scala.io.Source.fromFile("population_override.csv").getLines().map(_.split(",", -1)).map { tokens =>
-      (tokens(0), (tokens(4).toInt, if (tokens(5).isEmpty) 0 else tokens(5).toInt, tokens(2).toInt))
+    val popOverrideMap: Map[String, (Int, Int, Int)] = scala.io.Source.fromFile("population_override.csv").getLines().map(_.split(",", -1)).map { tokens =>
+      val basePopulation = if (tokens(4).isEmpty) 0 else tokens(4).toInt
+      val elitePopulation = if (tokens(5).isEmpty) 0 else tokens(5).toInt
+      val baseIncome = if (tokens(2).isEmpty) 0 else tokens(2).toInt
+      (tokens(0), (basePopulation, elitePopulation, baseIncome))
     }.toMap
-    println(s"manually set population override ${popOverrideMap}")
+    println(s"manually set population override ${popOverrideMap.size}")
 
     val airports = airportResult.map { airport =>
       val power = airport.citiesServed.foldLeft(0.toLong) {
@@ -530,7 +533,7 @@ object GeoDataGenerator extends App {
     }.toMap
 
     val countries = ArrayBuffer[Country]()
-    println(airportsByCountry)
+//    println(airportsByCountry)
     airportsByCountry.foreach {
       case (countryCode, airports) =>
         val totalAirportPopulation = airports.map {

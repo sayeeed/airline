@@ -11,7 +11,7 @@ import scala.collection.mutable.ListBuffer
 object AirlineStatisticsSource {
 
   def saveAirlineStats(stats: List[AirlineStat]) = {
-    val queryString = s"REPLACE INTO $AIRLINE_STATISTICS_TABLE (airline, cycle, period, tourists, elites, business, total, alliance_assists, rask, cask, satisfaction, load_factor, on_time, hub_dominance) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+    val queryString = s"REPLACE INTO $AIRLINE_STATISTICS_TABLE (airline, cycle, period, tourists, elites, business, total, codeshares, rask, cask, satisfaction, load_factor, on_time, hub_dominance) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
     val connection = Meta.getConnection()
     try {
       connection.setAutoCommit(false)
@@ -24,7 +24,7 @@ object AirlineStatisticsSource {
         preparedStatement.setInt(5, entry.elites)
         preparedStatement.setInt(6, entry.business)
         preparedStatement.setInt(7, entry.total)
-        preparedStatement.setInt(8, entry.allianceAssists)
+        preparedStatement.setInt(8, entry.codeshares)
         preparedStatement.setDouble(9, entry.RASK)
         preparedStatement.setDouble(10, entry.CASK)
         preparedStatement.setDouble(11, entry.satisfaction)
@@ -41,7 +41,7 @@ object AirlineStatisticsSource {
   }
 
   def saveAirlineStat(stat: AirlineStat) = {
-    val queryString = s"REPLACE INTO $AIRLINE_STATISTICS_TABLE (airline, cycle, period, tourists, elites, business, total, alliance_assists, rask, cask, satisfaction, load_factor, on_time, hub_dominance) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+    val queryString = s"REPLACE INTO $AIRLINE_STATISTICS_TABLE (airline, cycle, period, tourists, elites, business, total, codeshares, rask, cask, satisfaction, load_factor, on_time, hub_dominance) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
     val connection = Meta.getConnection()
     try {
       connection.setAutoCommit(false)
@@ -53,7 +53,7 @@ object AirlineStatisticsSource {
       preparedStatement.setInt(5, stat.elites)
       preparedStatement.setInt(6, stat.business)
       preparedStatement.setInt(7, stat.total)
-      preparedStatement.setInt(8, stat.allianceAssists)
+      preparedStatement.setInt(8, stat.codeshares)
       preparedStatement.setDouble(9, stat.RASK)
       preparedStatement.setDouble(10, stat.CASK)
       preparedStatement.setDouble(12, stat.satisfaction)
@@ -68,18 +68,19 @@ object AirlineStatisticsSource {
     }
   }
 
-  def deleteAirlineStatsBeforeCycle(cycleCutoff : Int) = {
-    if(cycleCutoff >= 0 ){
-      val queryString = s"DELETE FROM $AIRLINE_STATISTICS_TABLE WHERE cycle < ?";
-      val connection = Meta.getConnection()
-      try {
-        val preparedStatement = connection.prepareStatement(queryString)
-        preparedStatement.setInt(1, cycleCutoff)
-        preparedStatement.executeUpdate()
-        preparedStatement.close()
-      } finally {
-        connection.close()
-      }
+  def deleteIncomesBefore(cycleAndBefore : Int, period : Period.Value) = {
+    val connection = Meta.getConnection()
+    try {
+      connection.setAutoCommit(false)
+      var deleteStatement = connection.prepareStatement("DELETE FROM " + AIRLINE_STATISTICS_TABLE + " WHERE cycle <= ? AND period = ?")
+      deleteStatement.setInt(1, cycleAndBefore)
+      deleteStatement.setInt(2, period.id)
+      deleteStatement.executeUpdate()
+
+      deleteStatement.close()
+      connection.commit
+    } finally {
+      connection.close()
     }
   }
 
@@ -114,14 +115,14 @@ object AirlineStatisticsSource {
           val elites = resultSet.getInt("elites")
           val business = resultSet.getInt("business")
           val total = resultSet.getInt("total")
-          val allianceAssists = resultSet.getInt("alliance_assists")
+          val codeshares = resultSet.getInt("codeshares")
           val rask = resultSet.getDouble("rask")
           val cask = resultSet.getDouble("cask")
           val satisfaction = resultSet.getDouble("satisfaction")
           val loadFactor = resultSet.getDouble("load_factor")
           val onTime = resultSet.getDouble("on_time")
           val hubDominance = resultSet.getDouble("hub_dominance")
-          airlineStats += AirlineStat(airlineId, cycle, period, tourists, elites, business, total, allianceAssists, rask, cask, satisfaction, loadFactor, onTime, hubDominance)
+          airlineStats += AirlineStat(airlineId, cycle, period, tourists, elites, business, total, codeshares, rask, cask, satisfaction, loadFactor, onTime, hubDominance)
         }
 
         airlineStats.toList
@@ -163,14 +164,14 @@ object AirlineStatisticsSource {
         val elites = resultSet.getInt("elites")
         val business = resultSet.getInt("business")
         val total = resultSet.getInt("total")
-        val allianceAssists = resultSet.getInt("alliance_assists")
+        val codeshares = resultSet.getInt("codeshares")
         val rask = resultSet.getDouble("rask")
         val cask = resultSet.getDouble("cask")
         val satisfaction = resultSet.getDouble("satisfaction")
         val loadFactor = resultSet.getDouble("load_factor")
         val onTime = resultSet.getDouble("on_time")
         val hubDominance = resultSet.getDouble("hub_dominance")
-        airlineStats += AirlineStat(airlineId, cycle, period, tourists, elites, business, total, allianceAssists, rask, cask, satisfaction, loadFactor, onTime, hubDominance)
+        airlineStats += AirlineStat(airlineId, cycle, period, tourists, elites, business, total, codeshares, rask, cask, satisfaction, loadFactor, onTime, hubDominance)
       }
 
       airlineStats.toList
