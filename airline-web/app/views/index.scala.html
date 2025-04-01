@@ -614,7 +614,7 @@
 									<div id=linkCompetitionsPie align="center"></div>
 								</div>
 								<div id="linkCharts">
-									<textarea id="linkNotes" style="width: 90%; margin:1rem auto;" placeholder="Add notes here..."></textarea>
+									<textarea id="linkNotes" style="width: 90%; margin:1rem auto; border-radius: 0;" placeholder="Add notes here..."></textarea>
 									<fieldset>
 										<div class="switch" style="float: right;">
 											<input type="radio" class="switch-input" name="view" value="month" id="switchMonth" onchange="refreshLinkCharts()">
@@ -1275,37 +1275,40 @@
 					  </div>
 				  </div>
 
-				  <div class="section loyalistDetails" style="flex-basis: 33%; flex-grow: 1; box-sizing:border-box;">
-					  <h5>
-						  Loyalist Trend
-						  <span class="tooltip">
-								<img class="info svg" src='@routes.Assets.versioned("images/icons/information.svg")'>
-								<span class="tooltiptext below alignLeft" style="width: 400px;">
-									<p>Loyalists are gained by providing satisfying services to passengers originate from this
-										airport.</p>
-									<p>Passenger satisfaction is reflected by Satisfaction Factor (SF) of a flight.</p>
-									<p>For more info, please refer to the survey</p>
-									<br /><br />
-									<img src='@routes.Assets.versioned("images/tutorial/survey-button.png")'
-										 style="box-shadow: 0 0 2px 1px rgba(255, 255, 255, 0.2);">
-								</span>
-						  </span>
-						  <img src='@routes.Assets.versioned("images/icons/chart-up.png")' class="clickable"
-							   title="View History" onclick="showLoyalistHistoryModal()" style="vertical-align: text-bottom">
-					  </h5>
-					  <div>
-						  <div class="loyalistPie" style="height: 160px; width:100%;">
-						  </div>
-						  <div class="table data loyalistDelta" style="width: 100%">
-							  <div class="table-header">
-								  <div class="cell" style="width: 70%">Airline</div>
-								  <div class="cell" style="width: 30%; text-align: right;">Trend</div>
-							  </div>
-						  </div>
-					  </div>
-					  <p class="pt-2">Loyalty is very important. With more loyalty a passenger is more likely to choose your airline and to pay higher ticket prices.</p>
-				  </div>
-			  </div>
+				<div class="vertical-group" style="flex-basis: 33%; flex-grow: 1; box-sizing:border-box;">
+					<div class="section tight">
+						<textarea id="airportNotes" style="width: 99%; min-height: 80px;" placeholder="Add notes here..."></textarea>
+					</div>
+					<div class="section loyalistDetails">
+						<h5>
+							Loyalist Trend
+							<span class="tooltip">
+									<img class="info svg" src='@routes.Assets.versioned("images/icons/information.svg")'>
+									<span class="tooltiptext below alignLeft" style="width: 400px;">
+										<p>Loyalty is very important. With more loyalty a passenger is more likely to choose your airline and to pay higher ticket prices.</p>
+										<p>Gain loyalists by providing satisfying service! Different passenger types care for different attributes, for example flight quality or price. For more info, please refer to the survey</p>
+										<img src='@routes.Assets.versioned("images/tutorial/survey-button.png")'
+											style="box-shadow: 0 0 2px 1px rgba(255, 255, 255, 0.2);">
+										<p>Having the most loyalists at an airport also makes you the "champion" of the airport, giving you additional reputation.</p>
+									</span>
+							</span>
+							<img src='@routes.Assets.versioned("images/icons/chart-up.png")' class="clickable"
+								title="View History" onclick="showLoyalistHistoryModal()" style="vertical-align: text-bottom">
+						</h5>
+						<div>
+							<div class="loyalistPie" style="height: 160px; width:100%;">
+							</div>
+							<div class="table data loyalistDelta" style="width: 100%">
+								<div class="table-header">
+									<div class="cell" style="width: 70%">Airline</div>
+									<div class="cell" style="width: 30%; text-align: right;">Trend</div>
+								</div>
+							</div>
+						</div>
+						<p class="pt-2"></p>
+					</div>
+				</div>
+			</div>
 
 			  <div class="section-grid">
 				  <div class="section tight">
@@ -2453,8 +2456,7 @@
 <!-- end left section  -->
 					<div class="vertical-group officeCanvasRightGroup">
 						<div class="section">
-							<h4>Notes</h4>
-							<textarea id="airlineNotes" style="width:99%;"></textarea>
+							<textarea id="airlineNotes" style="width:99%;" placeholder="Add notes here..."></textarea>
 						</div>
 						<div class="section">
                             <h4>Headquarters</h4>

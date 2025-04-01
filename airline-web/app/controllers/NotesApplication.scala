@@ -11,14 +11,23 @@ import scala.util.{Failure, Success, Try}
 
 class NotesApplication @Inject()(cc: ControllerComponents) extends AbstractController(cc) {
 
-    implicit object AirlineNotesWrites extends Writes[NotesSource.AirlineNotes] {
-        def writes(notes: NotesSource.AirlineNotes): JsValue = {
-            Json.obj(
-                "airlineNotes" -> Json.toJson(notes.airlineNotes.map(StringEscapeUtils.escapeHtml4)),
-                "airportNotes" -> Json.toJson(notes.airportNotes.map(StringEscapeUtils.escapeHtml4)),
-                "linkNotes" -> Json.toJson(notes.linkNotes.map(StringEscapeUtils.escapeHtml4))
-            )
-        }
+    implicit object NoteWrites extends Writes[NotesSource.UserNote] {
+      def writes(userNote: NotesSource.UserNote): JsValue = {
+        Json.obj(
+            "id" -> userNote.id,
+            "note" -> StringEscapeUtils.escapeHtml4(userNote.note)
+        )
+      }
+    }
+    
+    implicit object AirlineNotesWrites extends Writes[NotesSource.UserNotes] {
+      def writes(notes: NotesSource.UserNotes): JsValue = {
+        Json.obj(
+            "airlineNotes" -> Json.toJson(notes.airlineNotes.map(StringEscapeUtils.escapeHtml4)),
+            "airportNotes" -> Json.toJson(notes.airportNotes),
+            "linkNotes" -> Json.toJson(notes.linkNotes)
+        )
+      }
     }
 
   /**
@@ -59,15 +68,15 @@ class NotesApplication @Inject()(cc: ControllerComponents) extends AbstractContr
   /**
     * Endpoint to save a note to the NOTES_AIRPORT_TABLE.
     * @param airlineId The airline ID
-    * @param linkId The link ID
+    * @param airportId The link ID
     * @param note The note text
     * @return JSON response indicating success or failure
     */
-  def saveNoteToAirport(airlineId: Int, linkId: Int) = AuthenticatedAirline(airlineId) { request =>
+  def saveNoteToAirport(airlineId: Int, airportId: Int) = AuthenticatedAirline(airlineId) { request =>
     val note = request.body.asInstanceOf[AnyContentAsJson].json.\("note").as[String]
     val sanitizedNote = StringEscapeUtils.escapeEcmaScript(note)
     Try {
-      NotesSource.saveNoteToAirportTable(linkId, airlineId, sanitizedNote)
+      NotesSource.saveNoteToAirportTable(airportId, airlineId, sanitizedNote)
       Ok(Json.obj("success" -> true))
     } match {
       case Success(result) => result
@@ -78,16 +87,16 @@ class NotesApplication @Inject()(cc: ControllerComponents) extends AbstractContr
 
   /**
     * Endpoint to save a note to the NOTES_LINK_TABLE.
-    * @param airportId The airport ID
     * @param airlineId The airline ID
+    * @param linkId The airport ID
     * @param note The note text
     * @return JSON response indicating success or failure
     */
-  def saveNoteToLink(airlineId: Int, airportId: Int) = AuthenticatedAirline(airlineId) { request =>
+  def saveNoteToLink(airlineId: Int, linkId: Int) = AuthenticatedAirline(airlineId) { request =>
     val note = request.body.asInstanceOf[AnyContentAsJson].json.\("note").as[String]
     val sanitizedNote = StringEscapeUtils.escapeEcmaScript(note)
     Try {
-      NotesSource.saveNoteToLinkTable(airportId, airlineId, sanitizedNote)
+      NotesSource.saveNoteToLinkTable(linkId, airlineId, sanitizedNote)
       Ok(Json.obj("success" -> true))
     } match {
       case Success(result) => result

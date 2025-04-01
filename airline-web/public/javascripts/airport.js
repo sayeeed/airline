@@ -71,6 +71,11 @@ function updateAirportDetails(airport, cityImageUrl, airportImageUrl) {
 //    plotLoyalistHistoryChart(result.history, $("#loyalistHistoryModal .loyalistHistoryChart"))
 //    populateNavigation($('#airportCanvas'))
 
+    const notesAirport = document.getElementById('airportNotes');
+    const airportNote = notes.airportNotes.find(note => note.id === airport.id);
+    notesAirport.value = airportNote?.note || '';
+
+    populateBaseDetailsModal(airport.isDomesticAirport ? "Domestic" : "");
 
     var $runwayTable = $('#airportDetails .runwayTable')
     $runwayTable.children('.table-row').remove()
@@ -1647,11 +1652,12 @@ function showBaseUpkeepModal() {
 	$('#baseUpkeepModal').fadeIn(500)
 }
 
-function populateBaseDetailsModal() {
+function populateBaseDetailsModal(airportType = "") {
+    const query = `maxFrequency${airportType}`
     const tableContainer = document.querySelector('#baseDetailsModal .table.data.scaleDetails');
     
     gameConstants.baseScaleProgression.forEach(entry => {
-        const maxFrequency = entry.maxFrequency;
+        const maxFrequency = entry[query];
 
         const row = document.createElement('div');
         row.className = 'table-row';
