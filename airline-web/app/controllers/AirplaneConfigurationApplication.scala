@@ -54,8 +54,8 @@ class AirplaneConfigurationApplication @Inject()(cc: ControllerComponents) exten
     println(s"check: ${airline.name} is ${airline.airlineType}")
     if (economy < 0 || business < 0 || first < 0) {
       BadRequest("cannot have negative values for configurations")
-    } else if (airline.airlineType == AirlineType.ULCC && business > 0 || airline.airlineType == AirlineType.ULCC && first > 0) {
-      BadRequest("ULCC airline cannot have business or first class")
+    } else if (airline.airlineType == AirlineType.Discount && business > 0 || airline.airlineType == AirlineType.Discount && first > 0) {
+      BadRequest("Discount airline cannot have business or first class")
     } else if (airline.airlineType == AirlineType.LUXURY && economy > 0) {
       BadRequest("Luxury airline cannot have economy class")
     } else {

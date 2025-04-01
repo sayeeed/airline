@@ -15,7 +15,7 @@ import com.patson.model.oil.OilPrice
 import java.util.concurrent.ThreadLocalRandom
 
 object LinkSimulation {
-  val FUEL_UNIT_COST = OilPrice.DEFAULT_UNIT_COST * 92 //for easier flight monitoring, let's make it the default unit price here
+  val FUEL_UNIT_COST = OilPrice.DEFAULT_UNIT_COST * 94 //for easier flight monitoring, let's make it the default unit price here
   val FUEL_DISTANCE_EXPONENT = 1.4
   val FUEL_EMPTY_AIRCRAFT_BURN_PERCENT = 0.62
   val CREW_UNIT_COST = 6.75
@@ -257,7 +257,7 @@ object LinkSimulation {
     val targetQualityCost = Math.pow(flightLink.airline.getTargetServiceQuality().toDouble / 22, CREW_EQ_EXPONENT)
     var crewCost = CREW_BASE_COST
     var inflightCost, revenue = 0
-    val crewUnitCost = if (link.airline.airlineType == AirlineType.ULCC || link.airline.airlineType == AirlineType.BEGINNER) CREW_UNIT_COST * 0.75 else CREW_UNIT_COST
+    val crewUnitCost = if (link.airline.airlineType == AirlineType.Discount || link.airline.airlineType == AirlineType.BEGINNER) CREW_UNIT_COST * 0.75 else CREW_UNIT_COST
     LinkClass.values.foreach { linkClass =>
       val capacity = flightLink.capacity(linkClass)
       val soldSeats = flightLink.soldSeats(linkClass)
@@ -334,7 +334,6 @@ object LinkSimulation {
         15
       }
     val airlineTypeMultipler = link.airline.airlineType match {
-      case AirlineType.LUXURY => 0.7
       case AirlineType.BEGINNER => 0.7
       case AirlineType.NOSTALGIA => 0.7
       case _ => 1.0
@@ -467,7 +466,7 @@ object LinkSimulation {
     // Create a mutable map to accumulate stats per airline
     val airlineStatsMap = mutable.Map[Int, (Int, Int, Int, Int, Int)]() // (tourist, elite, business, total, allianceRoute)
 
-    // First, group by route to avoid double-counting alliance assists
+    // First, group by route to avoid double-counting Codeshares
     val routesByPassengerType = consumptionResult.groupBy(_._1._3)
 
     routesByPassengerType.foreach {
@@ -489,7 +488,7 @@ object LinkSimulation {
         route.links.filter(_.link.transportType == TransportType.FLIGHT).foreach { link =>
           val airlineId = link.link.airline.id
           val currentStats = airlineStatsMap.getOrElse(airlineId, (0, 0, 0, 0, 0))
-          val allianceAssists = if (hasAlliancePartners(airlineId)) passengerTypes.values.sum else 0
+          val codeshares = if (hasAlliancePartners(airlineId)) passengerTypes.values.sum else 0
           
           // Process each passenger type for this airline
           val newStats = passengerTypes.foldLeft(currentStats) {
@@ -502,8 +501,8 @@ object LinkSimulation {
               }
           }
 
-          // Add alliance assists after processing all passenger types
-          airlineStatsMap.put(airlineId, (newStats._1, newStats._2, newStats._3, newStats._4, newStats._5 + allianceAssists))
+          // Add Codeshares after processing all passenger types
+          airlineStatsMap.put(airlineId, (newStats._1, newStats._2, newStats._3, newStats._4, newStats._5 + codeshares))
         }
     }
 
