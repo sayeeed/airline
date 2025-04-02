@@ -205,7 +205,10 @@ object GenericTransitGenerator {
     "KGO" -> "SGC",
     "NJC" -> "KGP",
     "BAX" -> "OVB",
-    "PMR" -> "WLG"
+    "PMR" -> "WLG",
+    "AKL" -> "HLZ",
+    "AKL" -> "WRE",
+    "KKE" -> "WRE"
   )
 
   def main(args : Array[String]) : Unit = {
