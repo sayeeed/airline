@@ -123,7 +123,8 @@ sealed case class VacationHubFeature(baseStrength : Int, boosts : List[AirportBo
         else if (affinity == 1) 0.05
         else 0
 
-      val output = (DemandGenerator.launchDemandFactor * fromAirport.popMiddleIncome * charmStrength * distanceModifier * airportAffinityMutliplier).toInt
+      val launchDemandFactor = 0.5 + 0.5 * DemandGenerator.launchDemandFactor
+      val output = (launchDemandFactor * fromAirport.popMiddleIncome * charmStrength * distanceModifier * airportAffinityMutliplier).toInt
       if (output > DemandGenerator.demandRandomizer + 1) output else 0
     } else {
       0

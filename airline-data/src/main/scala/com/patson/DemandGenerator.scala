@@ -25,10 +25,10 @@ object DemandGenerator {
   val PRICE_DISCOUNT_PLUS_MULTIPLIER = 1.05 //multiplier on base price
   val PRICE_LAST_MIN_MULTIPLIER = 1.12
   val PRICE_LAST_MIN_DEAL_MULTIPLIER = 0.9
-//  val launchDemandFactor : Double = if (CycleSource.loadCycle() <= 1) 1.0 else Math.min(1, (45 + CycleSource.loadCycle().toDouble / 24) / 100)
-  val launchDemandFactor : Double = 1.0
-//  val baseLaunchDemandFactor : Double = if (CycleSource.loadCycle() <= 1) 1.0 else Math.min(1, (55 + CycleSource.loadCycle().toDouble / 48) / 100)
-  val baseLaunchDemandFactor : Double = 1.0
+  val launchDemandFactor : Double = if (CycleSource.loadCycle() <= 1) 1.0 else Math.min(1, (45 + CycleSource.loadCycle().toDouble / 24) / 100)
+//  val launchDemandFactor : Double = 1.0
+  val baseLaunchDemandFactor : Double = if (CycleSource.loadCycle() <= 1) 1.0 else Math.min(1, (55 + CycleSource.loadCycle().toDouble / 48) / 100)
+//  val baseLaunchDemandFactor : Double = 1.0
   val demandRandomizer: Int = CycleSource.loadCycle() % 3
 
   import scala.jdk.CollectionConverters._
@@ -224,9 +224,9 @@ object DemandGenerator {
       if (distance < 350 && ! GameConstants.ISOLATED_COUNTRIES.contains(fromAirport.countryCode) && ! GameConstants.isIsland(fromAirport.iata) && ! GameConstants.isIsland(toAirport.iata)) {
         distance.toDouble / 350
       } else if (distance > 4000) {
-        0.975 - distance.toDouble / 40000 * (1 - affinity.toDouble / 10.0) * Math.max(5.5 - toAirport.size.toDouble * 0.5, 0) //affinity & scale affects perceived distance
+        0.95 - distance.toDouble / 40000 * (1 - affinity.toDouble / 10.0) * Math.max(5.5 - toAirport.size.toDouble * 0.5, 0) //affinity & scale affects perceived distance
       } else if (distance > 1000) {
-        1.05 - distance.toDouble / 10000 * (1 - affinity.toDouble / 10.0) //affinity affects perceived distance
+        1.05 - distance.toDouble / 20000 * (1 - affinity.toDouble / 10.0) //affinity affects perceived distance
       } else {
         1
       }
@@ -281,9 +281,16 @@ object DemandGenerator {
     //set very low income floor, specifically traffic to/from central airports that is otherwise missing
     val buffLowIncomeAirports = if (fromAirport.income <= 6000 && toAirport.income <= 8000 && distance <= 3000 && (toAirport.size >= 4 || fromAirport.size >= 4)) addToVeryLowIncome(fromAirport.population, fromAirport.size) else 0
 
+    val toStrength = {
+      val gateway = if (toAirport.isGateway()) 3 else 0
+      val biz = if (toAirport.getFeatures().exists(feature =>
+        feature.featureType == AirportFeatureType.FINANCIAL_HUB && feature.strength >= 8
+      )) 1 else 0
+      toAirport.size + gateway + biz
+    }
     //always have some demand between gateways and very large airports to all other nearby domestic airports
-    val domesticDemandFloor = if (distance > 300 && distance < 1800 && affinity >= 5 && ( toAirport.isGateway() || toAirport.size - fromAirport.size >= 6)) {
-      20 + ThreadLocalRandom.current().nextInt(40)
+    val domesticDemandFloor = if (distance > 300 && distance < toStrength * 150 && affinity >= 5 && (toStrength - fromAirport.size >= 6)) {
+      fromAirport.size * 16 + ThreadLocalRandom.current().nextInt(40)
     } else {
       0
     }

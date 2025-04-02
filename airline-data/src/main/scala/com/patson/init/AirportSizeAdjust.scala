@@ -106,11 +106,11 @@ object AirportSizeAdjust {
         //https://en.wikipedia.org/wiki/List_of_the_busiest_airports_in_South_America
         "LIM" -> 7,
         "SCL" -> 7,
-        "CGH" -> 5,
+        "CGH" -> 6,
         "BSB" -> 7,
-        "GIG" -> 7,
+        "GIG" -> 6,
         "MDE" -> 7,
-        "AEP" -> 5,
+        "AEP" -> 6,
         //https://en.wikipedia.org/wiki/List_of_the_busiest_airports_in_the_Middle_East
         "AUH" -> 7,
         "TLV" -> 7,
@@ -142,11 +142,13 @@ object AirportSizeAdjust {
         "MCY" -> 4,
         "HTI" -> 3,
         "AVV" -> 3,
+        //NZ
         "AKL" -> 7,
         "ZQN" -> 4,
         "WLG" -> 4,
         "XCH" -> 3,
         "NLK" -> 3,
+        "HLZ" -> 3,
         //https://en.wikipedia.org/wiki/List_of_airports_in_Albania
         //algeria
         "TMR" -> 3,
@@ -197,8 +199,9 @@ object AirportSizeAdjust {
         "SDU" -> 6,
         "CNF" -> 6,
         "REC" -> 6,
+        "VCP" -> 6,
         "POA" -> 5,
-        "SSA" -> 5,
+        "SSA" -> 6,
         "FOR" -> 5,
         "CWB" -> 5,
         "BEL" -> 5,
@@ -262,8 +265,8 @@ object AirportSizeAdjust {
         "GOQ" -> 3,
         //https://en.wikipedia.org/wiki/List_of_the_busiest_airports_in_Colombia
         "BOG" -> 8,
-        "CLO" -> 5,
-        "CTG" -> 5,
+        "CLO" -> 6,
+        "CTG" -> 6,
         "BAQ" -> 5,
         "SMR" -> 4,
         "PEI" -> 5,
