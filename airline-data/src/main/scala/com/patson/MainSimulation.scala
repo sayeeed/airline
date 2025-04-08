@@ -125,7 +125,7 @@ object MainSimulation extends App {
     def receive = {
       case Start =>
         var counter: Int = 0
-        var weeksPerCycle: Int = 6
+        var weeksPerCycle: Int = 1
 
         while (counter < weeksPerCycle) {
           println("MULTIPLE WEEKS PER CYCLE: " + counter + " out of " + weeksPerCycle)
