@@ -71,6 +71,8 @@ object AirlineGenerator extends App {
     generateMalaysiaAirlines(List("MY"))
     generateGarudaIndonesia(List("ID"))
     generateQantas(List("AU"))
+    generateIndigo(List("IN"))
+    generateAirIndia(List("IN"))
 
     // Africa
     generateSouthAfricanAirways(List("SADC"))
@@ -84,7 +86,7 @@ object AirlineGenerator extends App {
     generateAffinityAirlines(List("EU","Banking","Oil","Pharma","Electronics","Copper","Marine"))
     generateAerospaceAirline()
     generateSSTAirline()
-    generateLatamAirline()
+    //generateLatamAirline()
     generateArabiaAirline()
     generateCaribbeanAirline()
     generatePacificAirline()
@@ -178,13 +180,13 @@ object AirlineGenerator extends App {
 
   def generateRyanair(affinities : List[String]): Unit = {
     affinities.foreach(affinity => {
-      val bases = airports.filterNot(_.isDomesticAirport()).filter(_.zone.contains(affinity)).takeRight(8).reverse
+      val bases = airports.filterNot(_.isDomesticAirport()).filter(_.zone.contains(affinity)).filterNot(_.iata == "STN").takeRight(8).reverse
       val HQ = airports.find(_.iata == "STN").getOrElse(bases.head)
       val toAirports = airports.filterNot(_.isDomesticAirport()).filter(_.zone.contains(affinity))
       generateAirline(
         s"Ryanair",
         s"ryanair",
-        bases.head,
+        HQ,
         bases.tail,
         toAirports,
         List("Boeing 737-800", "Boeing 737 MAX 8"),
@@ -196,13 +198,13 @@ object AirlineGenerator extends App {
 
   def generateLufthansa(affinities : List[String]): Unit = {
     affinities.foreach(affinity => {
-      val bases = airports.filterNot(_.isDomesticAirport()).filter(_.zone.contains(affinity)).takeRight(11).reverse
+      val bases = airports.filterNot(_.isDomesticAirport()).filter(_.zone.contains(affinity)).filterNot(_.iata == "FRA").takeRight(11).reverse
       val HQ = airports.find(_.iata == "FRA").getOrElse(bases.head)
       val toAirports = airports.filterNot(_.isDomesticAirport()).filter(_.zone.contains(affinity))
       generateAirline(
         s"Lufthansa",
         s"lufthansa",
-        bases.head,
+        HQ,
         bases.tail,
         toAirports,
         List("Airbus A320", "Airbus A321", "Airbus A340-300", "Airbus A350-900", "Airbus A380-800", "Boeing 747-8", "Bombardier CRJ900"),
@@ -214,13 +216,13 @@ object AirlineGenerator extends App {
 
   def generateBritishAirways(affinities : List[String]): Unit = {
     affinities.foreach(affinity => {
-      val bases = airports.filterNot(_.isDomesticAirport()).filter(_.zone.contains(affinity)).takeRight(11).reverse
+      val bases = airports.filterNot(_.isDomesticAirport()).filter(_.zone.contains(affinity)).filterNot(_.iata == "LHR").takeRight(11).reverse
       val HQ = airports.find(_.iata == "LHR").getOrElse(bases.head)
       val toAirports = airports.filterNot(_.isDomesticAirport()).filter(_.zone.contains(affinity))
       generateAirline(
         s"British Airways",
         s"britishairways",
-        bases.head,
+        HQ,
         bases.tail,
         toAirports,
         List("Airbus A320", "Airbus A350-1000", "Airbus A380-800", "Boeing 777-200", "Boeing 787-9 Dreamliner", "Embrear E190"),
@@ -232,13 +234,13 @@ object AirlineGenerator extends App {
 
   def generateAirFrance(affinities : List[String]): Unit = {
     affinities.foreach(affinity => {
-      val bases = airports.filterNot(_.isDomesticAirport()).filter(_.zone.contains(affinity)).takeRight(11).reverse
+      val bases = airports.filterNot(_.isDomesticAirport()).filter(_.zone.contains(affinity)).filterNot(_.iata == "CDG").takeRight(11).reverse
       val HQ = airports.find(_.iata == "CDG").getOrElse(bases.head)
       val toAirports = airports.filterNot(_.isDomesticAirport()).filter(_.zone.contains(affinity))
       generateAirline(
         s"Air France",
         s"airfrance",
-        bases.head,
+        HQ,
         bases.tail,
         toAirports,
         List("Airbus A220-300", "Airbus A320", "Airbus A350-900", "Airbus A330-200", "Boeing 777-300ER", "Boeing 787-9 Dreamliner"),
@@ -250,13 +252,13 @@ object AirlineGenerator extends App {
 
   def generateKLM(affinities : List[String]): Unit = {
     affinities.foreach(affinity => {
-      val bases = airports.filterNot(_.isDomesticAirport()).filter(_.zone.contains(affinity)).takeRight(11).reverse
+      val bases = airports.filterNot(_.isDomesticAirport()).filter(_.zone.contains(affinity)).filterNot(_.iata == "AMS").takeRight(11).reverse
       val HQ = airports.find(_.iata == "AMS").getOrElse(bases.head)
       val toAirports = airports.filterNot(_.isDomesticAirport()).filter(_.zone.contains(affinity))
       generateAirline(
         s"KLM",
         s"klm",
-        bases.head,
+        HQ,
         bases.tail,
         toAirports,
         List("Boeing 737-800", "Boeing 777-300ER", "Boeing 787-9 Dreamliner", "Boeing 787-10 Dreamliner"),
@@ -286,13 +288,13 @@ object AirlineGenerator extends App {
 
   def generateTurkishAirlines(affinities : List[String]): Unit = {
     affinities.foreach(affinity => {
-      val bases = airports.filterNot(_.isDomesticAirport()).filter(_.zone.contains(affinity)).takeRight(8).reverse
+      val bases = airports.filterNot(_.isDomesticAirport()).filter(_.zone.contains(affinity)).filterNot(_.iata == "IST").takeRight(8).reverse
       val HQ = airports.find(_.iata == "IST").getOrElse(bases.head)
       val toAirports = airports.filterNot(_.isDomesticAirport()).filter(_.zone.contains(affinity))
       generateAirline(
         s"Turkish Airlines",
         s"turkishairlines",
-        bases.head,
+        HQ,
         bases.tail,
         toAirports,
         List("Airbus A321", "Airbus A321neo", "Airbus A350-900", "Boeing 373-800", "Boeing 777-300ER", "Boeing 787-9 Dreamliner"),
@@ -304,7 +306,7 @@ object AirlineGenerator extends App {
 
   def generateAeroflot(countryCodes : List[String]): Unit = {
     countryCodes.foreach(countryCode => {
-      val bases = airports.filterNot(_.isDomesticAirport()).filter(_.countryCode == countryCode).takeRight(8).reverse
+      val bases = airports.filterNot(_.isDomesticAirport()).filter(_.countryCode == countryCode).filterNot(_.iata == "SVO").takeRight(8).reverse
       val HQ = airports.find(_.iata == "SVO").getOrElse(bases.head)
       val toAirports = airports.filter(_.countryCode == countryCode)
       generateAirline(
@@ -343,7 +345,7 @@ object AirlineGenerator extends App {
     generateAirline(
       s"Avianca",
       s"avianca",
-      bases.head,
+      HQ,
       bases.tail,
       toAirports,
       List("Airbus A320", "Airbus A321", "Boeing 767-300", "Boeing 787-9 Dreamliner"),
@@ -985,13 +987,13 @@ object AirlineGenerator extends App {
         val priceMod = if (fromAirport.popMiddleIncome < 100_000 || toAirport.popMiddleIncome < 100_000)
           0.8
         else if (fromAirport.popMiddleIncome > 1_000_000 || toAirport.popMiddleIncome > 1_000_000)
-          1.1
+          1.0
         else
           1.0
 
-        val econPrice = (priceMod * Pricing.computeStandardPrice(distance, Computation.getFlightCategory(fromAirport, toAirport), ECONOMY, PassengerType.BUSINESS, fromAirport.baseIncome)).toInt
-        val bizPrice = (priceMod * Pricing.computeStandardPrice(distance, Computation.getFlightCategory(fromAirport, toAirport), BUSINESS, PassengerType.BUSINESS, fromAirport.baseIncome)).toInt
-        val firstPrice = (priceMod * Pricing.computeStandardPrice(distance, Computation.getFlightCategory(fromAirport, toAirport), FIRST, PassengerType.BUSINESS, fromAirport.baseIncome)).toInt
+        val econPrice = (priceMod * Pricing.computeStandardPrice(distance, Computation.getFlightCategory(fromAirport, toAirport), ECONOMY, PassengerType.TOURIST, fromAirport.baseIncome)).toInt
+        val bizPrice = (priceMod * Pricing.computeStandardPrice(distance, Computation.getFlightCategory(fromAirport, toAirport), BUSINESS, PassengerType.TOURIST, fromAirport.baseIncome)).toInt
+        val firstPrice = (priceMod * Pricing.computeStandardPrice(distance, Computation.getFlightCategory(fromAirport, toAirport), FIRST, PassengerType.TOURIST, fromAirport.baseIncome)).toInt
 
         val duration = Computation.calculateDuration(model, distance)
         val capacity = calculateTotalCapacity(assignedAirplanes)

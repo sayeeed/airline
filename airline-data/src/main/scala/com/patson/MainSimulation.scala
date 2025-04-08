@@ -14,7 +14,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 
 object MainSimulation extends App {
-  val CYCLE_DURATION : Int = 60 * 14
+  val CYCLE_DURATION : Int = 60 * 19
   var currentWeek: Int = 0
 
 //  implicit val actorSystem = ActorSystem("rabbit-akka-stream")
@@ -125,7 +125,7 @@ object MainSimulation extends App {
     def receive = {
       case Start =>
         var counter: Int = 0
-        var weeksPerCycle: Int = 1
+        var weeksPerCycle: Int = 6
 
         while (counter < weeksPerCycle) {
           println("MULTIPLE WEEKS PER CYCLE: " + counter + " out of " + weeksPerCycle)
