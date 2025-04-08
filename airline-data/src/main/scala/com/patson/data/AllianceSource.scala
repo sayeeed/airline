@@ -14,8 +14,13 @@ object AllianceSource {
   private[this] val BASE_ALLIANCE_QUERY = "SELECT * FROM " + ALLIANCE_TABLE
   private[this] val BASE_ALLIANCE_MEMBER_QUERY = "SELECT * FROM " + ALLIANCE_MEMBER_TABLE
   private[this] val BASE_ALLIANCE_HISTORY_QUERY = "SELECT * FROM " + ALLIANCE_HISTORY_TABLE
+
+  def loadAllAlliancesEstablished(fullLoad : Boolean = false): List[Alliance] = {
+    val alliances = loadAlliancesByCriteria(List.empty, fullLoad)
+    alliances.filter(_.status == AllianceStatus.ESTABLISHED)
+  }
   
-  def loadAllAlliances(fullLoad : Boolean = false) = {
+  def loadAllAlliances(fullLoad : Boolean = false): List[Alliance] = {
       loadAlliancesByCriteria(List.empty, fullLoad)
   }
   

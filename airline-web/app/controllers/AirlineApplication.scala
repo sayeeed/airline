@@ -313,26 +313,10 @@ class AirlineApplication @Inject()(cc: ControllerComponents) extends AbstractCon
 
     if (targetBase.scale == 1) { //building something new
       if (airline.getHeadQuarter().isDefined) { //building non-HQ
-        AllianceSource.loadAllianceMemberByAirline(airline).filter(_.role != AllianceRole.APPLICANT).foreach { allianceMember =>
-          AllianceCache.getAlliance(allianceMember.allianceId, true).foreach { alliance =>
-            val allAllianceBaseAirports: List[(Airport, Airline)] = alliance.members.flatMap { allianceMember =>
-              allianceMember.airline.getBases().filter(!_.headquarter).map { base =>
-                (base.airport, allianceMember.airline)
-              }
-            }
 
-            val existingBasesAtAirport = allAllianceBaseAirports.count(_._1.id == targetBase.airport.id)
-            if (airline.airlineType == AirlineType.REGIONAL) {
-              // For regional airlines, allow up to 1 existing alliance base
-              if (existingBasesAtAirport >= 2) {
-                return Some(s"There are too many alliance member bases at this airport, even for a regional airline.")
-              }
-            } else {
-              if (existingBasesAtAirport >= 1) {
-                return Some("There can only be one alliance member base per airport.")
-              }
-            }
-          }
+        val allianceCheck = AirlineBase.validAllianceBasesAtAirport(airline, targetBase)
+        if (allianceCheck.isDefined) {
+          return Some(allianceCheck.get)
         }
 
         //check title
@@ -408,37 +392,40 @@ class AirlineApplication @Inject()(cc: ControllerComponents) extends AbstractCon
       return Consideration(cost, newLounge, Some("Cannot build lounge without a base"))
     }
 
+     //todo: refactor linkStatistics to measure premium pax instead of passengers, then we can do this check
     //check whether it fulfills ranking requirement
-    val linkStatisticsFromThisAirport : Map[Airline, List[LinkStatistics]] = LinkStatisticsSource.loadLinkStatisticsByFromAirport(airport.id).groupBy(_.key.airline)
-    val linkStatisticsToThisAirport : Map[Airline, List[LinkStatistics]] = LinkStatisticsSource.loadLinkStatisticsByToAirport(airport.id).groupBy(_.key.airline)
-    val passengersOnThisAirport : Map[Airline, Long] = (linkStatisticsFromThisAirport.toList ++ linkStatisticsToThisAirport.toList).groupBy(_._1) //this gives Map[Airline, List[(Airline, List[LinkStatistics])]]
-                                      .view.mapValues(_.map(_._2).flatten) //this gives Map[Airline, List[LinkStatistics]]
-                                      .mapValues(_.map(_.passengers.toLong).sum).toMap
+//    val linkStatisticsFromThisAirport : Map[Airline, List[LinkStatistics]] = LinkStatisticsSource.loadLinkStatisticsByFromAirport(airport.id).groupBy(_.key.airline)
+//    val linkStatisticsToThisAirport : Map[Airline, List[LinkStatistics]] = LinkStatisticsSource.loadLinkStatisticsByToAirport(airport.id).groupBy(_.key.airline)
+//    val passengersOnThisAirport : Map[Airline, Long] = (linkStatisticsFromThisAirport.toList ++ linkStatisticsToThisAirport.toList).groupBy(_._1) //this gives Map[Airline, List[(Airline, List[LinkStatistics])]]
+//                                      .view.mapValues(_.map(_._2).flatten) //this gives Map[Airline, List[LinkStatistics]]
+//                                      .mapValues(_.map(_.passengers.toLong).sum).toMap
+//
+//    val airlineIdsWithBase = airport.getAirlineBases().keys.toList
+//    val sortedPassengersOnThisAirport : List[(Airline, Long)] = passengersOnThisAirport.toList.filter{
+//      case(airline, _) => airlineIdsWithBase.contains(airline.id) //only count airlines that has a base here
+//    }.sortBy(_._2)
+//    val eligibleAirlines : List[(Airline, Long)] = sortedPassengersOnThisAirport.takeRight(newLounge.getActiveRankingThreshold)
+//
+//    if (levelChange > 0) { //upgrade - has to consider ranking
+//      eligibleAirlines.find(_._1.id == airline.id) match {
+//        case Some((airline, passengers)) => //ok
+//          return Consideration(cost, newLounge)
+//        case None => //does not make the cut
+//          var currentRank = 1
+//          sortedPassengersOnThisAirport.reverse.foreach {
+//            case (rankedAirline, passengers) =>
+//              if (rankedAirline.id == airline.id) {
+//                return Consideration(cost, newLounge, Some("Your passenger volume of " + passengers + " is ranked as number " + currentRank + " (of airlines with base here). Has to be top " + newLounge.getActiveRankingThreshold + " to build lounge in this airport"))
+//              }
+//              currentRank += 1
+//          }
+//          return Consideration(cost, newLounge, Some("Your have no passengers here. Has to be top " + newLounge.getActiveRankingThreshold + " to build lounge in this airport"))
+//      }
+//    } else {
+//      return Consideration(cost, newLounge)
+//    }
 
-    val airlineIdsWithBase = airport.getAirlineBases().keys.toList
-    val sortedPassengersOnThisAirport : List[(Airline, Long)] = passengersOnThisAirport.toList.filter{
-      case(airline, _) => airlineIdsWithBase.contains(airline.id) //only count airlines that has a base here
-    }.sortBy(_._2)
-    val eligibleAirlines : List[(Airline, Long)] = sortedPassengersOnThisAirport.takeRight(newLounge.getActiveRankingThreshold)
-
-    if (levelChange > 0) { //upgrade - has to consider ranking
-      eligibleAirlines.find(_._1.id == airline.id) match {
-        case Some((airline, passengers)) => //ok
-          return Consideration(cost, newLounge)
-        case None => //does not make the cut
-          var currentRank = 1
-          sortedPassengersOnThisAirport.reverse.foreach {
-            case (rankedAirline, passengers) =>
-              if (rankedAirline.id == airline.id) {
-                return Consideration(cost, newLounge, Some("Your passenger volume of " + passengers + " is ranked as number " + currentRank + " (of airlines with base here). Has to be top " + newLounge.getActiveRankingThreshold + " to build lounge in this airport"))
-              }
-              currentRank += 1
-          }
-          return Consideration(cost, newLounge, Some("Your have no passengers here. Has to be top " + newLounge.getActiveRankingThreshold + " to build lounge in this airport"))
-      }
-    } else {
-      return Consideration(cost, newLounge)
-    }
+   Consideration(cost, newLounge)
   }
 
 
