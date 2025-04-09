@@ -30,8 +30,7 @@ object Bank {
       }
     }
     
-    //base on previous month
-    val previousMonthCycle = currentCycle - currentCycle % 4 - 1
+    val previousMonthCycle = currentCycle - currentCycle % Period.numberWeeks(Period.QUARTER) - 1
     
     val creditFromProfit : Option[Long] = IncomeSource.loadIncomeByAirline(airlineId, previousMonthCycle, Period.QUARTER).map(_.links.profit * 13 * 2)  //2 * yearly link profit
     

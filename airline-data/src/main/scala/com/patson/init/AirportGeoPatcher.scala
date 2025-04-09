@@ -58,13 +58,13 @@ object AirportGeoPatcher extends App {
     println(s"Updating ${updatingAirports.length} Airports")
     AirportSource.updateAirports(updatingAirports)
 
-//    val deletingAirportIds = existingAirports.map(_.id).diff(computedAirports.map(_.id))
-//    println(s"Deleting ${deletingAirportIds.length} Airports")
+    val deletingAirportIds = existingAirports.map(_.id).diff(computedAirports.map(_.id))
+    println(s"Could delete ${deletingAirportIds.length} Airports")
 //    AirportSource.deleteAirports(deletingAirportIds)
 
 
     AirportFeaturePatcher.patchFeatures()
-    GenericTransitGenerator.generateGenericTransit()
+//    GenericTransitGenerator.generateGenericTransit()
 
     GeoDataGenerator.buildCountryData(updatingAirports, update = true)
 

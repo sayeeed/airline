@@ -29,7 +29,7 @@ object DemandGenerator {
 //  val launchDemandFactor : Double = 1.0
   val baseLaunchDemandFactor : Double = if (CycleSource.loadCycle() <= 1) 1.0 else Math.min(1, (55 + CycleSource.loadCycle().toDouble / 48) / 100)
 //  val baseLaunchDemandFactor : Double = 1.0
-  val demandRandomizer: Int = CycleSource.loadCycle() % 3
+  val demandRandomizer: Int = CycleSource.loadCycle() % 10
 
   import scala.jdk.CollectionConverters._
 
@@ -55,8 +55,8 @@ object DemandGenerator {
           val affinity = Computation.calculateAffinityValue(fromAirport.zone, toAirport.zone, relationship)
 
           val demand = computeBaseDemandBetweenAirports(fromAirport, toAirport, affinity, distance)
-          val cutoff = fromAirport.id % 2 + demandRandomizer
-          if (demand.travelerDemand.total > cutoff + 1) {
+          val cutoff = demandRandomizer % 2
+          if (demand.travelerDemand.total > cutoff) {
             demandList.add((toAirport, (PassengerType.TRAVELER, demand.travelerDemand)))
           }
           if (demand.businessDemand.total > cutoff) {
@@ -79,11 +79,6 @@ object DemandGenerator {
     val eventDemand = generateEventDemand(cycle, airports)
     allDemandsAsScala.appendAll(eventDemand)
     println(s"generated ${eventDemand.length} event demand groups")
-
-//    println("generating elite demand...")
-//    val eliteDemand = generateEliteDemand(airports)
-//    allDemandsAsScala.appendAll(eliteDemand)
-//    println(s"generated ${eliteDemand.length} elite demand groups")
 
 	  val baseDemandChunkSize = 10
 	  
@@ -109,30 +104,24 @@ object DemandGenerator {
               }
             }
         }
-
 	  }
-
     allDemandChunks.toList
   }
 
-  def computeDemandBetweenAirports(fromAirport : Airport, toAirport : Airport, affinity : Int, distance : Int) : Demand = {
-    val demand = if (fromAirport != toAirport && fromAirport.population != 0 && toAirport.population != 0 && (distance > MIN_DISTANCE || GameConstants.connectsIsland(fromAirport, toAirport) && distance > 25)) {
-      computeBaseDemandBetweenAirports(fromAirport: Airport, toAirport: Airport, affinity: Int, distance: Int): Demand
-    } else {
-      Demand(
-        LinkClassValues(0, 0, 0),
-        LinkClassValues(0, 0, 0),
-        LinkClassValues(0, 0, 0)
-      )
-    }
-    demand
-  }
-
+  /**
+   * used on the frontend
+   *
+   * @param fromAirport
+   * @param toAirport
+   * @param affinity
+   * @param distance
+   * @return
+   */
   def computeDemandWithPreferencesBetweenAirports(fromAirport: Airport, toAirport: Airport, affinity: Int, distance: Int): Map[(LinkClass, FlightPreference, PassengerType.Value), Int] = {
     val demand = computeDemandBetweenAirports(fromAirport, toAirport, affinity, distance)
     val flightPreferencesPool = getFlightPreferencePoolOnAirport(fromAirport)
     val demandByPreference = mutable.Map[(LinkClass, FlightPreference, PassengerType.Value), Int]()
-    
+
     def processLinkClassDemand(passengerType: PassengerType.Value, linkClassValues: LinkClassValues) = {
       LinkClass.values.foreach { linkClass =>
         val demandForClass = linkClassValues(linkClass)
@@ -148,14 +137,27 @@ object DemandGenerator {
         }
       }
     }
-    
+
     processLinkClassDemand(PassengerType.BUSINESS, demand.businessDemand)
     processLinkClassDemand(PassengerType.TOURIST, demand.touristDemand)
     processLinkClassDemand(PassengerType.TRAVELER, demand.travelerDemand)
-    
+
     demandByPreference.map { case ((linkClass, preference, passengerType), total) =>
       ((linkClass, preference, passengerType), total)
-    }.toMap
+    }.toList.sortBy(_._2).toMap
+  }
+
+  def computeDemandBetweenAirports(fromAirport : Airport, toAirport : Airport, affinity : Int, distance : Int) : Demand = {
+    val demand = if (fromAirport != toAirport && fromAirport.population != 0 && toAirport.population != 0 && (distance > MIN_DISTANCE || GameConstants.connectsIsland(fromAirport, toAirport) && distance > 25)) {
+      computeBaseDemandBetweenAirports(fromAirport: Airport, toAirport: Airport, affinity: Int, distance: Int): Demand
+    } else {
+      Demand(
+        LinkClassValues(0, 0, 0),
+        LinkClassValues(0, 0, 0),
+        LinkClassValues(0, 0, 0)
+      )
+    }
+    demand
   }
 
   def computeBaseDemandBetweenAirports(fromAirport : Airport, toAirport : Airport, affinity : Int, distance : Int) : Demand = {
@@ -177,10 +179,26 @@ object DemandGenerator {
 
     val demands = Map(PassengerType.TRAVELER -> demand * percentTraveler * travelerProvincialBonus * toIncomeAdjust, PassengerType.BUSINESS -> (demand * (1 - percentTraveler - 0.1) * toIncomeAdjust), PassengerType.TOURIST -> demand * 0.1)
 
+    //add charm demand
     val featureAdjustedDemands = demands.map { case (passengerType, demand) =>
       val fromAdjustments = fromAirport.getFeatures().map(feature => feature.demandAdjustment(demand, passengerType, fromAirport.id, fromAirport, toAirport, affinity, distance))
       val toAdjustments = toAirport.getFeatures().map(feature => feature.demandAdjustment(demand, passengerType, toAirport.id, fromAirport, toAirport, affinity, distance))
       (passengerType, fromAdjustments.sum + toAdjustments.sum + demand)
+    }
+
+
+    val finalDemands = featureAdjustedDemands.map { case (passengerType, demand) =>
+      val updatedDemand = if (demand < 1) 0 else {
+        val predictableButRandomVibes = DemandGenerator.demandRandomizer
+        val bingo = fromAirport.id % 10
+        val bonusMalus = predictableButRandomVibes match {
+          case x if x == bingo => 20
+          case x if (x + bingo) % 2 == 0 => predictableButRandomVibes * -1
+          case _ => predictableButRandomVibes
+        }
+        Math.max(demand + bonusMalus, 0)
+      }
+      (passengerType, updatedDemand)
     }
 
     //for each trade affinity, add base "trade demand" to biz demand, modded by distance
@@ -194,9 +212,9 @@ object DemandGenerator {
     }
 
     Demand(
-      computeClassCompositionFromIncome(featureAdjustedDemands.getOrElse(PassengerType.TRAVELER, 0.0), fromAirport.income, PassengerType.TRAVELER, hasFirstClass),
-      computeClassCompositionFromIncome(featureAdjustedDemands.getOrElse(PassengerType.BUSINESS, 0.0) + affinityTradeAdjust, fromAirport.income, PassengerType.BUSINESS, hasFirstClass),
-      computeClassCompositionFromIncome(featureAdjustedDemands.getOrElse(PassengerType.TOURIST, 0.0), fromAirport.income, PassengerType.TOURIST, hasFirstClass)
+      computeClassCompositionFromIncome(finalDemands.getOrElse(PassengerType.TRAVELER, 0.0), fromAirport.income, PassengerType.TRAVELER, hasFirstClass),
+      computeClassCompositionFromIncome(finalDemands.getOrElse(PassengerType.BUSINESS, 0.0) + affinityTradeAdjust, fromAirport.income, PassengerType.BUSINESS, hasFirstClass),
+      computeClassCompositionFromIncome(finalDemands.getOrElse(PassengerType.TOURIST, 0.0), fromAirport.income, PassengerType.TOURIST, hasFirstClass)
     )
   }
 
@@ -281,6 +299,7 @@ object DemandGenerator {
     //set very low income floor, specifically traffic to/from central airports that is otherwise missing
     val buffLowIncomeAirports = if (fromAirport.income <= 6000 && toAirport.income <= 8000 && distance <= 3000 && (toAirport.size >= 4 || fromAirport.size >= 4)) addToVeryLowIncome(fromAirport.population, fromAirport.size) else 0
 
+    //demand floor: always have some demand between gateways and very large airports to all other nearby domestic airports
     val toStrength = {
       val gateway = if (toAirport.isGateway()) 3 else 0
       val biz = if (toAirport.getFeatures().exists(feature =>
@@ -288,8 +307,7 @@ object DemandGenerator {
       )) 1 else 0
       toAirport.size + gateway + biz
     }
-    //always have some demand between gateways and very large airports to all other nearby domestic airports
-    val domesticDemandFloor = if (distance > 300 && distance < toStrength * 150 && affinity >= 5 && (toStrength - fromAirport.size >= 6)) {
+    val domesticDemandFloor = if (fromAirport.population > 5000 && toAirport.population > 5000 && distance > 300 && distance < toStrength * 150 && affinity >= 5 && (toStrength - fromAirport.size >= 6)) {
       fromAirport.size * 16 + ThreadLocalRandom.current().nextInt(40)
     } else {
       0
@@ -324,12 +342,16 @@ object DemandGenerator {
     LinkClassValues.getInstance(economyClassDemand.toInt, businessClassCutoff.toInt, firstClassCutoff.toInt, discountClassCutoff.toInt)
   }
 
+//  private def findSisterAirports(fromAirport : Airport, toAirports: List[Airport], affinity : Int ) : Map[Int, List[Airport]] = {
+//    val remoteAdditionalDestinations =
+//    val numberDestinations = fromAirport.size * 4
+//  }
+
   val ELITE_MIN_GROUP_SIZE = 5
   val ELITE_MAX_GROUP_SIZE = 9
   val CLOSE_DESTINATIONS_RADIUS = 1800
 
   private def generateEliteDemand(fromAirport : Airport, destinationList : List[Destination] ) : Option[List[(Airport, (PassengerType.Value, LinkClassValues))]] = {
-//    val eliteDemands = new ArrayList[(Airport, List[(Airport, (PassengerType.Value, LinkClassValues))])]()
 
     if (fromAirport.popElite > 0) {
       val demandList = new java.util.ArrayList[(Airport, (PassengerType.Value, LinkClassValues))]()

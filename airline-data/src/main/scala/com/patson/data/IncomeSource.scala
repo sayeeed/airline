@@ -185,6 +185,10 @@ object IncomeSource {
   def loadIncomesByAirline(airlineId : Int) : List[AirlineIncome] = {
     loadIncomeByCriteria(List(("airline", airlineId)))
   }
+
+  def loadAllByCycle(cycle : Int) : List[AirlineIncome] = {
+    loadIncomeByCriteria(List(("cycle", cycle)))
+  }
   
   
   def loadIncomeByCriteria(criteria : List[(String, Any)]) = {

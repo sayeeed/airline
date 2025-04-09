@@ -11,6 +11,7 @@ import com.patson.model.event.Olympics
 
 import scala.util.Random
 import com.patson.model.oil.OilPrice
+import com.patson.util.AllianceCache
 
 import java.util.concurrent.ThreadLocalRandom
 
@@ -476,11 +477,13 @@ object LinkSimulation {
           linkConsideration.link.transportType == TransportType.FLIGHT &&
             linkConsideration.link.airline.id == airlineId &&
             linkConsideration.link.airline.getAllianceId().isDefined &&
+            AllianceCache.isEstablishedAndValid(linkConsideration.link.airline.getAllianceId().get, airlineId) &&
           route.links.exists(otherLink => 
             otherLink.link.transportType == TransportType.FLIGHT &&
             otherLink.link.airline.id != airlineId &&
             otherLink.link.airline.getAllianceId().isDefined &&
-            otherLink.link.airline.getAllianceId() == linkConsideration.link.airline.getAllianceId()
+            otherLink.link.airline.getAllianceId() == linkConsideration.link.airline.getAllianceId() &&
+            AllianceCache.isEstablishedAndValid(linkConsideration.link.airline.getAllianceId().get, airlineId)
           )
         )
 

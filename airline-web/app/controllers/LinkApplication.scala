@@ -762,7 +762,7 @@ class LinkApplication @Inject()(cc: ControllerComponents) extends AbstractContro
 //          )
 //        }
 
-        val (fromDemandDetailsJson, toDemandDetailsJson) = LinkApplication.generateDemands(fromAirport, toAirport, affinity, distance, flightCategory)
+        val (fromDemandDetailsJson, toDemandDetailsJson, fromDemand, toDemand) = LinkApplication.generateDemands(fromAirport, toAirport, affinity, distance, flightCategory)
 
         val cost = if (existingLink.isEmpty) Computation.getLinkCreationCost(fromAirport, toAirport) else 0
         val quality = if (existingLink.isEmpty) 0 else existingLink.get.computedQuality()
@@ -1631,55 +1631,102 @@ object LinkApplication {
     return candidate
   }
 
-  def generateDemands(fromAirport: Airport, toAirport: Airport, affinity: Int, distance: Int, flightCategory: FlightCategory.Value): (JsArray, JsArray) = {
+  // Helper function to calculate price
+  private def calculateDemandPrice(distance: Int, flightCategory: FlightCategory.Value, linkClass: LinkClass, passengerType: PassengerType.Value, airportIncome: Int, preferenceType: FlightPreferenceType.Value): Int = {
+    val basePrice = Pricing.computeStandardPrice(distance, flightCategory, linkClass, passengerType, airportIncome)
+    val priceMultiplier = preferenceType match {
+      case FlightPreferenceType.LAST_MINUTE => DemandGenerator.PRICE_LAST_MIN_MULTIPLIER
+      case FlightPreferenceType.LAST_MINUTE_DEAL => DemandGenerator.PRICE_LAST_MIN_DEAL_MULTIPLIER
+      // case PassengerType.DISCOUNT_ECONOMY if preferenceType == ??? => DemandGenerator.PRICE_DISCOUNT_PLUS_MULTIPLIER / 3 // Example if needed later
+      case _ => 1.0
+    }
+    (basePrice * priceMultiplier).toInt
+  }
+
+  // Helper function to create the JSON object for a demand detail
+  private def createDemandJsonObject(linkClass: LinkClass, passengerType: PassengerType.Value, preferenceType: FlightPreferenceType.Value, price: Int, count: Int): JsObject = {
+    Json.obj(
+      "linkClass" -> linkClass.label,
+      "passengerType" -> PassengerType.label(passengerType),
+      "preferenceType" -> preferenceType.title,
+      "price" -> price,
+      "count" -> count
+    )
+  }
+
+  def generateDemands(fromAirport: Airport, toAirport: Airport, affinity: Int, distance: Int, flightCategory: FlightCategory.Value): (JsArray, JsArray, LinkClassValues, LinkClassValues) = {
     val fromDemand = DemandGenerator.computeDemandWithPreferencesBetweenAirports(fromAirport, toAirport, affinity, distance)
     val toDemand = DemandGenerator.computeDemandWithPreferencesBetweenAirports(toAirport, fromAirport, affinity, distance)
 
-    //group demands by passenger type and preference type
-    val fromDemandByTypeAndPreference = fromDemand.groupBy { case ((linkClass, preference, passengerType), count) =>
-      (linkClass, passengerType, preference.getPreferenceType)
-    }.view.mapValues(_.values.sum)
+    // Group demands by type and preference, summing counts
+    val fromDemandByTypeAndPreference = fromDemand.groupBy {
+      case ((linkClass, preference, passengerType), _) =>
+        (linkClass, passengerType, preference.getPreferenceType)
+    }.view.mapValues(_.values.sum).toMap
 
-    val toDemandByTypeAndPreference = toDemand.groupBy { case ((linkClass, preference, passengerType), count) =>
-      (linkClass, passengerType, preference.getPreferenceType)
-    }.view.mapValues(_.values.sum)
+    val toDemandByTypeAndPreference = toDemand.groupBy {
+      case ((linkClass, preference, passengerType), _) =>
+        (linkClass, passengerType, preference.getPreferenceType)
+    }.view.mapValues(_.values.sum).toMap
 
-    //create json arrays for the detailed demands
-    var fromDemandDetailsJson = Json.arr()
-    fromDemandByTypeAndPreference.foreach {
+    val fromDemandDetails = fromDemandByTypeAndPreference.map {
       case ((linkClass, passengerType, preferenceType), total) =>
-        val priceMultiplier = {
-          if (preferenceType == FlightPreferenceType.LAST_MINUTE) DemandGenerator.PRICE_LAST_MIN_MULTIPLIER
-          else if (preferenceType == FlightPreferenceType.LAST_MINUTE_DEAL) DemandGenerator.PRICE_LAST_MIN_DEAL_MULTIPLIER
-          else 1
+        val price = calculateDemandPrice(distance, flightCategory, linkClass, passengerType, fromAirport.income, preferenceType)
+        (price, linkClass, passengerType, preferenceType, total)
+    }.toList
+
+    // Sort by the first element of the tuple (price)
+    val sortedFromDemandDetails = fromDemandDetails.sortBy(_._1).reverse
+
+    val fromDemandJsonObjects: List[JsObject] = sortedFromDemandDetails.map {
+      case (price, linkClass, passengerType, preferenceType, total) =>
+        createDemandJsonObject(linkClass, passengerType, preferenceType, price, total)
+    }
+    val fromDemandDetailsJson = Json.toJson(fromDemandJsonObjects).as[JsArray]
+
+    val toDemandDetails = toDemandByTypeAndPreference.map {
+      case ((linkClass, passengerType, preferenceType), total) =>
+        val price = calculateDemandPrice(distance, flightCategory, linkClass, passengerType, toAirport.income, preferenceType)
+        (price, linkClass, passengerType, preferenceType, total)
+    }.toList
+
+    val sortedToDemandDetails = toDemandDetails.sortBy(_._1).reverse
+
+    val toDemandJsonObjects = sortedToDemandDetails.map {
+      case (price, linkClass, passengerType, preferenceType, total) =>
+        createDemandJsonObject(linkClass, passengerType, preferenceType, price, total)
+    }
+    val toDemandDetailsJson = Json.toJson(toDemandJsonObjects).as[JsArray]
+
+
+    val initialTotals = LinkClassValues.getInstance() // Creates LinkClassValues(0, 0, 0, 0)
+
+    val fromDemandTotals =
+      fromDemandByTypeAndPreference.foldLeft(initialTotals) {
+        case (currentTotals, ((linkClass, _, _), count)) =>
+          val countAsValues = linkClass match {
+            case DISCOUNT_ECONOMY => LinkClassValues.getInstance(discount = count)
+            case ECONOMY => LinkClassValues.getInstance(economy = count)
+            case BUSINESS => LinkClassValues.getInstance(business = count)
+            case FIRST => LinkClassValues.getInstance(first = count)
+            case _ => initialTotals // Or LinkClassValues.getInstance() - represents zero
+          }
+          currentTotals + countAsValues
+      }
+
+    val toDemandTotals = toDemandByTypeAndPreference.foldLeft(initialTotals) {
+      case (currentTotals, ((linkClass, _, _), count)) =>
+        val countAsValues = linkClass match {
+          case DISCOUNT_ECONOMY => LinkClassValues.getInstance(discount = count)
+          case ECONOMY => LinkClassValues.getInstance(economy = count)
+          case BUSINESS => LinkClassValues.getInstance(business = count)
+          case FIRST => LinkClassValues.getInstance(first = count)
+          case _ => initialTotals // Or LinkClassValues.getInstance() - represents zero
         }
-        fromDemandDetailsJson = fromDemandDetailsJson.append(Json.obj(
-          "linkClass" -> linkClass.label,
-          "passengerType" -> PassengerType.label(passengerType),
-          "preferenceType" -> preferenceType.title,
-          "price" -> (priceMultiplier * Pricing.computeStandardPrice(distance, flightCategory, linkClass, passengerType, fromAirport.income)).toInt,
-          "count" -> total
-        ))
+        currentTotals + countAsValues
     }
 
-    var toDemandDetailsJson = Json.arr()
-    toDemandByTypeAndPreference.foreach {
-      case ((linkClass, passengerType, preferenceType), total) =>
-        val priceMultiplier = {
-          if (preferenceType == FlightPreferenceType.LAST_MINUTE) DemandGenerator.PRICE_LAST_MIN_MULTIPLIER
-          else if (preferenceType == FlightPreferenceType.LAST_MINUTE_DEAL) DemandGenerator.PRICE_LAST_MIN_DEAL_MULTIPLIER
-//          else if (passengerType == DISCOUNT_ECONOMY) DemandGenerator.PRICE_DISCOUNT_PLUS_MULTIPLIER / 3 //not exactly right but close enough
-          else 1
-        }
-        toDemandDetailsJson = toDemandDetailsJson.append(Json.obj(
-          "linkClass" -> linkClass.label,
-          "passengerType" -> PassengerType.label(passengerType),
-          "preferenceType" -> preferenceType.title,
-          "price" -> priceMultiplier * Pricing.computeStandardPrice(distance, flightCategory, linkClass, passengerType, toAirport.income),
-          "count" -> total
-        ))
-    }
-    (fromDemandDetailsJson, toDemandDetailsJson)
+    (fromDemandDetailsJson, toDemandDetailsJson, fromDemandTotals, toDemandTotals)
   }
 
 }

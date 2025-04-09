@@ -1,15 +1,30 @@
 package com.patson.model
 
-import com.patson.data.{AirlineSource, AirlineStatisticsSource, CycleSource, LinkSource, LoungeHistorySource}
+import com.patson.data.{AirlineSource, AirlineStatisticsSource, CycleSource, IncomeSource, LinkSource, LoungeHistorySource}
 
 
 object RankingLeaderboards {
-  var loadedCycle = 0
-  var cachedRankings : Map[RankingType.Value, List[Ranking]] = Map.empty
+  @volatile private var cachedRankings: Map[RankingType.Value, List[Ranking]] =
+    Map.empty
+  @volatile private var cacheCycle: Int = -1
 
   def getRankings(isCycleUpdate : Boolean = false) : Map[RankingType.Value, List[Ranking]] = {
-    checkCache(isCycleUpdate)
+    checkOrUpdateCache(isCycleUpdate)
     cachedRankings
+  }
+
+  def getAirlineReputationPrizes(forceUpdate: Boolean = false): Map[Int, Double] = {
+    val currentRankings = getRankings(forceUpdate)
+
+    currentRankings.values.flatten // Flatten List[List[Ranking]] into List[Ranking]
+      .filter(_.reputationPrize.isDefined) // Keep only rankings with a prize
+      .groupBy(_.key) // Group by the key (assuming key is airlineId for prize rankings)
+      .collect { case (airlineId: Int, rankingsList) => // Ensure key is Int
+        (
+          airlineId,
+          rankingsList.map(_.reputationPrize.getOrElse(0.0)).sum
+        )
+      }
   }
 
   def reputationBonus(maxBonus: Int, rank: Int) = {
@@ -28,35 +43,53 @@ object RankingLeaderboards {
     Some(if (rank >= 20) 0.0 else bonus.toDouble)
   }
 
-  private def checkCache(isCycleUpdate : Boolean = false) = {
+  private def checkOrUpdateCache(forceUpdate: Boolean): Unit = {
     val currentCycle = CycleSource.loadCycle()
-    synchronized {
-      if (currentCycle != loadedCycle) {
-        val cycle = if(isCycleUpdate) currentCycle else currentCycle - 1
-        println("Updating ranking cache on cycle " + cycle)
-        updateRankings(cycle)
-        println("Updated ranking!")
+    val targetCycle = currentCycle - 1 // Rankings are based on the last completed cycle
+
+    if (forceUpdate || cacheCycle != targetCycle) {
+      synchronized {
+        // Double-check inside synchronized block
+        if (forceUpdate || cacheCycle != targetCycle) {
+          println(s"Updating ranking cache for cycle $targetCycle, previous cycle is $cacheCycle")
+          try {
+            val newRankings = updateRankings(targetCycle)
+
+            // Calculate movements based on the *previous* cache
+            val previousRankingsSnapshot = cachedRankings
+            updateMovements(previousRankingsSnapshot, newRankings)
+
+            // Update the cache
+            cachedRankings = newRankings
+            cacheCycle = targetCycle
+            println(s"Ranking cache updated successfully for cycle $targetCycle")
+          } catch {
+            case e: Exception =>
+              println(s"Error updating ranking cache for cycle $targetCycle: ${e.getMessage}")
+              e.printStackTrace()
+             cachedRankings = Map.empty
+          }
+        }
       }
-      loadedCycle = currentCycle
     }
   }
 
-  private[this] def updateRankings(currentCycle : Int) = {
+  private[this] def updateRankings(currentCycle: Int, isCycleUpdate: Boolean = false) = {
     val airlinesSource = AirlineSource.loadAllAirlines(fullLoad = true)
-    val generatedAirlinesIds = airlinesSource.filter(airline => airline.airlineType == AirlineType.NON_PLAYER || airline.getReputation < 60).map(_.id)
-    val airlinesById = airlinesSource.filter(_.airlineType != AirlineType.NON_PLAYER).map(airline => (airline.id, airline)).toMap
-    val flightConsumptions = LinkSource.loadLinkConsumptions().filter(_.link.transportType == TransportType.FLIGHT).filter(_.link.soldSeats.total.toLong > 0).filterNot(consumption => generatedAirlinesIds.contains(consumption.link.airline.id))
+    val invalidAirlinesIds = airlinesSource.filter(airline => airline.airlineType == AirlineType.NON_PLAYER || airline.getReputation < 60).map(_.id)
+    val airlinesById = airlinesSource.filter(airline => ! invalidAirlinesIds.contains(airline.id)).map(airline => (airline.id, airline)).toMap
+    val flightConsumptions = LinkSource.loadLinkConsumptions().filter(_.link.transportType == TransportType.FLIGHT).filter(_.link.soldSeats.total.toLong > 0).filterNot(consumption => invalidAirlinesIds.contains(consumption.link.airline.id))
     val flightConsumptionsByAirline = flightConsumptions.groupBy(_.link.airline.id)
-    val airlineStats = AirlineStatisticsSource.loadAirlineStatsByCycle(currentCycle).filterNot(stat => generatedAirlinesIds.contains(stat.airlineId))
-    val links = LinkSource.loadAllFlightLinks().filterNot(link => generatedAirlinesIds.contains(link.airline.id)).groupBy(_.airline.id)
+    val airlineStats = AirlineStatisticsSource.loadAirlineStatsByCycle(currentCycle).filterNot(stat => invalidAirlinesIds.contains(stat.airlineId))
+    val airlineIncomes = IncomeSource.loadAllByCycle(currentCycle)
+    val links = LinkSource.loadAllFlightLinks().filterNot(link => invalidAirlinesIds.contains(link.airline.id)).groupBy(_.airline.id)
 
 
     val updatedRankings = scala.collection.mutable.Map[RankingType.Value, List[Ranking]]()
     updatedRankings.put(RankingType.TOURIST_COUNT, getPaxRanking(airlineStats.map(stat => (stat.airlineId, stat.tourists)).toMap, airlinesById, RankingType.TOURIST_COUNT))
     updatedRankings.put(RankingType.BUSINESS_COUNT, getPaxRanking(airlineStats.map(stat => (stat.airlineId, stat.business)).toMap, airlinesById, RankingType.BUSINESS_COUNT))
     updatedRankings.put(RankingType.ELITE_COUNT, getPaxRanking(airlineStats.map(stat => (stat.airlineId, stat.elites)).toMap, airlinesById, RankingType.ELITE_COUNT))
-//    updatedRankings.put(RankingType.PASSENGER_QUALITY, getPassengerQualityRanking(flightConsumptionsByAirline, airlinesById))
-
+    updatedRankings.put(RankingType.CODESHARE_COUNT, getPaxRanking(airlineStats.map(stat => (stat.airlineId, stat.codeshares)).toMap, airlinesById, RankingType.CODESHARE_COUNT))
     updatedRankings.put(RankingType.PASSENGER_SATISFACTION, getPassengerSFRanking(flightConsumptionsByAirline,airlinesById))
     updatedRankings.put(RankingType.PASSENGER_SPEED, getPassengerSpeedRanking(flightConsumptionsByAirline,airlinesById))
     updatedRankings.put(RankingType.LINK_COUNT_SMALL_TOWN, getSmallTownRanking(links, airlinesById))
@@ -67,21 +100,24 @@ object RankingLeaderboards {
     updatedRankings.put(RankingType.LINK_PROFIT, getLinkProfitRanking(flightConsumptions, airlinesById))
     updatedRankings.put(RankingType.LINK_LOSS, getLinkLossRanking(flightConsumptions, airlinesById))
     updatedRankings.put(RankingType.LINK_FREQUENCY, getLinkFrequent(flightConsumptions, airlinesById))
+    updatedRankings.put(RankingType.PASSENGER_QUALITY, getPassengerQualityRanking(flightConsumptionsByAirline, airlinesById))
     updatedRankings.put(RankingType.LINK_DISTANCE, getLinkLongest(flightConsumptions, airlinesById))
     updatedRankings.put(RankingType.LINK_SHORTEST, getLinkShortest(flightConsumptions, airlinesById))
     updatedRankings.put(RankingType.LOUNGE, getLoungeRanking(LoungeHistorySource.loadAll, airlinesById))
+    updatedRankings.put(RankingType.AIRLINE_PROFIT_MARGIN, getMarginRanking(airlineStats.map(stat => (stat.airlineId, (stat.CASK, stat.RASK))).toMap, airlinesById))
+
     //informational rankings
-    val (paxByAirport, paxByAirportPair) = getPaxStat(flightConsumptions)
-    updatedRankings.put(RankingType.AIRLINE_VALUE, getValueRanking(airlinesById))
-    updatedRankings.put(RankingType.AIRPORT, getAirportRanking(paxByAirport))
-    updatedRankings.put(RankingType.INTERNATIONAL_PAX, getAirportPairRanking(paxByAirportPair, (airport1, airport2) => airport1.countryCode != airport2.countryCode))
-    updatedRankings.put(RankingType.DOMESTIC_PAX, getAirportPairRanking(paxByAirportPair, (airport1, airport2) => airport1.countryCode == airport2.countryCode))
-    updatedRankings.put(RankingType.PASSENGER_MILE, getPassengerMileRanking(flightConsumptionsByAirline, airlinesById))
-    updatedRankings.put(RankingType.LINK_PROFIT_TOTAL, getLinkProfitTotalRanking(flightConsumptions, airlinesById))
+    if(!isCycleUpdate) {
+      val (paxByAirport, paxByAirportPair) = getPaxStat(flightConsumptions)
+      updatedRankings.put(RankingType.AIRLINE_VALUE, getValueRanking(airlineIncomes, airlinesById))
+      updatedRankings.put(RankingType.AIRPORT, getAirportRanking(paxByAirport))
+      updatedRankings.put(RankingType.INTERNATIONAL_PAX, getAirportPairRanking(paxByAirportPair, (airport1, airport2) => airport1.countryCode != airport2.countryCode))
+      updatedRankings.put(RankingType.DOMESTIC_PAX, getAirportPairRanking(paxByAirportPair, (airport1, airport2) => airport1.countryCode == airport2.countryCode))
+      updatedRankings.put(RankingType.PASSENGER_MILE, getPassengerMileRanking(flightConsumptionsByAirline, airlinesById))
+      updatedRankings.put(RankingType.LINK_PROFIT_TOTAL, getLinkProfitTotalRanking(flightConsumptions, airlinesById))
+    }
 
-    updateMovements(cachedRankings, updatedRankings.toMap)
-
-    cachedRankings = updatedRankings.toMap
+    updatedRankings.toMap
   }
 
   private[this] def getPaxRanking(pax : Map[Int, Int], airlinesById : Map[Int, Airline], rankingType : RankingType.Value): List[Ranking] = {
@@ -165,7 +201,7 @@ object RankingLeaderboards {
         entry = airlinesById.getOrElse(airlineId, Airline.fromId(airlineId)),
         ranking = index + 1,
         rankedValue = BigDecimal(satisfaction * 100).setScale(2, BigDecimal.RoundingMode.HALF_UP).toDouble,
-        reputationPrize = reputationBonus(20, index)
+        reputationPrize = reputationBonus(16, index)
       )
     }.toList.sortBy(_.ranking).take(200)
   }
@@ -256,7 +292,7 @@ object RankingLeaderboards {
       case (linkConsumption, index) => {
         val airlineId = linkConsumption.link.airline.id
         val ranking = Ranking(RankingType.PASSENGER_MILE,
-          key = linkConsumption.link.id,
+          key = airlineId,
           entry = linkConsumption.link.asInstanceOf[Link].copy(airline = airlinesById.getOrElse(airlineId, Airline.fromId(airlineId))),
           ranking = index + 1,
           rankedValue = linkConsumption.profit)
@@ -369,6 +405,24 @@ object RankingLeaderboards {
     }.toList.sortBy(_.ranking).take(200)
   }
 
+  private[this] def getMarginRanking(caskMap : Map[Int, (Double, Double)], airlinesById : Map[Int, Airline]) : List[Ranking] = {
+    val sortedByAirline = airlinesById.map { case (airlineId, airline) =>
+      val margin: Double = caskMap.getOrElse(airlineId, (0.0,0.0))._2 / caskMap.getOrElse(airlineId, (0.0,1.0))._1
+      (airlineId, margin)
+    }.toList.filter(_._2 > 0).sortBy(_._2)(Ordering[Double]).reverse
+
+    sortedByAirline.zipWithIndex.map {
+      case ((airlineId, quantity), index) => Ranking(
+        RankingType.AIRLINE_PROFIT_MARGIN,
+        key = airlineId,
+        entry = airlinesById.getOrElse(airlineId, Airline.fromId(airlineId)),
+        ranking = index + 1,
+        rankedValue = BigDecimal(quantity).setScale(2, BigDecimal.RoundingMode.HALF_UP).toDouble,
+        reputationPrize = reputationBonus(16, index)
+      )
+    }.sortBy(_.ranking).take(200)
+  }
+
   private[this] def getLoungeRanking(loungeConsumptions : List[LoungeConsumptionDetails], airlinesById : Map[Int, Airline]) : List[Ranking] = {
     val mostVisitedLounges = loungeConsumptions.groupBy(_.lounge.airline.id)
       .mapValues(_.maxBy(entry => entry.selfVisitors + entry.allianceVisitors))
@@ -479,10 +533,12 @@ object RankingLeaderboards {
     }.toList.take(200)
   }
 
-  private[this] def getValueRanking(airlinesById: Map[Int, Airline]): List[Ranking] = {
-    airlinesById.map { case (id, airline) =>
-      (id, (Computation.getResetAmount(id).overall / 1000000).toInt)
-    }.toList.sortBy(_._2)(Ordering[Int].reverse).zipWithIndex.map {
+  private[this] def getValueRanking(incomes: List[AirlineIncome], airlinesById: Map[Int, Airline]): List[Ranking] = {
+    incomes.filter { income =>
+      airlinesById.contains(income.airlineId)
+    }.map { income =>
+      (income.airlineId, (income.totalValue / 1000000).toInt)
+    }.sortBy(_._2)(Ordering[Int].reverse).zipWithIndex.map {
       case ((airlineId, value), index) => {
         Ranking(
           RankingType.AIRLINE_VALUE,
@@ -492,7 +548,7 @@ object RankingLeaderboards {
           rankedValue = value
         )
       }
-    }.toList.take(200)
+    }.take(200)
   }
 
   private[this] def getStockRanking(airlinesById: Map[Int, Airline]): List[Ranking] = {
@@ -574,7 +630,7 @@ object RankingLeaderboards {
 
 object RankingType extends Enumeration {
   type RankingType = Value
-  val PASSENGER_MILE, PASSENGER_COUNT, PASSENGER_QUALITY, PASSENGER_SPEED, ELITE_COUNT, TOURIST_COUNT, BUSINESS_COUNT, STOCK_PRICE, AIRLINE_VALUE, PASSENGER_SATISFACTION, UNIQUE_COUNTRIES, UNIQUE_IATA, LINK_COUNT_SMALL_TOWN, LINK_COUNT_LOW_INCOME, LINK_LOSS, LINK_PROFIT, LINK_PROFIT_TOTAL, LINK_DISTANCE, LINK_SHORTEST, LINK_FREQUENCY, LOUNGE, AIRPORT, AIRPORT_TRANSFERS, INTERNATIONAL_PAX, DOMESTIC_PAX = Value
+  val PASSENGER_MILE, PASSENGER_COUNT, PASSENGER_QUALITY, PASSENGER_SPEED, ELITE_COUNT, TOURIST_COUNT, BUSINESS_COUNT, CODESHARE_COUNT, STOCK_PRICE, AIRLINE_PROFIT_MARGIN, AIRLINE_VALUE, PASSENGER_SATISFACTION, UNIQUE_COUNTRIES, UNIQUE_IATA, LINK_COUNT_SMALL_TOWN, LINK_COUNT_LOW_INCOME, LINK_LOSS, LINK_PROFIT, LINK_PROFIT_TOTAL, LINK_DISTANCE, LINK_SHORTEST, LINK_FREQUENCY, LOUNGE, AIRPORT, AIRPORT_TRANSFERS, INTERNATIONAL_PAX, DOMESTIC_PAX = Value
 }
 
 

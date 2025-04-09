@@ -20,12 +20,22 @@ class ComputationSpec(_system: ActorSystem) extends TestKit(_system) with Implic
     TestKit.shutdownActorSystem(system)
   }
  
-  val smallAirplaneModel = Model.modelByName("Cessna Caravan")
-  val mediumAirplaneModel = Model.modelByName("Bombardier CS100")
+  val smallAirplaneModel = Model.modelByName("Cessna 208 Caravan")
+  val mediumAirplaneModel = Model.modelByName("Airbus A220-100")
   val largeAirplaneModel = Model.modelByName("Boeing 787-8 Dreamliner")
-  val extraLargeAirplaneModel = Model.modelByName("Boeing 777-300")
-  
+  val extraLargeAirplaneModel = Model.modelByName("Boeing 777-300ER")
+
   "calculateDuration".must {
+    "output duration by distance".in {
+      val distances = List(50, 100, 250, 500, 1000, 2000, 4000, 8000)
+      var lastDuration = 0
+      for (distance <- distances) {
+        val duration = Computation.computeStandardFlightDuration(distance)
+        println(s"${distance}km: $duration")
+        lastDuration.shouldBe( < (duration))
+        lastDuration = duration
+      }
+    }
     "returns longer duration for slower speed craft".in {
       val smallAirplaneDuration = Computation.calculateDuration(smallAirplaneModel, 500)
       val largeAirplaneDuration = Computation.calculateDuration(largeAirplaneModel, 500)
@@ -57,15 +67,16 @@ class ComputationSpec(_system: ActorSystem) extends TestKit(_system) with Implic
       large.shouldBe( > (extraLarge))
     }
     "returns highest frequency for large+ craft on long+ route".in {
-      val small = Computation.calculateMaxFrequency(smallAirplaneModel, 10000)
-      val medium = Computation.calculateMaxFrequency(mediumAirplaneModel, 10000)
-      val large = Computation.calculateMaxFrequency(largeAirplaneModel, 10000)
-      val extraLarge = Computation.calculateMaxFrequency(extraLargeAirplaneModel, 10000)
+      val small = Computation.calculateMaxFrequency(smallAirplaneModel, 8000)
+      val medium = Computation.calculateMaxFrequency(mediumAirplaneModel, 8000)
+      val large = Computation.calculateMaxFrequency(largeAirplaneModel, 8000)
+      val extraLarge = Computation.calculateMaxFrequency(extraLargeAirplaneModel, 8000)
       small.shouldBe(0)
       medium.shouldBe(0)
       large.shouldBe( > (0))
       extraLarge.shouldBe( > (0))
-      println(large)
+      println(s"frequency: $large")
+      println(s"frequency: $extraLarge")
       println(extraLarge)
     }
     

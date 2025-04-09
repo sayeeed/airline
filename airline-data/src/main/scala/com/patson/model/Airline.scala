@@ -207,6 +207,7 @@ object AirlineType extends Enumeration {
     case 7 => NOSTALGIA
     case _ => throw new IllegalArgumentException("Invalid AirlineType ID: " + id)
   }
+  val REGIONAL_EXTRA_SHARED_BASE_LIMIT = 1
   val REGIONAL_MODEL_MAX_SIZE = 0.1 //used in web app to set allowed planes
   val LUXURY_EXTRA_LOYALTY = 8
 }

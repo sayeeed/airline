@@ -1535,7 +1535,7 @@
 								<div class="value" id="countryDetailsName"></div>
 							</div>
 							<div class="table-row">
-								<div class="label">Income Level:</div>
+								<div class="label">Airport PPP Income:</div>
 								<div class="value" id="countryDetailsIncomeLevel"></div>
 							</div>
 							<div class="table-row">
@@ -2355,7 +2355,7 @@
 							</div>
 			<!--          		end income statement -->
 							<div style="display: none;" id="cashFlowSheet" class="sheet">
-								<div id="totalCashFlowChart" style="height: 300px; margin: 0 auto;"></div>
+								<div id="totalCashFlowChart" style="height: 280px; margin: 0 auto;"></div>
 								<div style="display: flex; flex-wrap: wrap;">
 									<div class="table data rounded-none" style="min-width: 200px">
 										<h4>Total Cash Flow</h4>
@@ -2408,6 +2408,8 @@
 										</div>
 									</div>
 								</div>
+								<h4 class="px-5">Total Company Assets</h4>
+								<div id="totalValueChart" style="height: 280px; margin: 0 auto;"></div>
 							</div>
 		<!--          		end cashflow sheet -->
 							<div style="width : 100%; display: none;" id="airlineStatsSheet" class="sheet">
@@ -2945,12 +2947,12 @@
 								<div class="cell" style="width: 8%" align="right">Prize</div>
 							</div>
 						</div>
-						<div class="table data section tight rankingTable" id="stockRank">
+						<div class="table data section tight rankingTable" id="codeshareCountRank">
 							<div class="table-header">
 								<div class="cell" style="width: 7%">Rank</div>
 								<div class="cell" style="width: 9%">Change</div>
-								<div class="cell" style="width: 50%">Best Capitalist</div>
-								<div class="cell" style="width: 27%" align="right">Stock Price</div>
+								<div class="cell" style="width: 50%">Most Codeshares</div>
+								<div class="cell" style="width: 27%" align="right">Codeshares</div>
 								<div class="cell" style="width: 8%" align="right">Prize</div>
 							</div>
 						</div>
@@ -2972,15 +2974,15 @@
 								<div class="cell" style="width: 8%" align="right">Prize</div>
 							</div>
 						</div>
-<!--						<div class="table data section tight rankingTable" id="passengerMileQualityRank">-->
-<!--							<div class="table-header">-->
-<!--								<div class="cell" style="width: 7%">Rank</div>-->
-<!--								<div class="cell" style="width: 9%">Change</div>-->
-<!--								<div class="cell" style="width: 50%">Highest Average Quality</div>-->
-<!--								<div class="cell" style="width: 27%" align="right">Quality per pax km</div>-->
-<!--								<div class="cell" style="width: 8%" align="right">Prize</div>-->
-<!--							</div>-->
-<!--						</div>-->
+						<div class="table data section tight rankingTable" id="passengerMileQualityRank">
+							<div class="table-header">
+								<div class="cell" style="width: 7%">Rank</div>
+								<div class="cell" style="width: 9%">Change</div>
+								<div class="cell" style="width: 50%">Most Luxurious</div>
+								<div class="cell" style="width: 27%" align="right">Quality <small>by pax km</small></div>
+								<div class="cell" style="width: 8%" align="right">Prize</div>
+							</div>
+						</div>
 						<div class="table data section tight rankingTable" id="loungeRank">
 							<div class="table-header">
 								<div class="cell" style="width: 7%">Rank</div>
@@ -3068,6 +3070,15 @@
 								<div class="cell" style="width: 9%">Change</div>
 								<div class="cell" style="width: 58%">Low Income Champion</div>
 								<div class="cell" style="width: 25%" align="right">Airports<br><small>$10k income or less</small></div>
+								<div class="cell" style="width: 8%" align="right">Prize</div>
+							</div>
+						</div>
+						<div class="table data section tight rankingTable" id="airlineProfitMarginRank">
+							<div class="table-header">
+								<div class="cell" style="width: 7%">Rank</div>
+								<div class="cell" style="width: 9%">Change</div>
+								<div class="cell" style="width: 58%">Highest Margins</div>
+								<div class="cell" style="width: 25%" align="right">Profit Margin</div>
 								<div class="cell" style="width: 8%" align="right">Prize</div>
 							</div>
 						</div>
@@ -3908,7 +3919,7 @@
 											  <div class="value population" style="text-align:right;  padding-right: 10px;"></div>
 										  </div>
 										  <div class="table-row">
-											  <div class="label">Income Level</div>
+											  <div class="label">Airport PPP Income</div>
 											  <div class="value incomeLevel" style="text-align:right; padding-right: 10px;"></div>
 										  </div>
 									  </div>
@@ -3922,7 +3933,7 @@
 											  <div class="value from population" style="text-align:right; padding-right: 10px;"></div>
 										  </div>
 										  <div class="table-row">
-											  <div class="label">Income Level</div>
+											  <div class="label">Airport PPP Income</div>
 											  <div class="value from incomeLevel" style="text-align:right; padding-right: 10px;"></div>
 										  </div>
 									  </div>
@@ -3984,8 +3995,30 @@
 									  <div class="cell" style="width: 9%;"><p>L.F.</p></div>
 								  </div>
 							  </div>
-							  <div class="linksPie" align="center"></div>
+<!--							  <div class="linksPie" align="center"></div>-->
 
+							  <h4 class="pt-4 fromDemandHeading" style="width: 100%">Demands from</h4>
+							  <p>Every week different "preferences" </p>
+							  <div class="table data fromDemand" style="width: 100%">
+								  <div class='table-header'>
+									  <div class="cell" style="width: 20%;"><p>Class</p></div>
+									  <div class="cell" style="width: 20%;"><p>Type</p></div>
+									  <div class="cell" style="width: 20%;"><p>Preference</p></div>
+									  <div class="cell" style="width: 15%;"><p>Target Price</p></div>
+									  <div class="cell" style="width: 15%;"><p>Estimated Demand</p></div>
+								  </div>
+							  </div>
+
+							  <h4 class="pt-4 toDemandHeading" style="width: 100%">Demands to</h4>
+							  <div class="table data toDemand" style="width: 100%">
+								  <div class='table-header'>
+									  <div class="cell" style="width: 20%;"><p>Class</p></div>
+									  <div class="cell" style="width: 20%;"><p>Type</p></div>
+									  <div class="cell" style="width: 20%;"><p>Preference</p></div>
+									  <div class="cell" style="width: 15%;"><p>Target Price</p></div>
+									  <div class="cell" style="width: 15%;"><p>Estimated Demand</p></div>
+								  </div>
+							  </div>
 						  </div>
 					  </div>
 				  </div>
@@ -5990,15 +6023,15 @@
   <link rel="preload" href="https://p.typekit.net" crossorigin>
   <link rel="stylesheet" href="https://use.typekit.net/plw0ulw.css">
   <script src='@routes.Assets.versioned("javascripts/main.js?=2")'></script>
-  <script defer src='@routes.Assets.versioned("javascripts/airport.js?=5")'></script>
+  <script defer src='@routes.Assets.versioned("javascripts/airport.js")'></script>
   <script src='@routes.Assets.versioned("javascripts/airport-asset.js")'></script>
-  <script src='@routes.Assets.versioned("javascripts/airplane.js?=5")'></script>
-  <script src='@routes.Assets.versioned("javascripts/model-configuration.js?=5")'></script>
-  <script src='@routes.Assets.versioned("javascripts/airline.js?=5")'></script>
+  <script src='@routes.Assets.versioned("javascripts/airplane.js")'></script>
+  <script src='@routes.Assets.versioned("javascripts/model-configuration.js")'></script>
+  <script src='@routes.Assets.versioned("javascripts/airline.js")'></script>
   <script src='@routes.Assets.versioned("javascripts/link-history.js")'></script>
   <script src='@routes.Assets.versioned("javascripts/delegate.js")'></script>
   <script src='@routes.Assets.versioned("javascripts/country.js")'></script>
-  <script src='@routes.Assets.versioned("javascripts/office.js?=5")'></script>
+  <script src='@routes.Assets.versioned("javascripts/office.js")'></script>
   <script src='@routes.Assets.versioned("javascripts/tiles.js")'></script>
   <script src='@routes.Assets.versioned("javascripts/ranking.js")'></script>
   <script src='@routes.Assets.versioned("javascripts/bank.js")'></script>
@@ -6007,7 +6040,7 @@
   <script src='@routes.Assets.versioned("javascripts/alliance.js")'></script>
   <script src='@routes.Assets.versioned("javascripts/log.js")'></script>
   <script src='@routes.Assets.versioned("javascripts/event.js")'></script>
-  <script src='@routes.Assets.versioned("javascripts/search.js?=1")'></script>
+  <script src='@routes.Assets.versioned("javascripts/search.js")'></script>
   <script src='@routes.Assets.versioned("javascripts/facility.js")'></script>
   <script src='@routes.Assets.versioned("javascripts/departures.js")'></script>
   <script src='@routes.Assets.versioned("javascripts/gadgets.js")'></script>
@@ -6031,7 +6064,7 @@
   <script src='@routes.Assets.versioned("javascripts/ui-theme.js")'></script>
   <script src='@routes.Assets.versioned("javascripts/table-utils.js")'></script>
 
-  <script src='@routes.Assets.versioned("javascripts/aircraft-config.umd.js?=1")' defer></script>
+  <script src='@routes.Assets.versioned("javascripts/aircraft-config.umd.js")' defer></script>
   <link rel="stylesheet" type="text/css" href='@routes.Assets.versioned("stylesheets/index-CKPGaino.css")'>
 
 

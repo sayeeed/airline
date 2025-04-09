@@ -433,24 +433,9 @@ class SearchApplication @Inject()(cc: ControllerComponents) extends AbstractCont
     val affinity = Computation.calculateAffinityValue(fromAirport.zone, toAirport.zone, relationship)
     val affinityText = Computation.constructAffinityText(fromAirport.zone, toAirport.zone, fromAirport.countryCode, toAirport.countryCode, relationship, affinity)
 
-    val (fromDemandDetailsJson, toDemandDetailsJson) = LinkApplication.generateDemands(fromAirport, toAirport, affinity, distance, flightCategory)
+    val (fromDemandDetailsJson, toDemandDetailsJson, fromDemandTotal, toDemandTotal) = LinkApplication.generateDemands(fromAirport, toAirport, affinity, distance, flightCategory)
 
-    val fromDemand = DemandGenerator.computeDemandBetweenAirports(fromAirport, toAirport, affinity, distance)
-    val toDemand = DemandGenerator.computeDemandBetweenAirports(toAirport, fromAirport, affinity, distance)
-
-    val directFromAirportTravelerDemand = fromDemand.travelerDemand
-    val directToAirportTravelerDemand = toDemand.travelerDemand
-    val directTravelerDemand = directFromAirportTravelerDemand + directToAirportTravelerDemand
-
-    val directFromAirportBusinessDemand = fromDemand.businessDemand
-    val directToAirportBusinessDemand = toDemand.businessDemand
-    val directBusinessDemand = directFromAirportBusinessDemand + directToAirportBusinessDemand
-
-    val directFromAirportTouristDemand = fromDemand.touristDemand
-    val directToAirportTouristDemand = toDemand.touristDemand
-    val directTouristDemand = directFromAirportTouristDemand + directToAirportTouristDemand
-
-    val directDemand = directTravelerDemand + directBusinessDemand + directTouristDemand
+    val directDemand = fromDemandTotal + toDemandTotal
 
     val fromQualitySearch = LinkUtil.findExpectedQuality(fromAirportId: Int, toAirportId: Int, fromAirportId: Int)
     val fromExpectedQualities = fromQualitySearch match {
@@ -472,37 +457,37 @@ class SearchApplication @Inject()(cc: ControllerComponents) extends AbstractCont
     }
     val basePrice = Pricing.computeStandardPriceForAllClass(distance, flightCategory, PassengerType.TOURIST, fromAirport.income)
 
-    //basic details
     var result = Json.obj(
-      "fromAirport" -> fromAirport,
+      "fromAirportId" -> fromAirport.id,
       "fromAirportText" -> fromAirport.displayText,
-      "toAirport" -> toAirport,
+      "fromAirportIata" -> fromAirport.iata,
+      "fromAirportCountryCode" -> fromAirport.countryCode,
+      "fromAirportPopulation" -> fromAirport.population,
+      "fromAirportIncome" -> fromAirport.income,
+      "toAirportId" -> toAirport.id,
       "toAirportText" -> toAirport.displayText,
+      "toAirportIata" -> toAirport.iata,
+      "toAirportCountryCode" -> toAirport.countryCode,
+      "toAirportPopulation" -> toAirport.population,
+      "toAirportIncome" -> toAirport.income,
       "distance" -> distance,
       "flightType" -> FlightCategory.label(flightCategory),
       "directDemand" -> directDemand,
       "mutualRelationship" -> relationship,
       "affinity" -> affinityText,
       "basePrice" -> basePrice,
-      "fromAirportDemand" -> directFromAirportTravelerDemand,
-      "toAirportDemand" -> directToAirportTravelerDemand,
-      "fromAirportTravelerDemand" -> directFromAirportTravelerDemand,
-      "toAirportTravelerDemand" -> directToAirportTravelerDemand,
-      "fromAirportBusinessDemand" -> directFromAirportBusinessDemand,
-      "toAirportBusinessDemand" -> directToAirportBusinessDemand,
-      "fromAirportTouristDemand" -> directFromAirportTouristDemand,
-      "toAirportTouristDemand" -> directToAirportTouristDemand,
+      "fromDemands" -> fromDemandDetailsJson,
+      "toDemands" -> toDemandDetailsJson,
+      "fromAirportDemand" -> fromDemandTotal,
+      "toAirportDemand" -> toDemandTotal,
       "fromExpectedQualities" -> fromExpectedQualities,
       "toExpectedQualities" -> toExpectedQualities,
     )
-
 
     //load existing links
     val links = LinkSource.loadFlightLinksByAirports(fromAirportId, toAirportId) ++ LinkSource.loadFlightLinksByAirports(toAirportId, fromAirportId)
     result = result + ("links" -> Json.toJson(links.sortBy(_.airline.id)))
     val consumptions = LinkSource.loadLinkConsumptionsByLinksId(links.map(_.id)).sortBy(_.link.airline.id)
-
-
 
     result = result + ("consumptions" -> Json.toJson(consumptions)(Writes.list(SimpleLinkConsumptionWrite)))
     Ok(result)

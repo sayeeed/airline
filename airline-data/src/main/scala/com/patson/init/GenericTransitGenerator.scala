@@ -257,7 +257,7 @@ object GenericTransitGenerator {
               targetAirport.popMiddleIncome > 2500 &&
               airport.longitude >= boundaryLongitude._1 &&
               airport.longitude <= boundaryLongitude._2 &&
-              countryRelationships.getOrElse((airport.countryCode, targetAirport.countryCode), 0) >= 2
+              airport.countryCode == targetAirport.countryCode
           )) {
             val distance = Util.calculateDistance(airport.latitude, airport.longitude, 
                                                targetAirport.latitude, targetAirport.longitude).toInt
