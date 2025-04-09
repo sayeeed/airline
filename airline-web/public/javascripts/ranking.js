@@ -47,6 +47,8 @@ function updateRankingTable(rankingType, rankings) {
         rankingTable = $('#businessCountRank')
     } else if (rankingType == "ELITE_COUNT") {
         rankingTable = $('#eliteCountRank')
+    } else if (rankingType == "CODESHARE_COUNT") {
+            rankingTable = $('#codeshareCountRank')
     } else if (rankingType == "STOCK_VALUE") {
         rankingTable = $('#stockRank')
     } else if (rankingType == "PASSENGER_QUALITY") {
@@ -57,10 +59,14 @@ function updateRankingTable(rankingType, rankings) {
         rankingTable = $('#linkShortestRank')
 	} else if (rankingType == "PASSENGER_SATISFACTION") {
           rankingTable = $('#satisfactionRank')
+    } else if (rankingType == "PASSENGER_QUALITY") {
+            rankingTable = $('#passengerQualityRank')
     } else if (rankingType == "PASSENGER_SPEED") {
           rankingTable = $('#speedRank')
     } else if (rankingType == "REPUTATION") {
 		rankingTable = $('#reputationRank')
+    } else if (rankingType == "AIRLINE_PROFIT_MARGIN") {
+        rankingTable = $('#airlineProfitMarginRank')
 	} else if (rankingType == "SERVICE_QUALITY") {
 		rankingTable = $('#serviceQualityRank')
 	} else if (rankingType == "LINK_COUNT") {

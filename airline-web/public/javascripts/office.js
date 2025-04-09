@@ -456,6 +456,7 @@ function updateIncomeChart() {
 
 function updateCashFlowChart() {
 	plotCashFlowChart(loadedCashFlows[officePeriod], officePeriod, $("#officeCanvas #totalCashFlowChart"))
+	plotTotalValueChart(loadedIncomes[officePeriod], officePeriod, $("#officeCanvas #totalValueChart"))
 }
 
 function officeHistoryStep(step) {
