@@ -1,7 +1,7 @@
 ,,,,,group,group2,lang,lang2,,religion
 AF,Afghanistan,1,68.9,5.947,None|,Sunni|,,,,Muslim
 AL,Albania,7,68.6,4.567,None|,Sunni|,Albanian|,,,Muslim
-DZ,Algeria,5,84.8,4.223,Sunni|,,Arabic|,,,
+DZ,Algeria,5,84.8,4.223,Sunni|,,Arabic|,Francophonie|,,
 AS,American Samoa,4,,1.000,PIF|,,Anglophone|,,,
 AO,Angola,3,81.4,3.304,SADC|,,Lusophone|,,,
 AI,Anguilla,4,,1.000,CC|,,Anglophone|,,,
@@ -95,7 +95,7 @@ HK,Hong Kong,10,73.8,1.468,ASEAN|,,Sinophone|,Anglophone|,,
 HU,Hungary,8,68,2.920,EU|,,Hungarian|,,,
 IS,Iceland,10,64.6,1.089,Nordic / Lutheran|,,Anglophone|,,,
 IN,India,4,82.3,4.884,SASEC|,|AU|Indian-|US|Indian-|GB|Indian-|NZ|Indian,,Sunni|,,Muslim
-ID,Indonesia,5,78.2,1.531,ASEAN|,|TW|Indonesian-|KA|Indonesian-|SA|Indonesian-,Malay|,Sunni|,,Muslim
+ID,Indonesia,5,78.2,1.531,ASEAN|,|TW|Indonesian-|KA|Indonesian-|SA|Indonesian,Malay|,Sunni|,,Muslim
 IR,Iran,1,79.2,4.362,Shia|,,Farsi|,,,
 IQ,Iraq,2,71,2.570,Sunni|,,Arabic|,,,
 IE,Ireland,10,80,1.284,EU|,,Anglophone|,,,
@@ -108,7 +108,7 @@ JP,Japan,7,64.7,1.344,Japanese|,,,,,
 JE,Jersey,4,,1.000,None|,,Anglophone|,,,
 JO,Jordan,5,76.7,2.640,Sunni|,,Arabic|,,,
 KZ,Kazakhstan,6,77.6,4.057,CIS|,,Kazakh|,Russian|-Sunni|,,Muslim
-KE,Kenya,6,82.6,5.691,EAC|,,Swahili|,Anglophone|,,
+KE,Kenya,7,82.6,5.691,EAC|,,Swahili|,Anglophone|,,
 KI,Kiribati,3,,2.216,PIF|,,,,,
 XK,Kosovo,5,,2.753,None|,Sunni|,,,,
 KW,Kuwait,5,86.2,1.248,Sunni|,,Arabic|,,,
@@ -149,7 +149,7 @@ NL,Netherlands,9,75,1.462,EU|,Loves Tiroler Unterlan x2|-Loves Spain|,Dutch|,Ang
 NC,New Caledonia,5,,1.000,PIF|,,,,,
 NZ,New Zealand,8,70,1.076,PIF|,,Anglophone|,,,
 NI,Nicaragua,4,81.3,4.151,Hispanic|,,,,,
-NE,Niger,7,73.8,3.562,None|,,Francophonie|,,,Muslim
+NE,Niger,3,73.8,3.562,None|,,Francophonie|,,,Muslim
 NG,Nigeria,5,86,3.747,ECOWAS|,,Anglophone|,,,Muslim
 NU,Niue,4,,1.000,PIF|,,,,,
 NF,Norfolk Island,4,,1.000,PIF|,,,,,
@@ -184,7 +184,7 @@ WS,Samoa,7,77.7,1.956,PIF|,|US|Samoan-|CL|Samoan-|NZ|Samoan-|AU|Samoan,Anglophon
 ST,São Tomé and Príncipe,2,,2.678,None|,,Lusophone|,,,
 SA,Saudi Arabia,5,86.4,2.167,Sunni|,,Arabic|,,,
 SN,Senegal,7,79.7,3.425,ECOWAS|,Sunni|,Francophonie|,,,Muslim
-RS,Serbia,7,71.3,2.624,None|,,Serbo Croatian|,,,
+RS,Serbia,6,71.3,2.624,None|,,Serbo Croatian|,,,
 SC,Seychelles,6,76,3.251,SADC|,,Francophonie|,,,
 SL,Sierra Leone,3,73.2,7.679,ECOWAS|,,Anglophone|,,,Muslim
 SG,Singapore,10,78.8,1.855,ASEAN|,,Malay|,Sinophone|-Anglophone|,,
@@ -211,7 +211,7 @@ TL,Timor-Leste,3,62.7,2.036,None|,,Malay|,Lusophone|,,Catholic
 TG,Togo,3,81.5,3.651,ECOWAS|,,Francophonie|,,,
 TO,Tonga,6,77.7,1.844,PIF|,,,,,
 TT,Trinidad and Tobago,6,75.7,1.849,CC|,,Anglophone|,,,
-TN,Tunisia,6,78,3.928,Sunni|,,Arabic|,,,
+TN,Tunisia,6,78,3.928,Sunni|,,Arabic|,Francophonie|,,
 TR,Turkey,8,80.1,4.386,Sunni|,,Turkish|,,,
 TM,Turkmenistan,6,70.5,3.147,None|,Sunni|,Turkmen|,,,Muslim
 TC,Turks and Caicos Islands,5,,1.000,CC|,,Anglophone|,,,

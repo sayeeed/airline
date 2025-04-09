@@ -345,13 +345,13 @@ object CountryMutualRelationshipGenerator extends App {
       "US", "PE", "EC", "PA", "CL"
     )),
     Relation("CO", Direction.BI, 2, List(
-      "MX", "BR", "BO"
+      "MX", "BR", "BO", "ES"
     )),
     Relation("VE", Direction.BI, 2, List(
       "IR", "RU", "BR", "CN"
     )),
     Relation("PE", Direction.BI, 2, List(
-      "CL", "BO", "EC", "CO", "MX", "US", "CN", "JP"
+      "CL", "BO", "EC", "CO", "MX", "US", "CN", "JP", "ES"
     )),
     Relation("BR", Direction.BI, 3, List(
       "AR", "BO", "PY", "UY", "PE", "CL"
@@ -362,11 +362,14 @@ object CountryMutualRelationshipGenerator extends App {
     Relation("BR", Direction.BI, 1, List(
       "IN", "FR"
     )),
+    Relation("AR", Direction.BI, 2, List(
+      "UY", "PY", "ES"
+    )),
     Relation("CL", Direction.BI, 3, List(
       "PE","AR","US","CA","PA" //chile has FTAs with everyone
     )),
     Relation("CL", Direction.BI, 2, List(
-      "MX", "JP", "KR", "CN", "HK", "AU", "NZ"
+      "MX", "JP", "KR", "CN", "HK", "AU", "NZ", "ES"
     )),
   )
   lazy val ENMITIES = List(
@@ -378,7 +381,7 @@ object CountryMutualRelationshipGenerator extends App {
       "HU"
     )),
     Relation("RU", Direction.BI, -3, List(
-      "UA", "US", "CA", "JP", "KR", "TW", "AU", "NZ", "GB", "ME", "IE", "RO", "BG", "CY", "AT", "BE", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HR", "IS", "IT", "LT", "LU", "MT", "NL", "NO", "PL", "PT", "SI", "SK", "MD", "ES", "SE", "CH"
+      "UA", "US", "CA", "JP", "KR", "TW", "AU", "NZ", "GB", "ME", "IE", "RO", "BG", "CY", "AT", "BE", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HR", "IS", "IT", "LT", "LU", "LV", "MT", "NL", "NO", "PL", "PT", "SI", "SK", "MD", "ES", "SE", "CH"
     )),
     Relation("BY", Direction.BI, -2, OECDish ++ List(
       "UA", "MD", "EE", "LT", "LV", "BG"
