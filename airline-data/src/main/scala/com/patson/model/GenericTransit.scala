@@ -8,7 +8,8 @@ case class GenericTransit(from : Airport, to : Airport, distance : Int, var capa
   override val price : LinkClassValues = LinkClassValues.getInstance()
   val flightCategory = FlightCategory.DOMESTIC
 
-  val localCostRatio = 0.7
+
+  val localCostRatio = if (from.countryCode == to.countryCode) 0.85 else 1.25
   override val cost : LinkClassValues = LinkClassValues.getInstance(
     economy = ((Pricing.computeStandardPrice(distance, FlightCategory.DOMESTIC, ECONOMY, PassengerType.TRAVELER, from.baseIncome) - Pricing.PRICE_BASE) * localCostRatio).toInt,
     business = ((Pricing.computeStandardPrice(distance, FlightCategory.DOMESTIC, BUSINESS, PassengerType.TRAVELER, from.baseIncome) - Pricing.PRICE_BASE) * localCostRatio).toInt,

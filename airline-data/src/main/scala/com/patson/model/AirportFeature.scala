@@ -75,8 +75,7 @@ sealed case class InternationalHubFeature(baseStrength : Int, boosts : List[Airp
           2.0 //they travel a lot; difficult to model
         } else 1.0
 
-      val output = (DemandGenerator.launchDemandFactor * fromAirport.popMiddleIncome * charmStrength * distanceModifier * airportAffinityMutliplier * incomeModifier * specialCountryModifier).toInt
-      if (output > DemandGenerator.demandRandomizer * 2) output else 0
+      (DemandGenerator.launchDemandFactor * fromAirport.popMiddleIncome * charmStrength * distanceModifier * airportAffinityMutliplier * incomeModifier * specialCountryModifier).toInt
     } else {
       0
     }
@@ -124,8 +123,7 @@ sealed case class VacationHubFeature(baseStrength : Int, boosts : List[AirportBo
         else 0
 
       val launchDemandFactor = 0.5 + 0.5 * DemandGenerator.launchDemandFactor
-      val output = (launchDemandFactor * fromAirport.popMiddleIncome * charmStrength * distanceModifier * airportAffinityMutliplier).toInt
-      if (output > DemandGenerator.demandRandomizer + 1) output else 0
+      (launchDemandFactor * fromAirport.popMiddleIncome * charmStrength * distanceModifier * airportAffinityMutliplier).toInt
     } else {
       0
     }
@@ -169,8 +167,7 @@ sealed case class FinancialHubFeature(baseStrength : Int, boosts : List[AirportB
         else if (affinity == 0) 0.225
         else 0.1
 
-      val output = Math.pow(DemandGenerator.launchDemandFactor * fromAirport.popMiddleIncome * charmStrength * airportAffinityMutliplier, distanceReducerExponent).toInt
-      if (output > DemandGenerator.demandRandomizer) output else 0
+      Math.pow(DemandGenerator.launchDemandFactor * fromAirport.popMiddleIncome * charmStrength * airportAffinityMutliplier, distanceReducerExponent).toInt
     } else {
       0
     }
@@ -245,8 +242,9 @@ sealed case class IsolatedTownFeature(strength : Int) extends AirportFeature {
     val rangeBoost = HUB_GRADIENT_EXTENDED_RANGE_MULTIPLIER
     if (passengerType == PassengerType.TRAVELER && affinity >= 2) {
       val affinityMod = if (affinity >= 5) 1.0 else affinity.toDouble / 10
+
       val mod = if (distance <= boostRange * HUB_GRADIENT_EXTENDED_RANGE_MULTIPLIER) {
-        val basis = 150.0 + DemandGenerator.demandRandomizer * 25
+        val basis = 150.0 + DemandGenerator.demandRandomizer * 5
         val distanceModifier = if (distance >= 1500 && toAirport.size <= 3) {
           0
         } else if (distance >= boostRange * (rangeBoost / 2)) {
@@ -254,6 +252,7 @@ sealed case class IsolatedTownFeature(strength : Int) extends AirportFeature {
         } else {
           1.0
         }
+
         if (fromAirport.population <= basis || toAirport.population <= basis) {
           2
         } else if (fromAirport.population <= basis * 50 || toAirport.population <= basis * 50) {

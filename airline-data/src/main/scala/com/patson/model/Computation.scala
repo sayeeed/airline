@@ -41,15 +41,6 @@ object Computation {
   }
 
   def calculateDuration(airplaneModel: Model, distance : Int) : Int = {
-//    val multiplier: Double = airplaneModel.airplaneType match {
-//      case Model.Type.PROPELLER_SMALL => 1.5
-//      case Model.Type.PROPELLER_MEDIUM => 2
-//      case Model.Type.SMALL => 2.25
-//      case Model.Type.REGIONAL => 2.5
-//      case Model.Type.MEDIUM | Model.Type.MEDIUM_XL => 3.5
-//      case Model.Type.HELICOPTER | Model.Type.AIRSHIP => 0
-//      case _ => 4
-//    }
     val timeToCruise: Int = airplaneModel.airplaneType match {
       case Model.Type.PROPELLER_SMALL => Model.TIME_TO_CRUISE_PROPELLER_SMALL
       case Model.Type.PROPELLER_MEDIUM => Model.TIME_TO_CRUISE_PROPELLER_MEDIUM
@@ -60,7 +51,6 @@ object Computation {
       case _ => Model.TIME_TO_CRUISE_OTHER
     }
     val cruiseTime = distance.toDouble * 60 / airplaneModel.speed
-
     (timeToCruise + cruiseTime).toInt
   }
 
@@ -358,7 +348,7 @@ def constructAffinityText(fromZone : String, toZone : String, fromCountry : Stri
   }
 
   val SATISFACTION_MAX_PRICE_RATIO_THRESHOLD = 0.7 //at 100% satisfaction is <= this threshold
-  val SATISFACTION_MIN_PRICE_RATIO_THRESHOLD = LINK_COST_TOLERANCE_FACTOR + 0.05 //0% satisfaction >= this threshold ... +0.05 so, there will be at least some satisfaction even at the LINK_COST_TOLERANCE_FACTOR
+  val SATISFACTION_MIN_PRICE_RATIO_THRESHOLD = LINK_COST_TOLERANCE_FACTOR + 0.01 //0% satisfaction >= this threshold ... +0.01 so, there will be at least some satisfaction even at the LINK_COST_TOLERANCE_FACTOR
   val SATISFACTION_NOT_CROWDED_MAX_BONUS_THRESHOLD = 0.125
   /**
     * From 0 (not satisfied at all) to 1 (fully satisfied)
@@ -382,9 +372,14 @@ def constructAffinityText(fromZone : String, toZone : String, fromCountry : Stri
       internalComputeStandardFlightDuration(distance) //just in case
     }
   }
+
   private def internalComputeStandardFlightDuration(distance : Int) = {
-    val mediumAirplaneModel = Model.modelByName("Airbus A320")
-    Computation.calculateDuration(mediumAirplaneModel, distance)
+    val min = Model.TIME_TO_CRUISE_SMALL //buff props by setting this to small jets
+    val max = Model.TIME_TO_CRUISE_OTHER
+    val expectedTimeToCruise = Math.min(max - min, (max - min) * distance / 800) //
+    val expectedSpeed = 200 + Math.min(600, 600 * distance / 1200)
+
+    (expectedTimeToCruise + distance.toDouble * 60 / expectedSpeed).toInt
   }
 
   def getDomesticAirportWithinRange(principalAirport : Airport, range : Int) = { //range in km
