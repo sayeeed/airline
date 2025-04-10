@@ -25,11 +25,11 @@ object DemandGenerator {
   val PRICE_DISCOUNT_PLUS_MULTIPLIER = 1.05 //multiplier on base price
   val PRICE_LAST_MIN_MULTIPLIER = 1.12
   val PRICE_LAST_MIN_DEAL_MULTIPLIER = 0.9
-  val launchDemandFactor : Double = if (CycleSource.loadCycle() <= 1) 1.0 else Math.min(1, (45 + CycleSource.loadCycle().toDouble / 24) / 100)
-//  val launchDemandFactor : Double = 1.0
-  val baseLaunchDemandFactor : Double = if (CycleSource.loadCycle() <= 1) 1.0 else Math.min(1, (55 + CycleSource.loadCycle().toDouble / 48) / 100)
-//  val baseLaunchDemandFactor : Double = 1.0
-  val demandRandomizer: Int = CycleSource.loadCycle() % 10
+  // val launchDemandFactor : Double = if (CycleSource.loadCycle() <= 1) 1.0 else Math.min(1, (45 + CycleSource.loadCycle().toDouble / 24) / 100)
+  val launchDemandFactor : Double = 1.0
+  // val baseLaunchDemandFactor : Double = if (CycleSource.loadCycle() <= 1) 1.0 else Math.min(1, (55 + CycleSource.loadCycle().toDouble / 48) / 100)
+  val baseLaunchDemandFactor : Double = 1.0
+  val demandRandomizer: Int = CycleSource.loadCycle() % 3
 
   import scala.jdk.CollectionConverters._
 
