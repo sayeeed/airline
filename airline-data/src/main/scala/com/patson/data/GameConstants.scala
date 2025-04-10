@@ -22,7 +22,7 @@ object GameConstants {
     "PJA", //SE
     "EN9","EN1","EN2", "SKN", "SSJ", "BNN", "MOL", "OSY", "RVK", "SDN", "SOG", "HAU", //NO
     "HZK", "GRY", //IS
-    "AOK", "JMK", "JNX", "JSI", "KIT", "LKS", "MLO", "SMI", "JIK", "KGS", "RHO", "LXS", "MJT", "JKH", "ZTH", "EFL", "SMI", //GR
+    "AOK", "JMK", "JNX", "JSI", "KIT", "LKS", "MLO", "SMI", "JIK", "KGS", "RHO", "LXS", "MJT", "JKH", "ZTH", "EFL", "SMI", "JKL", "KZS", //GR
     "KGD", "ITU", //RU
     //americas
     "FRD", "ESD", "ACK", "MVY", "BID", "AVX", "OTZ", //US
@@ -52,10 +52,10 @@ object GameConstants {
     "KUM", "TNE", "MYE", "MK1", "OIM", "HAC", "AO1", "SDS", "OIR", "RIS", "OKI", "TSJ", "FUJ", "KKX", "TKN", "OKE", "RNJ", "UEO", "OKA", "MMY", "TRA", "ISG", "OGN", "IKI", "MMD", "KTD", "OIM", //JP
     "KNH", "MZG", //TW
     "BSO", "CGM", "JOL", "CYU", "TWT", "IAO", "MBT", "USU", "ENI", //PH
-     //TH
+    "USM", //TH
     "CNI", //CN
-    "NAH", "BTH", "WNI", "KSR", "BIK", "RJM", //ID
-    "TOD", //MY
+    "NAH", "BTH", "WNI", "KSR", "BIK", "RJM", "ARD", "TJQ", "PGK", "RKI", "GNS", "LKI", "NAM", "MKQ",  //ID
+    "TOD", "LGK", //MY
     "KHK", "KIH", "GSM", "TNJ", //IR
     "ZDY", //AE
     //africa
@@ -75,8 +75,8 @@ object GameConstants {
     "MLA",
     //asia
     "BAH", "AUH", "AAN", //block local connects
-    "TBH", "TAG", "BCD", "IAO", "CGM", //ph
-    "LBU", "BTH", "LGK", "TMC", "BMU", "TTE", "ARD", "DPS", //my & id
+    "TBH", "TAG", "BCD", "IAO", "CGM", "TAG", "TBH", //ph
+    "LBU", "BTH", "LGK", "TMC", "BMU", "TTE", "ARD", "DPS", "LOP", "NAM", "TTE",  //my & id
     //americas
     "PMV",
     "YBC", "YCD", "LAK", "YPN", "YZG", "YEV", //ca

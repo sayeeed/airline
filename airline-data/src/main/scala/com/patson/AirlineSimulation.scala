@@ -59,11 +59,7 @@ object AirlineSimulation {
 
     println("Generating Rankings")
     //todo: pass airline stats so don't need to recalculate
-    val rankings: scala.collection.immutable.Map[RankingType.Value, List[Ranking]] = RankingLeaderboards.getRankings(true)
-    val rankingsByAirlineId = rankings.values.flatten
-      .filter(_.reputationPrize.isDefined)
-      .groupBy(_.key.asInstanceOf[Int])
-      .mapValues(_.map(_.reputationPrize.get).sum)
+    val rankingsByAirlineId = RankingLeaderboards.getAirlineReputationPrizes(true)
 
     val fuelContractsByAirlineId = OilSource.loadAllOilContracts().groupBy(contract => contract.airline.id)
     val fuelInventoryPolicyByAirlineId = OilSource.loadAllOilInventoryPolicies.map(policy => (policy.airline.id, policy)).toMap

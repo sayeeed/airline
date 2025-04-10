@@ -723,7 +723,7 @@ function search(event, input, retry) {
     var phrase = input.val()
 	var url = "search-" + searchType + "?input=" + phrase
     if (currentSearchAjax || phrase.length < 3) {
-        currentSearchAjax.abort()
+        return
     }
 
 	currentSearchAjax = $.ajax({
@@ -782,6 +782,35 @@ function search(event, input, retry) {
 	});
 }
 
+function buildDemandsTable(demands, targetDiv) {
+    document.querySelectorAll(`#researchSearchResult .table.${targetDiv} .table-row`).forEach(row => row.remove());
+    demands.forEach(demand => {
+        const row = document.createElement('div');
+        row.className = 'table-row';
+        row.innerHTML = `
+            <div class='cell'>${demand.linkClass}</div>
+            <div class='cell'>${demand.passengerType}</div>
+            <div class='cell'>${demand.preferenceType}</div>
+            <div class='cell'>$${commaSeparateNumber(demand.price)}</div>
+            <div class='cell'>${commaSeparateNumber(demand.count)}</div>
+        `;
+        document.querySelector(`#researchSearchResult .table.${targetDiv}`).appendChild(row);
+    });
+
+    if (demands.length === 0) {
+        const row = document.createElement('div');
+        row.className = 'table-row';
+        row.innerHTML = `
+            <div class='cell'>-</div>
+            <div class='cell'>-</div>
+            <div class='cell'>-</div>
+            <div class='cell'>-</div>
+            <div class='cell'>-</div>
+        `;
+        document.querySelector(`#researchSearchResult .table.${targetDiv}`).appendChild(row);
+    }
+}
+
 
 function researchFlight(fromAirportId, toAirportId) {
     if (fromAirportId && toAirportId) {
@@ -793,60 +822,73 @@ function researchFlight(fromAirportId, toAirportId) {
             contentType: 'application/json; charset=utf-8',
             dataType: 'json',
             success: function(result) {
-                var fromAirport = result.fromAirport
-                var toAirport = result.toAirport
-                var fromAirportId = fromAirport.id
-                var toAirportId = toAirport.id
+                var fromAirportId = result.fromAirportId
+                var toAirportId = result.toAirportId
                 loadAirportImage(fromAirportId, $('#researchSearchResult img.fromAirport') )
                 loadAirportImage(toAirportId, $('#researchSearchResult img.toAirport'))
                 $("#researchSearchResult .fromAirportText").text(result.fromAirportText)
 		        $("#researchSearchResult .fromAirportText")[0].setAttribute("onclick", `showAirportDetails(${fromAirportId})`)
-                $("#researchSearchResult .fromAirport .population").text(commaSeparateNumber(result.fromAirport.population))
-                $("#researchSearchResult .fromAirport .incomeLevel").text(result.fromAirport.incomeLevel)
+                $("#researchSearchResult .fromAirport .population").text(commaSeparateNumber(result.fromAirportPopulation))
+                $("#researchSearchResult .fromAirport .incomeLevel").text("$" + commaSeparateNumber(result.fromAirportIncome))
                 $("#researchSearchResult .toAirportText").text(result.toAirportText)
 		        $("#researchSearchResult .toAirportText")[0].setAttribute("onclick", `showAirportDetails(${toAirportId})`)
 		        populateNavigation($("#researchSearchResult"))
-                $("#researchSearchResult .toAirport .population").text(commaSeparateNumber(result.toAirport.population))
-                $("#researchSearchResult .toAirport .incomeLevel").text(result.toAirport.incomeLevel)
+                $("#researchSearchResult .toAirport .population").text(commaSeparateNumber(result.toAirportPopulation))
+                $("#researchSearchResult .toAirport .incomeLevel").text("$" + commaSeparateNumber(result.toAirportIncome))
 
-                $("#researchSearchResult .relationship").html(getCountryFlagImg(result.fromAirport.countryCode) + "&nbsp;vs&nbsp;" + getCountryFlagImg(result.toAirport.countryCode) + getCountryRelationshipDescription(result.mutualRelationship))
+                $("#researchSearchResult .relationship").html(getCountryFlagImg(result.fromAirportCountryCode) + "&nbsp;vs&nbsp;" + getCountryFlagImg(result.toAirportCountryCode) + getCountryRelationshipDescription(result.mutualRelationship))
                 $("#researchSearchResult .affinities").text(result.affinity)
                 $("#researchSearchResult .distance").text(result.distance)
                 $("#researchSearchResult .flightType").text(result.flightType)
                 $("#researchSearchResult .demand").text(toLinkClassValueString(result.directDemand))
 
-                var $breakdown = $("#researchSearchResult .directDemandBreakdown")
-                $breakdown.find(".fromAirport .airportLabel").empty()
-                $breakdown.find(".fromAirport .airportLabel").append(getAirportSpan(fromAirport))
-                $breakdown.find(".fromAirport .travelerDemand").text(toLinkClassValueString(result.fromAirportTravelerDemand))
-                $breakdown.find(".fromAirport .businessDemand").text(toLinkClassValueString(result.fromAirportBusinessDemand))
-                $breakdown.find(".fromAirport .touristDemand").text(toLinkClassValueString(result.fromAirportTouristDemand))
+                // var $breakdown = $("#researchSearchResult .directDemandBreakdown")
+                // $breakdown.find(".fromAirport .airportLabel").empty()
+                // // $breakdown.find(".fromAirport .airportLabel").append(getAirportSpan(fromAirport))
+                // $breakdown.find(".fromAirport .travelerDemand").text(toLinkClassValueString(result.fromAirportTravelerDemand))
+                // $breakdown.find(".fromAirport .businessDemand").text(toLinkClassValueString(result.fromAirportBusinessDemand))
+                // $breakdown.find(".fromAirport .touristDemand").text(toLinkClassValueString(result.fromAirportTouristDemand))
 
 
 
-                $("#researchSearchResult .table.links .table-row").remove()
+                document.querySelectorAll("#researchSearchResult .table.links .table-row").forEach(row => row.remove());
 
-                $.each(result.links, function(index, link) {
-                    const loadFactor = Math.round(result.consumptions[index].soldSeats * 100 / link.capacity.total)
-                    var $row = $("<div class='table-row'><div class='cell'>" + link.airlineName
-                        + "</div><div class='cell'>" + toLinkPercentOfBasePrices(link.price, result.basePrice)
-                        + "</div><div class='cell'>" + toLinkClassValueString(link.capacity)
-                        + "</div><div class='cell'>" + link.frequency
-                        + "</div><div class='cell'>" + link.computedQuality
-                        + "</div><div class='cell'>" + loadFactor + "%</div></div>")
-                    $('#researchSearchResult .table.links').append($row)
-                })
-                if (result.links.length == 0) {
-                    var $row = $("<div class='table-row'><div class='cell'>-"
-                                            + "</div><div class='cell'>-"
-                                            + "</div><div class='cell'>-"
-                                            + "</div><div class='cell'>-"
-                                            + "</div><div class='cell'>-</div></div>")
-                    $('#researchSearchResult .table.links').append($row)
+                result.links.forEach((link, index) => {
+                    const loadFactor = Math.round(result.consumptions[index].soldSeats * 100 / link.capacity.total);
+                    const row = document.createElement('div');
+                    row.className = 'table-row';
+                    row.innerHTML = `
+                        <div class='cell'>${link.airlineName}</div>
+                        <div class='cell'>${toLinkPercentOfBasePrices(link.price, result.basePrice)}</div>
+                        <div class='cell'>${toLinkClassValueString(link.capacity)}</div>
+                        <div class='cell'>${link.frequency}</div>
+                        <div class='cell'>${link.computedQuality}</div>
+                        <div class='cell'>${loadFactor}%</div>
+                    `;
+                    document.querySelector('#researchSearchResult .table.links').appendChild(row);
+                });
+
+                if (result.links.length === 0) {
+                    const row = document.createElement('div');
+                    row.className = 'table-row';
+                    row.innerHTML = `
+                        <div class='cell'>-</div>
+                        <div class='cell'>-</div>
+                        <div class='cell'>-</div>
+                        <div class='cell'>-</div>
+                        <div class='cell'>-</div>
+                        <div class='cell'>-</div>
+                    `;
+                    document.querySelector('#researchSearchResult .table.links').appendChild(row);
                 }
 
-                assignAirlineColors(result.consumptions, "airlineId")
+                // assignAirlineColors(result.consumptions, "airlineId")
                 plotPie(result.consumptions, null, $("#researchSearchResult .linksPie"), "airlineName", "soldSeats")
+
+                document.querySelector('#researchSearchResult .fromDemandHeading').textContent = "Demand From " + result.fromAirportIata
+                buildDemandsTable(result.fromDemands, "fromDemand")
+                document.querySelector('#researchSearchResult .toDemandHeading').textContent = "Demand From " + result.fromAirportIata
+                buildDemandsTable(result.toDemands, "toDemand")
 
                 $('#researchSearchResult').show()
 

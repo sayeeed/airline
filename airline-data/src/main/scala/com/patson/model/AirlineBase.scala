@@ -1,9 +1,9 @@
 package com.patson.model
 
-import com.patson.data.{AirlineSource, AirportSource, CountrySource}
+import com.patson.data.{AirlineSource, AirportSource, AllianceSource}
 import com.patson.model.AirlineBaseSpecialization.FlightTypeSpecialization
 import com.patson.model.airplane.Model
-import com.patson.util.AirportCache
+import com.patson.util.AllianceCache
 
 
 case class AirlineBase(airline : Airline, airport : Airport, countryCode : String, scale : Int, foundedCycle : Int, headquarter : Boolean = false) {
@@ -83,8 +83,7 @@ case class AirlineBase(airline : Airline, airport : Airport, countryCode : Strin
     } else {
       val delta = staffRequired - getOfficeStaffCapacity
       var compensation = 0
-      val income = CountrySource.loadCountryByCode(countryCode).map(_.income).getOrElse(0)
-      compensation += delta * (50000 + income) / 52 * 10 //weekly compensation, *10, as otherwise it's too low
+      compensation += delta * (50000 + airport.baseIncome) / 52 * 10 //weekly compensation, *10, as otherwise it's too low
 
       compensation
     }
@@ -154,6 +153,43 @@ object AirlineBase {
       }
 
     base + scaleBonus
+  }
+
+  /**
+   * used frontend
+   *
+   * @param airline
+   * @param targetBase
+   * @return
+   */
+  def validAllianceBasesAtAirport(airline: Airline, targetBase: AirlineBase): Option[String] = {
+    AllianceSource.loadAllianceMemberByAirline(airline).filter(_.role != AllianceRole.APPLICANT).foreach { allianceMember =>
+      AllianceCache.getAlliance(allianceMember.allianceId, fullLoad = true).foreach { alliance =>
+        // Tally what type of airline bases belong to
+        var baseRegionalBonus = 0
+        var baseOther = 0
+        alliance.members.flatMap { allianceMember =>
+          allianceMember.airline.getBases().map { base =>
+            if (!base.headquarter && base.airline.airlineType == AirlineType.REGIONAL && baseRegionalBonus < AirlineType.REGIONAL_EXTRA_SHARED_BASE_LIMIT && targetBase.airport.id == base.airport.id) {
+              baseRegionalBonus = baseRegionalBonus + 1
+            } else if (!base.headquarter && targetBase.airport.id == base.airport.id) {
+              baseOther = baseOther + 1
+            }
+          }
+        }
+
+        if (airline.airlineType == AirlineType.REGIONAL) {// For regional airlines, allow up to 1 existing alliance base
+          if (baseOther + baseRegionalBonus >= 1 + AirlineType.REGIONAL_EXTRA_SHARED_BASE_LIMIT) {
+            return Some(s"There are too many alliance member bases at this airport, even for a regional airline.")
+          }
+        } else {
+          if (baseOther >= 1) {
+            return Some(s"There can only be ${baseOther} alliance member base per airport.")
+          }
+        }
+      }
+    }
+    None // Return none if no issues found
   }
 }
 

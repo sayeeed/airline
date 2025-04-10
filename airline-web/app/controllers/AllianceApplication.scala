@@ -667,16 +667,16 @@ class AllianceApplication @Inject()(cc: ControllerComponents) extends AbstractCo
       return Some("One of the alliance members has Headquarters at " + getAirportText(airlineHeadquarters))
     }
     
-    val allAllianceBases = approvedMembers.flatMap { _.airline.getBases().filter( !_.headquarter) }.map(_.airport)
-    val airlineBases = airline.getBases().filter(!_.headquarter).map(_.airport) 
-    val overlappingBases = allAllianceBases.filter(allianceBase => airlineBases.contains(allianceBase))
-   
-//     println("ALL " + allAllianceBases)
-//     println("YOURS " + airlineHeadquarters)
-    
-    if (!overlappingBases.isEmpty) {
+    val invalidAirports: List[Airport] = airline.getBases().filter(!_.headquarter).flatMap { base =>
+      AirlineBase.validAllianceBasesAtAirport(airline, base) match {
+        case Some(_) => Some(base.airport)
+        case None => None
+      }
+    }
+
+    if (invalidAirports.nonEmpty) {
       var message = "Alliance members have overlapping airport bases: "
-      overlappingBases.foreach { overlappingBase =>
+      invalidAirports.foreach { overlappingBase =>
         message += getAirportText(overlappingBase) + "; "
       }
        

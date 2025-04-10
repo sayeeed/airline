@@ -21,10 +21,9 @@ object AllianceSimulation {
 
     val missionStartCycleByAllianceId = activeMissions.groupBy(_.allianceId).view.mapValues(_(0).startCycle)
     val missionAirlines = ListBuffer[Airline]() //only airlines that have active membership BEFORE the mission starts
-    val alliances = AllianceSource.loadAllAlliances()
-    val eligibleAlliances = alliances.filter(_.status == AllianceStatus.ESTABLISHED)
+    val eligibleAlliances = AllianceSource.loadAllAlliancesEstablished()
     val missionAllianceIds = activeMissions.map(_.allianceId).toSet
-    val missionAlliances = alliances.filter(alliance => missionAllianceIds.contains(alliance.id))
+    val missionAlliances = eligibleAlliances.filter(alliance => missionAllianceIds.contains(alliance.id))
 
     eligibleAlliances.foreach { alliance =>
       alliance.members.foreach { member =>

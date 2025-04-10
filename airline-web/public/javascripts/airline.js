@@ -1375,20 +1375,20 @@ function updatePrice(percentage, classType = "all") {
 function increasePrice(classType = "all") {
     if (classType === "all") {
         CLASSES.forEach((paxClass) => {
-            changeClassPrice(paxClass, 0.049);
+            changeClassPrice(paxClass, 0.05);
         });
     } else {
-        changeClassPrice(classType, 0.049);
+        changeClassPrice(classType, 0.05);
     }
 }
 
 function decreasePrice(classType = "all") {
     if (classType === "all") {
         CLASSES.forEach((paxClass) => {
-            changeClassPrice(paxClass, -0.049);
+            changeClassPrice(paxClass, -0.05);
         });
     } else {
-        changeClassPrice(classType, -0.049);
+        changeClassPrice(classType, -0.05);
     }
 }
 
@@ -1609,7 +1609,7 @@ function addAirplaneRow(container, airplane, frequency) {
         }
     })
     if (sharedLinkCount > 0) {
-//        airplaneCell.append($('<img src="assets/images/icons/information.svg" class="px-1 py-05 info svg" title="Shared with ' + sharedLinkCount + ' other route(s)">'))
+        airplaneCell.append($('<img src="assets/images/icons/information.svg" class="px-1 py-05 info svg" title="Shared with ' + sharedLinkCount + ' other route(s)">'))
     }
 
     if (!airplane.isReady) {

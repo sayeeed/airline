@@ -54,9 +54,7 @@ object GeoDataGenerator extends App {
     }
   }
 
-  mainFlow
-
-  def mainFlow() {
+  def main() {
     val cities = AdditionalLoader.loadAdditionalCities()
 
     //make sure cities are saved first as we need the id for airport info

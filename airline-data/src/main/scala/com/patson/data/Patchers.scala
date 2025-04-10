@@ -46,7 +46,6 @@ object Patchers extends App {
     ModelSource.updateModels(Model.models)
     LinkSimulation.refreshLinksPostCycle()
     ModelSource.saveModels(newModels.toList)
-
   }
 
   def adjustAirplaneConfigurations() = {

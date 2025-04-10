@@ -1,10 +1,6 @@
 package com.patson.model
 
-//case class LinkClassValues(map : Map[LinkClass, Int]) {
 case class LinkClassValues(economyVal : Int, businessVal : Int, firstVal : Int, discountVal : Int = 0) extends AbstractLinkClassValues(economyVal, businessVal, firstVal, discountVal) {
-//  val firstClassVal = map.getOrElse(FIRST, 0)
-//  val businessClassVal = map.getOrElse(BUSINESS, 0)
-//  val economyClassVal = map.getOrElse(ECONOMY, 0)
   override def toString() = {
     s"$discountVal / $economyVal / $businessVal / $firstVal"
   }
@@ -12,7 +8,6 @@ case class LinkClassValues(economyVal : Int, businessVal : Int, firstVal : Int, 
 
 abstract class AbstractLinkClassValues(economyVal : Int, businessVal : Int, firstVal : Int, discountVal : Int = 0) {
   def apply(linkClass : LinkClass) = {
-    //  map.getOrElse(linkClass, 0)
     linkClass match {
       case DISCOUNT_ECONOMY => discountVal
       case ECONOMY => economyVal
@@ -21,38 +16,26 @@ abstract class AbstractLinkClassValues(economyVal : Int, businessVal : Int, firs
     }
   }
 
-  //  val total = map.map(_._2).sum
   val total = economyVal + businessVal + firstVal + discountVal
   val totalwithSeatSize = economyVal + businessVal * BUSINESS.spaceMultiplier + firstVal * FIRST.spaceMultiplier + discountVal
 
   def +(otherValue : LinkClassValues) : LinkClassValues = {
-    //    LinkClassValues(map.map {
-    //      case (key, value) => (key, value + otherValue(key))
-    //    })
     LinkClassValues(economyVal + otherValue.economyVal, businessVal + otherValue.businessVal, firstVal + otherValue.firstVal, discountVal + otherValue.discountVal)
   }
 
   def -(otherValue : LinkClassValues) : LinkClassValues = {
-    //    LinkClassValues(map.map {
-    //      case (key, value) => (key, value - otherValue(key))
-    //    })
     LinkClassValues(economyVal - otherValue.economyVal, businessVal - otherValue.businessVal, firstVal - otherValue.firstVal, discountVal - otherValue.discountVal)
   }
 
   def *(otherValue : LinkClassValues) : LinkClassValues = {
-    //    LinkClassValues(map.map {
-    //      case (key, value) => (key, value * otherValue(key))
-    //    })
     LinkClassValues(economyVal * otherValue.economyVal, businessVal * otherValue.businessVal, firstVal * otherValue.firstVal, discountVal * otherValue.discountVal)
   }
 
   def *(multiplier : Double) : LinkClassValues = {
-    //    LinkClassValues(map.mapValues { value => (value * multiplier).toInt })
     LinkClassValues((economyVal * multiplier).toInt, (businessVal * multiplier).toInt, (firstVal * multiplier).toInt, (discountVal * multiplier).toInt)
   }
 
   def /(divider : Int) : LinkClassValues = {
-    //    LinkClassValues(map.mapValues { value => value / divider })
     LinkClassValues(economyVal / divider, businessVal / divider, firstVal / divider, discountVal / divider)
   }
 }

@@ -278,23 +278,9 @@ object PassengerSimulation {
       case(passengerGroup, toAirport, passengerCount) => (passengerGroup, toAirport)
     }.view.mapValues( missedChunks => missedChunks.map(_._3).sum).toMap
 
-//    val soldLinks = links.filter{ link => link.availableSeats < link.capacity  }.map { link =>
-//      (link, link.capacity - link.availableSeats)
-//      }.sortBy {
-//        case (_, soldSeats) => soldSeats
-//      }
-//
-//    soldLinks.foreach{ case(link, soldSeats) => println(link.airline.name + "($" + link.price + "; recommend $" + Pricing.computeStandardPrice(link.distance) + ") " + soldSeats  + " : " + link.from.name + " => " + link.to.name) }
-//    println("seats sold: " + soldLinks.foldLeft(0) {
-//      case (holder, (link, soldSeats)) => holder + soldSeats
-//    })
-//
-//    LinkSource.saveLinkConsumptions(soldLinks)
-
     PassengerConsumptionResult(collapsedMap.toMap, missedMap)
   }
 
-  val ROUTE_COST_TOLERANCE_FACTOR = 1.15
   val LINK_COST_TOLERANCE_FACTOR = 0.95 //used by computePassengerSatisfaction
   val LINK_DISTANCE_TOLERANCE_FACTOR = 1.6
   val ROUTE_DISTANCE_TOLERANCE_FACTOR = 2.75
@@ -375,7 +361,6 @@ object PassengerSimulation {
     val distances = toAirports.map(toAirport => Computation.calculateDistance(fromAirport, toAirport))
     distances.maxOption.getOrElse(0)
   }
-
 
   def findRoutesByPassengerGroup(passengerGroup: PassengerGroup,
                                   toAirports : Set[Airport],
@@ -468,8 +453,6 @@ object PassengerSimulation {
 //               distance[v] := distance[u] + w
 //               predecessor[v] := u
     for (i <- 0 until maxIteration) {
-      //val updatingLinks = ArrayBuffer[LinkConsideration]()
-      //val linkConsiderationsIterator = linkConsiderations.iterator()
       val newPredecessorMap = new java.util.HashMap[Int, LinkConsideration](predecessorMap)
       val newActiveVertices = new java.util.HashSet[Int]()
       //create a clone of last run, we update this map, but for lookup we use the previous one
@@ -492,16 +475,12 @@ object PassengerSimulation {
         val linkConsideration = linkConsiderationsIterator.next
         if (activeVertices.contains(linkConsideration.from.id)) { //optimization - only need to re-run if the vertex was update in last iteration
           val predecessorLinkConsideration = predecessorMap.get(linkConsideration.from.id)
+          var connectionCost = 0.0
 
-          var connectionCost = 20.0
           var isValid : Boolean = true
-          val fromCost = distanceMap.get(linkConsideration.from.id)
           var flightTransit = false
           if (predecessorLinkConsideration != null) { //then it should be a connection flight
             val predecessorLink = predecessorLinkConsideration.link
-            val previousLinkAirlineId = predecessorLink.airline.id
-            val currentLinkAirlineId = linkConsideration.link.airline.id
-
 
             if (linkConsideration.link.id == predecessorLink.id) { //going back and forth on the same link
               isValid = false
@@ -511,23 +490,26 @@ object PassengerSimulation {
               if (predecessorLink.from.id == passengerGroup.fromAirport.id || predecessorLink.to.id == passengerGroup.fromAirport.id) {
                 connectionCost = 0 //origin ground link only incurs link cost
               } else {
-                connectionCost += 140 //middle "leave the airport" ground connections are v expensive; note this has to be 2x expensive as initial connection ground cost was free
+                connectionCost = 170 //middle "leave the airport" ground connections are v expensive; note this has to be 2x expensive as other connection ground cost was free
               }
             } else if (linkConsideration.link.transportType == TransportType.GENERIC_TRANSIT) {
               connectionCost = 0 //ground link is free, which may be destination (via ground) OR if there's then an additional flight connection it's caught above with a very expensive connection cost
             } else {
+              connectionCost = 25
               //now look at the frequency of the link arriving at this FromAirport and the link (current link) leaving this FromAirport. check frequency
               val frequency = Math.max(predecessorLink.frequencyByClass(predecessorLinkConsideration.linkClass), linkConsideration.link.frequencyByClass(linkConsideration.linkClass))
 
               if (frequency < 7) {
-                connectionCost += 150 + (7 - frequency ) * 10 //possible overnight stay //$160 @ 6; $210 @ 1
+                connectionCost += 160 + (7 - frequency ) * 10 //possible overnight stay //$170 @ 6; $230 @ 1
               } else if (frequency < 14) {
-                connectionCost += 50 + (14 - frequency) * 10 //$120 @ 7; $60 @ 13
+                connectionCost += 60 + (14 - frequency) * 10 //$130 @ 7; $70 @ 13
               } else if (frequency < 21) {
-                connectionCost += 13 + (21 - frequency) * 7 //$52 @ 14; $20 @ 20
+                connectionCost += 13 + (21 - frequency) * 7 //$62 @ 14; $20 @ 20
               } else if (frequency < 40) {
                 connectionCost += (40 - frequency)
               }
+              val previousLinkAirlineId = predecessorLink.airline.id
+              val currentLinkAirlineId = linkConsideration.link.airline.id
 
               if (previousLinkAirlineId != currentLinkAirlineId && (allianceIdByAirlineId.get(previousLinkAirlineId) == null.asInstanceOf[Int] || allianceIdByAirlineId.get(previousLinkAirlineId) != allianceIdByAirlineId.get(currentLinkAirlineId))) { //switch airline, impose extra cost
                 connectionCost += 40
@@ -550,7 +532,7 @@ object PassengerSimulation {
 
           if (isValid) {
             val cost = Math.max(0, linkConsideration.cost + connectionCost) //just to avoid loop in graph
-
+            val fromCost = distanceMap.get(linkConsideration.from.id)
             var newCost = fromCost + cost
 
             assetDiscountByAirportId.getOrElseUpdate(linkConsideration.to.id, linkConsideration.to.computePassengerCostAssetDiscount(linkConsideration, passengerGroup)).foreach {
@@ -580,9 +562,8 @@ object PassengerSimulation {
       var noSolution = false;
       var foundSolution = false
       var hasFlight = false
-      var route = ListBuffer[LinkConsideration]()
+      val route = ListBuffer[LinkConsideration]()
       val visitedAssetsListBuffer = ListBuffer[AirportAsset]()
-      var hopCounter = 0
       while (!foundSolution && !noSolution) {
         val link = predecessorMap.get(walker)
         if (link != null) {
@@ -601,7 +582,6 @@ object PassengerSimulation {
         } else { 
             noSolution = true
         }
-        hopCounter += 1        
       }
       if (foundSolution) {
         if (visitedAssetsListBuffer.isEmpty) {

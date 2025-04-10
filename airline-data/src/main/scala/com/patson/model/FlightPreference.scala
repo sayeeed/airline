@@ -9,7 +9,7 @@ import java.util.concurrent.ThreadLocalRandom
  * When a link contains certain properties that the "Flight preference" likes/hates, it might reduce (if like) or increase (if hate) the "perceived price"  
  */
 abstract class FlightPreference(homeAirport : Airport) {
-  val COST_BASIS = 0.85
+  val COST_BASIS = 0.89
   def computeCost(baseCost : Double, link : Transport, linkClass : LinkClass) : Double
   def preferredLinkClass : LinkClass
   def getPreferenceType : FlightPreferenceType.Value
@@ -108,7 +108,7 @@ abstract class FlightPreference(homeAirport : Airport) {
     val classAdjustedPrice = priceAdjustedByLinkClassDiff(link, linkClass, paxType)
     val deltaFromStandardPrice = classAdjustedPrice - standardPrice
     val priceSensitivityModifier = if (deltaFromStandardPrice < 0 && (getPreferenceType == FlightPreferenceType.FREQUENT || getPreferenceType == FlightPreferenceType.BRAND || getPreferenceType == FlightPreferenceType.LAST_MINUTE)) {
-        0.95 * priceSensitivity * classAdjustedPrice.toDouble / standardPrice //low prices impact these preferences less
+        0.9 * priceSensitivity * classAdjustedPrice.toDouble / standardPrice //low prices impact these preferences less
       } else {
         priceSensitivity
       }
@@ -132,8 +132,10 @@ abstract class FlightPreference(homeAirport : Airport) {
     }
 
     val priceAdjust =
-      if (qualityDelta < 0) {
-        1 - qualityDelta.toDouble / Link.MAX_QUALITY * 1
+      if (qualityDelta < 0 - GOOD_QUALITY_DELTA) { //very bad to have terrible quality delta
+        1 - qualityDelta.toDouble / Link.MAX_QUALITY * 1.6
+      } else if (qualityDelta < 0) {
+        1 - qualityDelta.toDouble / Link.MAX_QUALITY * 1.1
       } else if (qualityDelta < GOOD_QUALITY_DELTA) {
         1 - qualityDelta.toDouble / Link.MAX_QUALITY * 0.5
       } else { //reduced benefit on extremely high quality
@@ -154,7 +156,7 @@ abstract class FlightPreference(homeAirport : Airport) {
   val priceAdjustedByLinkClassDiff = (link : Transport, linkClass : LinkClass, paxType : PassengerType.Value) => {
     val cost = link.cost(linkClass) //use cost here
     if (preferredLinkClass.level != 0 && linkClass.level < preferredLinkClass.level) { //ignore discount_economy
-      val shortDistanceModified = 0.5 + 0.5 * Math.min(1, link.distance / 1000)
+      val shortDistanceModified = 0.4 + 0.6 * Math.min(1, link.distance.toDouble / 800) //shorter distance routes are more willing to downgrade
       val classDiffMultiplier: Double = 1 + (preferredLinkClass.level - linkClass.level) * 0.35 * shortDistanceModified
       
       val flightCategory = Computation.getFlightCategory(link.from, link.to)
@@ -172,21 +174,19 @@ abstract class FlightPreference(homeAirport : Airport) {
 
   val tripDurationAdjustRatio = (link : Transport, preferredLinkClass : LinkClass, paxType: PassengerType.Value) => {
     val classModifier = preferredLinkClass match {
-      case FIRST => 0.35
-      case BUSINESS => 0.25
+      case FIRST => 0.5
+      case BUSINESS => 0.35
       case _ => 0.1
     }
     val flightDurationSensitivity = paxType match {
-      case PassengerType.ELITE => 0.6
-      case PassengerType.BUSINESS => 0.4 + classModifier
-      case PassengerType.TOURIST => 0 + classModifier
-      case _ => 0.1 + classModifier
+      case PassengerType.ELITE => 0.7
+      case PassengerType.BUSINESS => 0.2 + classModifier
+      case PassengerType.OLYMPICS => 0.1 + classModifier
+      case _ => 0 + classModifier
     }
     val flightDurationRatioDelta = {
-      if (flightDurationSensitivity == 0 || link.transportType != TransportType.FLIGHT) {
+      if (flightDurationSensitivity == 0) {
         0
-//      } else if (flightDurationSensitivity <= 0.6 && link.transportType == TransportType.FLIGHT && link.asInstanceOf[Link].getAssignedModel().get.category == Model.Category.SPECIAL ) {
-//        0
       } else {
         val flightDurationThreshold = Computation.computeStandardFlightDuration(link.distance)
         Math.min(flightDurationSensitivity, (link.duration - flightDurationThreshold).toFloat / flightDurationThreshold * flightDurationSensitivity)

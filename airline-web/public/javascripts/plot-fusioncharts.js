@@ -1130,20 +1130,21 @@ function plotCashFlowChart(airlineCashFlows, period, container) {
 	})
 
 	var chartConfig = {
-                      	    		"xAxisname": "Week",
-                      	    		"yAxisName": "Profit",
-                      	    		"numberPrefix": "$",
-                      	    		"useroundedges": "1",
-                      	    		"animation": "1",
-                      	    		"showBorder":"0",
-                                      "toolTipBorderRadius": "2",
-                                      "toolTipPadding": "5",
-                                      "bgAlpha":"0",
-                                      "showValues":"0",
-                                      "showZeroPlane": "1",
-                                      "zeroPlaneColor": "#222222",
-                                      "zeroPlaneThickness": "2",
-                      	    	}
+        "xAxisname": "Period & Week",
+        "yAxisName": "Profit",
+        "numberPrefix": "$",
+        "useroundedges": "1",
+        "animation": "1",
+        "showBorder":"0",
+        "showLegend": "0",
+        "toolTipBorderRadius": "2",
+        "toolTipPadding": "5",
+        "bgAlpha":"0",
+        "showValues":"0",
+        "showZeroPlane": "1",
+        "zeroPlaneColor": "#222222",
+        "zeroPlaneThickness": "2",
+    }
     checkDarkTheme(chartConfig)
 	
 	var chart = container.insertFusionCharts({
@@ -1157,6 +1158,57 @@ function plotCashFlowChart(airlineCashFlows, period, container) {
 	    	"categories" : [{ "category" : category}],
 			"dataset" : [ 
 				{ "seriesname": "Total CashFlow", "data" : showEveryNthLabel(data["cashFlow"], 2) }
+			]
+	    }
+	})
+}
+
+function plotTotalValueChart(airlineValue, period, container) {
+	container.children(':FusionCharts').each((function(i) {
+		  $(this)[0].dispose();
+	}))
+
+	var data = {}
+	data["totalValue"] = []
+	var category = []
+
+	var profitByMonth = {}
+	var monthOrder = []
+
+	$.each(airlineValue, function(key, airlineValue) {
+		data["totalValue"].push({ value : airlineValue.totalValue })
+		category.push({ "label" : getGameDate(airlineValue.cycle) })
+	})
+
+	var chartConfig = {
+        "xAxisname": "Period & Week",
+        "yAxisName": "Total Value",
+        "numberPrefix": "$",
+        "useroundedges": "1",
+        "showLegend": "0",
+        "animation": "1",
+        "showBorder":"0",
+        "toolTipBorderRadius": "2",
+        "toolTipPadding": "5",
+        "bgAlpha":"0",
+        "showValues":"0",
+        "showZeroPlane": "1",
+        "zeroPlaneColor": "#222222",
+        "zeroPlaneThickness": "2",
+    }
+    checkDarkTheme(chartConfig)
+
+	var chart = container.insertFusionCharts({
+		type: 'msline',
+	    width: '100%',
+	    height: '100%',
+	    dataFormat: 'json',
+	    containerBackgroundOpacity :'0',
+		dataSource: {
+	    	"chart": chartConfig,
+	    	"categories" : [{ "category" : category}],
+			"dataset" : [
+				{ "seriesname": "Total Value", "data" : showEveryNthLabel(data["totalValue"], 2) }
 			]
 	    }
 	})

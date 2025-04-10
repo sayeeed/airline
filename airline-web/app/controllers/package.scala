@@ -391,6 +391,7 @@ package object controllers {
         "totalProfit" -> JsNumber(airlineIncome.profit),
         "totalRevenue" -> JsNumber(airlineIncome.revenue),
         "totalExpense" -> JsNumber(airlineIncome.expense),
+        "totalValue" -> JsNumber(airlineIncome.totalValue),
         "linksProfit" -> JsNumber(airlineIncome.links.profit),
         "linksRevenue" -> JsNumber(airlineIncome.links.revenue),
         "linksExpense" -> JsNumber(airlineIncome.links.expense),
