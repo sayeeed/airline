@@ -137,7 +137,7 @@ sealed case class FinancialHubFeature(baseStrength : Int, boosts : List[AirportB
   override def demandAdjustment(rawDemand : Double, passengerType : PassengerType.Value, airportId : Int, fromAirport : Airport, toAirport : Airport, affinity : Int, distance : Int) : Int = {
     if (passengerType == PassengerType.BUSINESS) {
       val hasFeatureInBothAirports = fromAirport.hasFeature(AirportFeatureType.FINANCIAL_HUB) && toAirport.hasFeature(AirportFeatureType.FINANCIAL_HUB)
-      val doubleBonus = if (hasFeatureInBothAirports) 0.5 else 1
+      val doubleBonus = if (hasFeatureInBothAirports) 0.65 else 1.15
       val charmStrength =
         if (toAirport.id == airportId) { //going to business center
           0.00025 * strengthFactor
@@ -160,14 +160,14 @@ sealed case class FinancialHubFeature(baseStrength : Int, boosts : List[AirportB
         }
       val airportAffinityMutliplier: Double =
         if (affinity >= 5) (affinity - 5) * 0.1 + 1 //domestic+
-        else if (affinity == 4) 0.625
-        else if (affinity == 3) 0.525
-        else if (affinity == 2) 0.425
-        else if (affinity == 1) 0.325
-        else if (affinity == 0) 0.225
+        else if (affinity == 4) 0.6
+        else if (affinity == 3) 0.5
+        else if (affinity == 2) 0.4
+        else if (affinity == 1) 0.3
+        else if (affinity == 0) 0.2
         else 0.1
 
-      Math.pow(DemandGenerator.launchDemandFactor * fromAirport.popMiddleIncome * charmStrength * airportAffinityMutliplier, distanceReducerExponent).toInt
+      Math.max(0, Math.pow(DemandGenerator.launchDemandFactor * fromAirport.popMiddleIncome * charmStrength * airportAffinityMutliplier, distanceReducerExponent).toInt)
     } else {
       0
     }
@@ -196,10 +196,7 @@ sealed case class GatewayAirportFeature() extends AirportFeature {
     if (airportId != fromAirport.id) {
       0
     } else {
-      if (
-        fromAirport.hasFeature(AirportFeatureType.GATEWAY_AIRPORT) &&
-          toAirport.hasFeature(AirportFeatureType.GATEWAY_AIRPORT)
-      ) { //extra demand if both airports are gateway
+      if (fromAirport.hasFeature(AirportFeatureType.GATEWAY_AIRPORT) && toAirport.hasFeature(AirportFeatureType.GATEWAY_AIRPORT) ) { //extra demand if both airports are gateway
         val base = (fromAirport.power + toAirport.power) / 25000
         if (base >= 1) {
           val distanceMultiplier = {
