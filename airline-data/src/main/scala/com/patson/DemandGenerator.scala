@@ -26,7 +26,7 @@ object DemandGenerator {
   val PRICE_LAST_MIN_MULTIPLIER = 1.12
   val PRICE_LAST_MIN_DEAL_MULTIPLIER = 0.9
   val HUB_AIRPORTS_MAX_RADIUS = 1400
-  val launchDemandFactor : Double = if (CycleSource.loadCycle() <= 1) 1.0 else Math.min(1, (55 + CycleSource.loadCycle().toDouble / 24) / 100)
+  val launchDemandFactor : Double = if (CycleSource.loadCycle() <= 1) 1.0 else Math.min(1, (58 + CycleSource.loadCycle().toDouble / 24) / 100)
 //  val launchDemandFactor : Double = 1.0
   val baseLaunchDemandFactor : Double = if (CycleSource.loadCycle() <= 1) 1.0 else Math.min(1, (65 + CycleSource.loadCycle().toDouble / 48) / 100)
 //  val baseLaunchDemandFactor : Double = 1.0
@@ -100,7 +100,7 @@ object DemandGenerator {
       None
     } else {
       val percentages = percentagesHubAirports(hubAirports, fromAirport)
-      val fromDemand = Math.max(5, Math.min(3200, fromAirport.popMiddleIncome / 1000 * fromAirport.size))
+      val fromDemand = Math.max(12, Math.min(3200, fromAirport.popMiddleIncome / 1000 * fromAirport.size))
 
       // Divide the demand among hubAirports based on percentages
       val demands = percentages.map { case (airport, percentage) =>
@@ -140,7 +140,7 @@ object DemandGenerator {
           if (demand.travelerDemand.total > cutoff) {
             demandList.add((toAirport, (PassengerType.TRAVELER, demand.travelerDemand)))
           }
-          if (demand.businessDemand.total > cutoff) {
+          if (demand.businessDemand.total > cutoff + 1) {
             demandList.add((toAirport, (PassengerType.BUSINESS, demand.businessDemand)))
           }
           if (demand.touristDemand.total > cutoff * 2) {

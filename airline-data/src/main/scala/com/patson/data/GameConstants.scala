@@ -15,7 +15,6 @@ object GameConstants {
     "HGL", "BMK", "GWT", "BMR", //DE
     "EGH", "EOI", "FIE", "FOA", "LWK", "LSI", "ACI", "TRE", "BRR", "BEB", "SYY", "KOI", "ILY", "CAL", "ISC", "GCI", "JER", "GIB", "IOM", "EOI", //GB
     "BYR", "RNN", "FAE", //DK
-    "JEG", "UAK", "KUZ", "KUS", "AGM", "CNP", "JQA", "JUV", //DK GL
     "MHQ", "KDL", "URE", "ENF", "KTT", //FI
     "KDL", "URE", //ee
     "IOR","INQ","IIA", //IE
@@ -68,6 +67,7 @@ object GameConstants {
   )
   val OTHER_ISLAND_AIRPORTS: Seq[String] = List(
     //europe
+    "JEG", "UAK", "KUZ", "KUS", "AGM", "CNP", "JQA", "JUV", //DK GL
     "TER", "PDL", //pt
     "PMI", "IBZ", "MAH", //es
     "BIA", "CLY", "AJA", "FSC", //fr

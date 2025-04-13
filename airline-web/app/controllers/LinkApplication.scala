@@ -429,8 +429,6 @@ class LinkApplication @Inject()(cc: ControllerComponents) extends AbstractContro
 
       LinkSource.saveNegotiationCoolDown(resultLink.airline, resultLink.from, resultLink.to, cycle + Link.LINK_NEGOTIATION_COOL_DOWN)
 
-
-
       if (negotiationResult.isGreatSuccess) {
         val existingCapacity = existingLink.fold(LinkClassValues.getInstance())(_.futureCapacity())
         val capacityChange = incomingLink.futureCapacity() - existingCapacity //use future capacity here

@@ -112,7 +112,6 @@ function updateAirportDetails(airport, cityImageUrl, airportImageUrl) {
 	$("#airportDetailsOpenness").html(getOpennessSpan(loadedCountriesByCode[airport.countryCode].openness, airport.size, airport.isDomesticAirport, airport.isGateway))
 	
 	refreshAirportExtendedDetails(airport)
-	//updateAirportSlots(airport.id)
 
 	updateAirportChampionDetails(airport)
 
@@ -670,7 +669,7 @@ function addMarkers(airports) {
 			    position: position,
 			    map: map,
 			    title: airportInfo.name,
-//			    airportName: airportInfo.name,
+			    airportName: airportInfo.name,
 //		  		airportCode: airportInfo.iata,
 //		  		airportCity: airportInfo.city,
 //		  		airportId: airportInfo.id,
@@ -1653,11 +1652,11 @@ function showBaseUpkeepModal() {
 }
 
 function populateBaseDetailsModal(airportType = "") {
-    const query = `maxFrequency${airportType}`
     const tableContainer = document.querySelector('#baseDetailsModal .table.data.scaleDetails');
+    tableContainer.innerHTML = "";
     
     gameConstants.baseScaleProgression.forEach(entry => {
-        const maxFrequency = entry[query];
+        const maxFrequency = entry[`maxFrequency${airportType}`];
 
         const row = document.createElement('div');
         row.className = 'table-row';
