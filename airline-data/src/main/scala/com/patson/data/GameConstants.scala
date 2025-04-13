@@ -20,20 +20,20 @@ object GameConstants {
     "KDL", "URE", //ee
     "IOR","INQ","IIA", //IE
     "PJA", //SE
-    "EN9","EN1","EN2", "SKN", "SSJ", "BNN", "MOL", "OSY", "RVK", "SDN", "SOG", "HAU", //NO
+    "EN9","EN1","EN2", "SKN", "SSJ", "BNN", "MOL", "OSY", "RVK", "SDN", "SOG", "HAU", "LKN", "VRY", "SVJ", "ANX", "HAA", "HFT", "MEH", //NO
     "HZK", "GRY", //IS
     "AOK", "JMK", "JNX", "JSI", "KIT", "LKS", "MLO", "SMI", "JIK", "KGS", "RHO", "LXS", "MJT", "JKH", "ZTH", "EFL", "SMI", "JKL", "KZS", //GR
-    "KGD", "ITU", //RU
+    "KGD", "ITU", "CSH", "VKT", "BVJ", "DEE", //RU
     //americas
     "FRD", "ESD", "ACK", "MVY", "BID", "AVX", "OTZ", //US
-    "JNU", "SIT", "HNH", "WRG", "KTN", "PSG", //US northwest passage
+    "JNU", "SIT", "HNH", "WRG", "KTN", "PSG", "SOV", "HOM", "PDB", "TEK", "SCC", //US northwest passage & AK
     "MKK", "LNY", //US HI
     "ZMT", "YZP", "YBL", "YPW", "YAZ", //CA northwest passage
-    "YGR", "YPN", "YYB", //CA
+    "YGR", "YPN", "YYB", "YBE", "YAY", "YYG", //CA
     "MQC", //FR
     "FSP",
-    //carribean
-    "CYB", "RTB", "UII", "SPR",  "NAS", "MQS", "GST",
+    //caribbean
+    "CYB", "RTB", "UII", "SPR",  "NAS", "MQS", "GST", "FPO",
     "STT", "STX", "SXM", "SFG", "SKB", "SBH", "NEV", "BBQ", "NCA", "XSC", "GDT",
     "MNI", "AXA", //GB
     "CPX", "VQS", //US
@@ -45,8 +45,9 @@ object GameConstants {
     "GJA", "RTB", //HU
     "CYC", "CUK", //BE
     //oceania
-    "WSZ", "WLS", "PMK",
-    "NMF", "HRF", "KDM", "NAN", "MEE", "PTF", "ELC", "PMK", "KNS", //oceania & AU
+    "NMF", "HRF", "KDM", "NAN", "MEE", "PTF", "ELC",  //oceania & AU
+    "PMK", "OKR", "SBR", "CNC", "SYU", "KUG", "HID", "ABM", "ONG", //QZ AU
+    "GTE", "WSZ", "WLS", "ELC", "MGT", "SNB", "KGC", "KNS", "FLS", "CBI", //more AU
     //asia
     "HRF", "HDK", "PRI", //indian ocean
     "KUM", "TNE", "MYE", "MK1", "OIM", "HAC", "AO1", "SDS", "OIR", "RIS", "OKI", "TSJ", "FUJ", "KKX", "TKN", "OKE", "RNJ", "UEO", "OKA", "MMY", "TRA", "ISG", "OGN", "IKI", "MMD", "KTD", "OIM", //JP
@@ -79,11 +80,11 @@ object GameConstants {
     "LBU", "BTH", "LGK", "TMC", "BMU", "TTE", "ARD", "DPS", "LOP", "NAM", "TTE",  //my & id
     //americas
     "PMV",
-    "YBC", "YCD", "LAK", "YPN", "YZG", "YEV", //ca
+    "YBC", "YCD", "LAK", "YPN", "YZG", "YEV", "LAK", "YVQ", "ZFN", "ZKE", "YKQ", "YZG", "YZG", "YSO", "YMN", //ca
     "YYJ",
     "HYA", "ISP", "HTO", //us allow channel crossings & block transit
     "HNL", "OGG", "HNM", //us HI
-    "CDB", "NLG", "SDP", "ADQ", "MYU", "PQS", "RSH", //US AK
+    "HTI", "CDB", "NLG", "SDP", "ADQ", "MYU", "PQS", "RSH", "ANI", "NUP", "AKN", "KCG", "SDP", "NLG", "TKJ", "MNT", "OTZ", "OME", //US AK (want to ignore min distance)
     "CZM", //MX
     //oceania
     "WLG", //nz (allow channel crossing)
