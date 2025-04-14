@@ -104,7 +104,7 @@ object DemandGenerator {
       None
     } else {
       val percentages = percentagesHubAirports(hubAirports, fromAirport)
-      val fromDemand = Math.max(12, Math.min(3200, fromAirport.popMiddleIncome / 1000 * fromAirport.size))
+      val fromDemand = Math.max(12, Math.min(3200, fromAirport.popMiddleIncome / 1000 * Math.min(5, fromAirport.size + 1)))
 
       // Divide the demand among hubAirports based on percentages
       val demands = percentages.map { case (airport, percentage) =>
@@ -208,53 +208,56 @@ object DemandGenerator {
    * @return
    */
   def computeDemandWithPreferencesBetweenAirports(fromAirport: Airport, toAirport: Airport, affinity: Int, distance: Int): Map[(LinkClass, FlightPreference, PassengerType.Value), Int] = {
-    val demand = computeBaseDemandBetweenAirports(fromAirport: Airport, toAirport: Airport, affinity: Int, distance: Int)
-    val flightPreferencesPool = getFlightPreferencePoolOnAirport(fromAirport)
-    val demandByPreference = mutable.Map[(LinkClass, FlightPreference, PassengerType.Value), Int]()
-
-    val isDomestic = fromAirport.countryCode == toAirport.countryCode
-    var hubAirports = List[Airport]()
-    if (isDomestic) {
-      Computation.getDomesticAirportWithinRange(fromAirport, HUB_AIRPORTS_MAX_RADIUS).filter { airport =>
-        canHaveDemand(fromAirport, airport, Computation.calculateDistance(fromAirport, airport))
-      }.foreach { airport =>
-        hubAirports = updateHubAirportsList(hubAirports, airport, fromAirport)
-      }
-    }
-    println(hubAirports)
-    val hubAirportsDemand = if (hubAirports.contains(toAirport)) {
-      generateHubAirportDemand(fromAirport, hubAirports).getOrElse(List.empty).find(toAirport == _._1) match {
-        case Some((_, (_, demand))) => demand
-        case None => LinkClassValues(0, 0, 0)
-      }
+    if (!canHaveDemand(fromAirport, toAirport, Computation.calculateDistance(fromAirport, toAirport))) {
+      Map.empty
     } else {
-      LinkClassValues(0, 0, 0)
-    }
-    println(hubAirportsDemand)
+      val demand = computeBaseDemandBetweenAirports(fromAirport: Airport, toAirport: Airport, affinity: Int, distance: Int)
+      val flightPreferencesPool = getFlightPreferencePoolOnAirport(fromAirport)
+      val demandByPreference = mutable.Map[(LinkClass, FlightPreference, PassengerType.Value), Int]()
 
-    def processLinkClassDemand(passengerType: PassengerType.Value, linkClassValues: LinkClassValues) = {
-      LinkClass.values.foreach { linkClass =>
-        val demandForClass = linkClassValues(linkClass)
-        if (demandForClass > 0) {
-          var remainingDemand = demandForClass
-          while (remainingDemand > 0) {
-            val groupSize = Math.min(remainingDemand, 10 + ThreadLocalRandom.current().nextInt(10)) //random group size between 10 and 20
-            val preference = flightPreferencesPool.draw(passengerType, linkClass, fromAirport, toAirport)
-            val key = (linkClass, preference, passengerType)
-            demandByPreference(key) = demandByPreference.getOrElse(key, 0) + groupSize
-            remainingDemand -= groupSize
+      val isDomestic = fromAirport.countryCode == toAirport.countryCode
+      var hubAirports = List[Airport]()
+      if (isDomestic) {
+        Computation.getDomesticAirportWithinRange(fromAirport, HUB_AIRPORTS_MAX_RADIUS).filter { airport =>
+          canHaveDemand(fromAirport, airport, Computation.calculateDistance(fromAirport, airport))
+        }.foreach { airport =>
+          hubAirports = updateHubAirportsList(hubAirports, airport, fromAirport)
+        }
+      }
+      println(hubAirports)
+      val hubAirportsDemand = if (hubAirports.contains(toAirport)) {
+        generateHubAirportDemand(fromAirport, hubAirports).getOrElse(List.empty).find(toAirport == _._1) match {
+          case Some((_, (_, demand))) => demand
+          case None => LinkClassValues(0, 0, 0)
+        }
+      } else {
+        LinkClassValues(0, 0, 0)
+      }
+
+      def processLinkClassDemand(passengerType: PassengerType.Value, linkClassValues: LinkClassValues) = {
+        LinkClass.values.foreach { linkClass =>
+          val demandForClass = linkClassValues(linkClass)
+          if (demandForClass > 0) {
+            var remainingDemand = demandForClass
+            while (remainingDemand > 0) {
+              val groupSize = Math.min(remainingDemand, 10 + ThreadLocalRandom.current().nextInt(10)) //random group size between 10 and 20
+              val preference = flightPreferencesPool.draw(passengerType, linkClass, fromAirport, toAirport)
+              val key = (linkClass, preference, passengerType)
+              demandByPreference(key) = demandByPreference.getOrElse(key, 0) + groupSize
+              remainingDemand -= groupSize
+            }
           }
         }
       }
+
+      processLinkClassDemand(PassengerType.BUSINESS, demand.businessDemand)
+      processLinkClassDemand(PassengerType.TOURIST, demand.touristDemand)
+      processLinkClassDemand(PassengerType.TRAVELER, demand.travelerDemand + hubAirportsDemand)
+
+      demandByPreference.map { case ((linkClass, preference, passengerType), total) =>
+        ((linkClass, preference, passengerType), total)
+      }.toList.sortBy(_._2).toMap
     }
-
-    processLinkClassDemand(PassengerType.BUSINESS, demand.businessDemand)
-    processLinkClassDemand(PassengerType.TOURIST, demand.touristDemand)
-    processLinkClassDemand(PassengerType.TRAVELER, demand.travelerDemand + hubAirportsDemand)
-
-    demandByPreference.map { case ((linkClass, preference, passengerType), total) =>
-      ((linkClass, preference, passengerType), total)
-    }.toList.sortBy(_._2).toMap
   }
 
   /**
@@ -396,9 +399,9 @@ object DemandGenerator {
       }
       Math.min(575, boost * (airportScale - 0.8)).toInt
     }
-    val buffLowIncomeAirports = if (fromAirport.income <= 5000 && toAirport.income <= 8000 && distance <= 3000 && (toAirport.size >= 4 || fromAirport.size >= 4)) addToVeryLowIncome(fromAirport.population, fromAirport.size) else 0
+    val buffLowIncomeAirports = if (fromAirport.income <= 5000 && toAirport.income <= 8000 && distance <= 3000 && affinity >= 2 && (toAirport.size >= 4 || fromAirport.size >= 4)) addToVeryLowIncome(fromAirport.population, fromAirport.size) else 0
   
-    val baseDemand : Double = Math.max(0, baseLaunchDemandFactor * specialCountryModifier * airportAffinityMutliplier * fromPopIncomeAdjusted * toPopIncomeAdjusted / 250_000 / 250_000)
+    val baseDemand : Double = Math.max(0, baseLaunchDemandFactor * specialCountryModifier * airportAffinityMutliplier * fromPopIncomeAdjusted * toPopIncomeAdjusted / 250_000 / 250_000) + buffLowIncomeAirports
     Math.pow(baseDemand, Math.max(0, distanceReducerExponent)).toInt
   }
 

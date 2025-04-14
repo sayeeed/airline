@@ -914,14 +914,9 @@ class LinkApplication @Inject()(cc: ControllerComponents) extends AbstractContro
 
     existingLink match {
       case None => //new link
-        //validate there's no existing link with opposite direction
-
-//        LinkSource.loadFlightLinkByAirportsAndAirline(toAirport.id, fromAirport.id, airline.id).foreach { _ =>
-//          return Some(("Cannot create this route as your airline already has one flying between these 2 airports"), DUPLICATED_LINK)
-//        }
 
         //validate from airport is a base
-        val base = fromAirport.getAirlineBase(airline.id) match {
+        fromAirport.getAirlineBase(airline.id) match {
           case None => return Some(("Cannot fly from this airport, this is not a base!", NO_BASE))
           case Some(base) => base
         }
@@ -930,30 +925,24 @@ class LinkApplication @Inject()(cc: ControllerComponents) extends AbstractContro
 
         if (!toAirport.isGateway() && toAirport.size <= 2 && flightCategory == FlightCategory.INTERNATIONAL ) {
           val currentTitle = CountryAirlineTitle.getTitle(toAirport.countryCode, airline)
-          val requiredTitle = Title.PRIVILEGED_AIRLINE
+          val requiredTitle = Title.ESTABLISHED_AIRLINE
           val ok = currentTitle.title.id <= requiredTitle.id //smaller value means higher title
           if (!ok) {
-            return Some("Destination airport is too small to serve international destinations.", REQUIRES_CUSTOMS)
+            return Some(s"Airline must have ${Title.ESTABLISHED_AIRLINE} title to make international connection to this small airport.", REQUIRES_CUSTOMS)
           }
         }
         if (!fromAirport.isGateway() && fromAirport.size <= 2 && flightCategory == FlightCategory.INTERNATIONAL) {
           val currentTitle = CountryAirlineTitle.getTitle(toAirport.countryCode, airline)
-          val requiredTitle = Title.PRIVILEGED_AIRLINE
+          val requiredTitle = Title.ESTABLISHED_AIRLINE
           val ok = currentTitle.title.id <= requiredTitle.id //smaller value means higher title
           if (!ok) {
-            return Some("Home airport is too small to serve international destinations.", REQUIRES_CUSTOMS)
+            return Some(s"Airline must have ${Title.ESTABLISHED_AIRLINE} title to make international connections from this small airport.", REQUIRES_CUSTOMS)
           }
         }
 
         if (fromAirport == toAirport) {
           return Some("Departure and Destination airports cannot be the same. Click and select a different destination airport.", DISTANCE)
         }
-
-        //check distance
-//        val distance = Computation.calculateDistance(fromAirport, toAirport)
-//        if (distance <= 10) {
-//          return Some("Route must be longer than 10 km", DISTANCE)
-//        }
 
         //check balance
         val cost = Computation.getLinkCreationCost(fromAirport, toAirport)

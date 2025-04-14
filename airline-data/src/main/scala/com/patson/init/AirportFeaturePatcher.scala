@@ -1307,6 +1307,8 @@ object AirportFeaturePatcher extends App {
     list += "GOH" //Greenland
     list += "NAN" //Fiji
     list -= "SUV"
+    list -= "AEP" //Argentina
+    list += "EZE"
 
 
     //add extra ones for bigger countries
