@@ -304,7 +304,7 @@ package object controllers {
     def writes(base: AirlineBase): JsValue = {
       var jsObject = JsObject(List(
       "airportId" -> JsNumber(base.airport.id),
-//      "airportName" -> JsString(base.airport.name),
+      "airportName" -> JsString(base.airport.name),
       "airportCode" -> JsString(base.airport.iata),
       "airportRunwayLength" -> JsNumber(base.airport.runwayLength),
       "countryCode" -> JsString(base.airport.countryCode),

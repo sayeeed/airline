@@ -144,6 +144,10 @@ and (max-device-width : 640px) {
         padding: 4px;
     }
 
+    .data:has(+ .data) {
+        margin-bottom: 0px !important;
+    }
+
     #loginDiv input[type="text"], #loginDiv input[type="password"] {
         width: 100px;
     }

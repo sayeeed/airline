@@ -887,7 +887,7 @@ function researchFlight(fromAirportId, toAirportId) {
 
                 document.querySelector('#researchSearchResult .fromDemandHeading').textContent = "Demand From " + result.fromAirportIata
                 buildDemandsTable(result.fromDemands, "fromDemand")
-                document.querySelector('#researchSearchResult .toDemandHeading').textContent = "Demand From " + result.fromAirportIata
+                document.querySelector('#researchSearchResult .toDemandHeading').textContent = "Demand From " + result.toAirportIata
                 buildDemandsTable(result.toDemands, "toDemand")
 
                 $('#researchSearchResult').show()

@@ -258,7 +258,7 @@ object LinkSimulation {
     val targetQualityCost = Math.pow(flightLink.airline.getTargetServiceQuality().toDouble / 22, CREW_EQ_EXPONENT)
     var crewCost = CREW_BASE_COST
     var inflightCost, revenue = 0
-    val crewUnitCost = if (link.airline.airlineType == AirlineType.Discount || link.airline.airlineType == AirlineType.BEGINNER) CREW_UNIT_COST * 0.75 else CREW_UNIT_COST
+    val crewUnitCost = if (link.airline.airlineType == AirlineType.DISCOUNT || link.airline.airlineType == AirlineType.BEGINNER) CREW_UNIT_COST * 0.75 else CREW_UNIT_COST
     LinkClass.values.foreach { linkClass =>
       val capacity = flightLink.capacity(linkClass)
       val soldSeats = flightLink.soldSeats(linkClass)

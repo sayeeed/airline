@@ -189,7 +189,7 @@ object AirlineType extends Enumeration {
   val label: AirlineType => String = {
     case LEGACY => "Legacy"
     case NON_PLAYER => "Non-Player"
-    case Discount => "Ultra Low-Cost"
+    case Discount => "Discount"
     case LUXURY => "Luxury"
     case REGIONAL => "Regional Partner"
     case MEGA_HQ => "Mega HQ"

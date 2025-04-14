@@ -187,7 +187,7 @@ object IncomeSource {
   }
 
   def loadAllByCycle(cycle : Int) : List[AirlineIncome] = {
-    loadIncomeByCriteria(List(("cycle", cycle)))
+    loadIncomeByCriteria(List(("cycle", cycle), ("period", 0)))
   }
   
   

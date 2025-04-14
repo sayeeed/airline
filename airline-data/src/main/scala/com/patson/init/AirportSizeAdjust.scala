@@ -109,7 +109,7 @@ object AirportSizeAdjust {
         "SCL" -> 7,
         "CGH" -> 6,
         "BSB" -> 7,
-        "GIG" -> 6,
+        "GIG" -> 7,
         "MDE" -> 7,
         "AEP" -> 6,
         //https://en.wikipedia.org/wiki/List_of_the_busiest_airports_in_the_Middle_East

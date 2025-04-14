@@ -156,7 +156,7 @@ object AirlineSimulation {
         }
         reputationBreakdowns.append(ReputationBreakdown(ReputationType.AIRPORT_LOYALIST_RANKING, reputationByAirportChampions))
 
-        val airlineTouristBonus = if (airline.airlineType == AirlineType.Discount) 2 else 1
+        val airlineTouristBonus = if (airline.airlineType == AirlineType.DISCOUNT) 2 else 1
         val reputationByTourists = 25 * airlineTouristBonus * AirlineGradeTourists.findGrade(airlineStat.tourists).level
         reputationBreakdowns.append(ReputationBreakdown(ReputationType.TOURISTS, reputationByTourists))
 

@@ -449,7 +449,7 @@ case class Airport(iata : String, icao : String, name : String, latitude : Doubl
 
   def landingFee(soldSeats : Int) : Int = {
     val perSeat =
-      if (this.hasFeature(AirportFeatureType.ISOLATED_TOWN)) {
+      if (size <= 2 && this.hasFeature(AirportFeatureType.ISOLATED_TOWN)) {
         -12 //remote subsidy
       } else {
         size - 1

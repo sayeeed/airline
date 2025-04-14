@@ -269,6 +269,9 @@ object CountryMutualRelationshipGenerator extends App {
     Relation("GB", Direction.BI, 4, List(
       "AU", "NZ"
     )),
+    Relation("PT", Direction.BI, 3, List(
+      "CV"
+    )),
     //mena
     Relation("IL", Direction.BI, 1, List(
       "IN", "RO", "PL", "GB"
@@ -354,10 +357,10 @@ object CountryMutualRelationshipGenerator extends App {
       "CL", "BO", "EC", "CO", "MX", "US", "CN", "JP", "ES"
     )),
     Relation("BR", Direction.BI, 3, List(
-      "AR", "BO", "PY", "UY", "PE", "CL"
+      "PT", "AR", "BO", "PY", "UY", "PE", "CL"
     )),
     Relation("BR", Direction.BI, 2, List(
-      "BO", "CO", "MX", "US", "CN", "ZA", "AO", "PT", "JP", "DE"
+      "BO", "CO", "MX", "US", "CN", "ZA", "AO", "JP", "DE", "CV"
     )),
     Relation("BR", Direction.BI, 1, List(
       "IN", "FR"

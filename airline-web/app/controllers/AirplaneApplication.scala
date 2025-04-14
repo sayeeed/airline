@@ -261,6 +261,8 @@ class AirplaneApplication @Inject()(cc: ControllerComponents) extends AbstractCo
     }
     if (airline.airlineType == AirlineType.REGIONAL && model.airplaneTypeSize > AirlineType.REGIONAL_MODEL_MAX_SIZE) {
       return Some(s"Regional airline cannot buy this large of aircraft")
+    } else if (airline.airlineType == AirlineType.DISCOUNT && model.quality == 10) {
+      return Some(s"Discount airline cannot buy 5 star aircraft")
     }
     
     return None
@@ -273,11 +275,8 @@ class AirplaneApplication @Inject()(cc: ControllerComponents) extends AbstractCo
 
     if (airline.airlineType == AirlineType.REGIONAL && model.airplaneTypeSize > AirlineType.REGIONAL_MODEL_MAX_SIZE) {
       return usedAirplanes.map((_, s"Regional airline cannot buy this large of aircraft")).toMap
-    }
-
-    val countryRelationship = airline.getCountryCode() match {
-      case Some(homeCountry) => CountrySource.getCountryMutualRelationship(homeCountry, model.countryCode)
-      case None => 0
+    } else if (airline.airlineType == AirlineType.DISCOUNT && model.quality == 10) {
+      return usedAirplanes.map((_, s"Discount airline cannot buy 5 star aircraft")).toMap
     }
 
     val relationship = AirlineCountryRelationship.getAirlineCountryRelationship(model.countryCode, airline)
