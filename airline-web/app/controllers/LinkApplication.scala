@@ -928,7 +928,7 @@ class LinkApplication @Inject()(cc: ControllerComponents) extends AbstractContro
           val requiredTitle = Title.ESTABLISHED_AIRLINE
           val ok = currentTitle.title.id <= requiredTitle.id //smaller value means higher title
           if (!ok) {
-            return Some(s"Airline must have ${Title.ESTABLISHED_AIRLINE} title to make international connection to this small airport.", REQUIRES_CUSTOMS)
+            return Some(s"Airline must have ${Title.description(Title.ESTABLISHED_AIRLINE)} title to make international connection to this small airport.", REQUIRES_CUSTOMS)
           }
         }
         if (!fromAirport.isGateway() && fromAirport.size <= 2 && flightCategory == FlightCategory.INTERNATIONAL) {
@@ -936,7 +936,7 @@ class LinkApplication @Inject()(cc: ControllerComponents) extends AbstractContro
           val requiredTitle = Title.ESTABLISHED_AIRLINE
           val ok = currentTitle.title.id <= requiredTitle.id //smaller value means higher title
           if (!ok) {
-            return Some(s"Airline must have ${Title.ESTABLISHED_AIRLINE} title to make international connections from this small airport.", REQUIRES_CUSTOMS)
+            return Some(s"Airline must have ${Title.description(Title.ESTABLISHED_AIRLINE)} title to make international connections from this small airport.", REQUIRES_CUSTOMS)
           }
         }
 
