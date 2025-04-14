@@ -1,6 +1,6 @@
 package com.patson
 
-import com.patson.DemandGenerator.{Demand, MIN_DISTANCE, canHaveDemand, computeBaseDemandBetweenAirports, computeDemandWithPreferencesBetweenAirports, updateHubAirportsList}
+import com.patson.DemandGenerator.{Demand, HUB_AIRPORTS_MAX_RADIUS, MIN_DISTANCE, canHaveDemand, computeBaseDemandBetweenAirports, computeDemandWithPreferencesBetweenAirports, updateHubAirportsList}
 import com.patson.data.{AirportSource, CountrySource, GameConstants}
 import com.patson.model.{PassengerType, _}
 import org.scalatest.{Matchers, WordSpecLike}
@@ -26,11 +26,11 @@ class DemandGeneratorSpec extends WordSpecLike with Matchers {
        println(demand)
        assert(demand > 0)
      }
-    "Size 10 should find 12 hub airports".in {
-      val fromAirport = AirportSource.loadAirportByIata("ATL", true).get
+    "Size 10 should find 13 hub airports".in {
+      val fromAirport = AirportSource.loadAirportByIata("MFM", true).get
       var hubAirports = List[Airport]()
-      Computation.getDomesticAirportWithinRange(fromAirport, DemandGenerator.HUB_AIRPORTS_MAX_RADIUS).filter { airport =>
-        DemandGenerator.canHaveDemand(fromAirport, airport, Computation.calculateDistance(fromAirport, airport))
+      Computation.getDomesticAirportWithinRange(fromAirport, HUB_AIRPORTS_MAX_RADIUS).filter { airport =>
+        canHaveDemand(fromAirport, airport, Computation.calculateDistance(fromAirport, airport))
       }.foreach { airport =>
         hubAirports = updateHubAirportsList(hubAirports, airport, fromAirport)
       }
@@ -40,12 +40,14 @@ class DemandGeneratorSpec extends WordSpecLike with Matchers {
         println(s"${airport.iata}: $formattedPercentage")
       }
 
-      assert(hubAirports.length == 12)
+      assert(hubAirports.length == 13)
     }
-    "Size 1 should find 3 hub airports".in {
-      val fromAirport = AirportSource.loadAirportByIata("LLO", true).get
+    "Size 1 should find 4 hub airports".in {
+      val fromAirport = AirportSource.loadAirportByIata("EIN", true).get
       var hubAirports = List[Airport]()
-      Computation.getDomesticAirportWithinRange(fromAirport, DemandGenerator.HUB_AIRPORTS_MAX_RADIUS).filter(_.id != fromAirport.id).foreach { airport =>
+      Computation.getDomesticAirportWithinRange(fromAirport, HUB_AIRPORTS_MAX_RADIUS).filter { airport =>
+        canHaveDemand(fromAirport, airport, Computation.calculateDistance(fromAirport, airport))
+      }.foreach { airport =>
         hubAirports = updateHubAirportsList(hubAirports, airport, fromAirport)
       }
       val percents = DemandGenerator.percentagesHubAirports(hubAirports, fromAirport)
@@ -54,7 +56,7 @@ class DemandGeneratorSpec extends WordSpecLike with Matchers {
         println(s"${airport.iata}: $formattedPercentage")
       }
 
-      assert(hubAirports.length == 3)
+      assert(hubAirports.length == 4)
     }
 //    "find top 10 destinations for each airport".in {
 //      val airports = AirportSource.loadAllAirports(fullLoad = false, loadFeatures = true).filter(_.popMiddleIncome > 0)

@@ -35,7 +35,7 @@ object DemandGenerator {
   import scala.jdk.CollectionConverters._
 
   /**
-   * Will airports have standard demand between them?
+   * Do these two airports have standard demand between them?
    *
    * @param fromAirport
    * @param toAirport
@@ -50,13 +50,17 @@ object DemandGenerator {
    * Hub airports are the most important nearby airports of a given airport
    */
   def updateHubAirportsList(hubAirports: List[Airport], toAirport: Airport, fromAirport: Airport): List[Airport] = {
-    if (hubAirports.isEmpty) {
+    val SKIP_AIRPORTS = List("HKG", "DXB", "SIN", "AUH", "DUB", "KGL", "BJM", "SJU", "BQN", "SDQ")
+    val SKIP_COUNTRIES = List("AT", "BE", "CH", "CZ", "HU", "IL", "LI", "LV", "NL", "RS", "SI")
+    if (SKIP_AIRPORTS.contains(fromAirport.iata) || SKIP_COUNTRIES.contains(fromAirport.countryCode)) {
+      List.empty //because otherwise there's weird demands
+    } else if (hubAirports.isEmpty) {
       List(toAirport)
     } else {
       val percentages = percentagesHubAirports(hubAirports :+ toAirport, fromAirport)
       val updatedList = percentages.map(_._1) // Extract the sorted airports
-      if (updatedList.length > fromAirport.size + 2) {
-        updatedList.take(fromAirport.size + 2) // Keep only the top `fromAirportSize + 2` airports
+      if (updatedList.length > fromAirport.size + 3) {
+        updatedList.take(fromAirport.size + 3) // Keep only the top `fromAirportSize + 2` airports
       } else {
         updatedList
       }
@@ -73,7 +77,7 @@ object DemandGenerator {
       val airportsWithScores = hubAirports.map { airport =>
         val popPercent = airport.popMiddleIncome.toDouble / avgPopMiddleIncome
         val distancePercent = 1 - Computation.calculateDistance(airport, fromAirport).toDouble / avgDistance
-        val weightedScore = 0.4 * distancePercent + 0.6 * popPercent
+        val weightedScore = 0.45 * distancePercent + 0.55 * popPercent
         (airport, weightedScore)
       }
 
@@ -104,7 +108,7 @@ object DemandGenerator {
 
       // Divide the demand among hubAirports based on percentages
       val demands = percentages.map { case (airport, percentage) =>
-        val demandForAirport = (fromDemand * percentage).toInt
+        val demandForAirport = Math.max(3, (fromDemand * percentage).toInt) //min demand is 3
         val linkClassValues = LinkClassValues.getInstance(0, 0, 0, demandForAirport)
         (airport, (PassengerType.TRAVELER, linkClassValues))
       }
@@ -211,7 +215,9 @@ object DemandGenerator {
     val isDomestic = fromAirport.countryCode == toAirport.countryCode
     var hubAirports = List[Airport]()
     if (isDomestic) {
-      Computation.getDomesticAirportWithinRange(fromAirport, HUB_AIRPORTS_MAX_RADIUS).filter(_.id != fromAirport.id).foreach { airport =>
+      Computation.getDomesticAirportWithinRange(fromAirport, HUB_AIRPORTS_MAX_RADIUS).filter { airport =>
+        canHaveDemand(fromAirport, airport, Computation.calculateDistance(fromAirport, airport))
+      }.foreach { airport =>
         hubAirports = updateHubAirportsList(hubAirports, airport, fromAirport)
       }
     }

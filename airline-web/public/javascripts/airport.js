@@ -209,6 +209,7 @@ function updateAirportDetails(airport, cityImageUrl, airportImageUrl) {
 		    	var targetBaseScale = baseDetails.targetBase.scale
 				const upgradeText = targetBaseScale === 1 ? `Build ${baseType}` : `Upgrade ${baseType}`
 		    	$('#upgradeBaseButton').text(upgradeText + " for $" + commaSeparateNumber(baseDetails.targetBase.upgradeCostByLevel[targetBaseScale - 1]))
+                $('#buildBaseButton').text(upgradeText + " for $" + commaSeparateNumber(baseDetails.targetBase.upgradeCostByLevel[targetBaseScale - 1]))
     			$('#airportDetailsBaseUpgradeUpkeep').text('$' + commaSeparateNumber(upkeepByLevel[airportBaseScale - 1]))
 
 	    		
@@ -228,7 +229,7 @@ function updateAirportDetails(airport, cityImageUrl, airportImageUrl) {
 	    			if (!airportBaseScale) {
 	    				if (activeAirline.headquarterAirport) {
 		    				$('#buildHeadquarterButton').hide()
-		    				enableButton($('#buildBaseButton'))
+                            enableButton($('#buildBaseButton'))
 		    				$('#buildBaseButton').show()
 	    				} else {
 	    				    enableButton($('#buildHeadquarterButton'))
