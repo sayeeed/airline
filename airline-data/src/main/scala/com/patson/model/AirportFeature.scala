@@ -197,7 +197,7 @@ sealed case class GatewayAirportFeature() extends AirportFeature {
       0
     } else {
       if (fromAirport.hasFeature(AirportFeatureType.GATEWAY_AIRPORT) && toAirport.hasFeature(AirportFeatureType.GATEWAY_AIRPORT) ) { //extra demand if both airports are gateway
-        val base = (fromAirport.power + toAirport.power) / 25000
+        val base = (fromAirport.power + toAirport.power) / 25000 //todo change to popMiddleIncome
         if (base >= 1) {
           val distanceMultiplier = {
             if (distance <= 1250) {
@@ -215,6 +215,8 @@ sealed case class GatewayAirportFeature() extends AirportFeature {
         } else {
           0
         }
+      } else if (fromAirport.countryCode == toAirport.countryCode && fromAirport.baseIncome <= 25000 && toAirport.hasFeature(AirportFeatureType.GATEWAY_AIRPORT) && ! List("CN","IN","ZA","US").contains(fromAirport.countryCode)) {
+        Math.min(200, (rawDemand * 0.2).toInt) //add domestic demand to gateways, but not to rich / high-demand countries
       } else {
         0
       }
@@ -239,6 +241,7 @@ sealed case class IsolatedTownFeature(strength : Int) extends AirportFeature {
   override def demandAdjustment(rawDemand : Double, passengerType : PassengerType.Value, airportId : Int, fromAirport : Airport, toAirport : Airport, affinity : Int, distance : Int) : Int = {
     if (passengerType == PassengerType.TRAVELER && fromAirport.hasFeature(AirportFeatureType.ISOLATED_TOWN) && affinity >= 2) {
       val affinityMod = if (affinity >= 5) 1.0 else affinity.toDouble / 10
+      val tempAdjustment = if (fromAirport.countryCode == "CA") 3 else 1 //todo: will degrade & remove this
 
       val mod = if (distance <= boostRange) {
         val basis = 150.0 + DemandGenerator.demandRandomizer * 5
@@ -270,7 +273,7 @@ sealed case class IsolatedTownFeature(strength : Int) extends AirportFeature {
       } else {
         0
       }
-      (affinityMod * mod).toInt
+      (affinityMod * mod * tempAdjustment).toInt
     } else {
       0
     }

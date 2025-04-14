@@ -1331,8 +1331,8 @@ function calculateDemand() {
     const allDemandDetails = [...planLinkInfo.fromDemandDetails, ...planLinkInfo.toDemandDetails];
     
     allDemandDetails.forEach(demandEntry => {
-        const linkClass = demandEntry.linkClass.toLowerCase();
-		const linkClassAdjusted = linkClass === "discount economy" ? "economy" : linkClass;
+        const linkClass = demandEntry.linkClass;
+		const linkClassAdjusted = linkClass === "discountEconomy" ? "economy" : linkClass;
         const currentPrice = currentPrices[linkClassAdjusted];
         
         if (currentPrice <= demandEntry.price) {
@@ -1432,7 +1432,7 @@ function sumPreferencesByType(demandDetails, passengerType) {
     
     demandDetails.forEach(detail => {
         if (detail.passengerType === passengerType) {
-            totals[detail.linkClass.toLowerCase()] += detail.count
+            totals[detail.linkClass] += detail.count
         }
     })
     
