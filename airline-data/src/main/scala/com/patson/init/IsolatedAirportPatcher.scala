@@ -14,6 +14,7 @@ object IsolatedAirportPatcher {
   import IsolatedTownFeature._
   
   def patchIsolatedAirports() = {
+    val LOOK_RANGE = Array(300, 600, 1200, 2400)
     val allAirports = AirportSource.loadAllAirports(true)
     val isolationByAirport = Map[Airport, Int]()
 
@@ -21,9 +22,9 @@ object IsolatedAirportPatcher {
     allAirports.foreach { airport =>
       var isolationLevel : Int = 0
 
-      val boundaryLongitude = GeoDataGenerator.calculateLongitudeBoundary(airport.latitude, airport.longitude, HUB_RANGE_BRACKETS.last)
-      for (i <- 0 until HUB_RANGE_BRACKETS.size) {
-        val threshold = HUB_RANGE_BRACKETS(i)
+      val boundaryLongitude = GeoDataGenerator.calculateLongitudeBoundary(airport.latitude, airport.longitude, LOOK_RANGE.last)
+      for (i <- 0 until LOOK_RANGE.size) {
+        val threshold = LOOK_RANGE(i)
         val populationWithinRange = allAirports.filter { targetAirport =>
           val distance = Util.calculateDistance(airport.latitude, airport.longitude, targetAirport.latitude, targetAirport.longitude)
           distance < threshold && targetAirport.longitude >= boundaryLongitude._1 && targetAirport.longitude <= boundaryLongitude._2

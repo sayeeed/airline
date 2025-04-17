@@ -142,7 +142,7 @@ class ProfileApplication @Inject()(cc: ControllerComponents) extends AbstractCon
     if (!DiscountAirplanes.isEmpty) {
       val cheapAirplaneProfile = Profile(
         name = "Discount Airline",
-        airlineType = AirlineType.Discount,
+        airlineType = AirlineType.DISCOUNT,
         difficulty = "Hard",
         description = "Time to pack in the masses!",
         rule = List("You can never add business or first class!","2x reputation from tourist track","Base crew costs are 25% lower"),

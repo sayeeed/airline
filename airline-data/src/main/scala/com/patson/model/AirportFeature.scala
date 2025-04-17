@@ -23,7 +23,7 @@ abstract class AirportFeature {
       case VACATION_HUB => "Local Vacation Destination - Domestic & high-affinity tourists travel here."
       case FINANCIAL_HUB => "Business Hub - Center for business passengers."
       case DOMESTIC_AIRPORT => "Domestic Discount Airport – Lower base upkeep. If flight is international, only accepts small aircraft."
-      case ISOLATED_TOWN => s"Isolated - Increased demand within ${this.asInstanceOf[IsolatedTownFeature].boostRange * IsolatedTownFeature.HUB_GRADIENT_EXTENDED_RANGE_MULTIPLIER}km."
+      case ISOLATED_TOWN => s"Isolated - Increased demand within ${this.asInstanceOf[IsolatedTownFeature].boostRange}km."
       case GATEWAY_AIRPORT => "Gateway - Has increased demand with other gateway airports."
       case OLYMPICS_PREPARATIONS => "Preparing the Olympic Games."
       case OLYMPICS_IN_PROGRESS => "Year of the Olympic Games."
@@ -137,7 +137,7 @@ sealed case class FinancialHubFeature(baseStrength : Int, boosts : List[AirportB
   override def demandAdjustment(rawDemand : Double, passengerType : PassengerType.Value, airportId : Int, fromAirport : Airport, toAirport : Airport, affinity : Int, distance : Int) : Int = {
     if (passengerType == PassengerType.BUSINESS) {
       val hasFeatureInBothAirports = fromAirport.hasFeature(AirportFeatureType.FINANCIAL_HUB) && toAirport.hasFeature(AirportFeatureType.FINANCIAL_HUB)
-      val doubleBonus = if (hasFeatureInBothAirports) 0.5 else 1
+      val doubleBonus = if (hasFeatureInBothAirports) 0.65 else 1.15
       val charmStrength =
         if (toAirport.id == airportId) { //going to business center
           0.00025 * strengthFactor
@@ -160,14 +160,14 @@ sealed case class FinancialHubFeature(baseStrength : Int, boosts : List[AirportB
         }
       val airportAffinityMutliplier: Double =
         if (affinity >= 5) (affinity - 5) * 0.1 + 1 //domestic+
-        else if (affinity == 4) 0.625
-        else if (affinity == 3) 0.525
-        else if (affinity == 2) 0.425
-        else if (affinity == 1) 0.325
-        else if (affinity == 0) 0.225
+        else if (affinity == 4) 0.6
+        else if (affinity == 3) 0.5
+        else if (affinity == 2) 0.4
+        else if (affinity == 1) 0.3
+        else if (affinity == 0) 0.2
         else 0.1
 
-      Math.pow(DemandGenerator.launchDemandFactor * fromAirport.popMiddleIncome * charmStrength * airportAffinityMutliplier, distanceReducerExponent).toInt
+      Math.max(0, Math.pow(DemandGenerator.launchDemandFactor * fromAirport.popMiddleIncome * charmStrength * airportAffinityMutliplier, distanceReducerExponent).toInt)
     } else {
       0
     }
@@ -182,7 +182,7 @@ sealed case class DomesticAirportFeature() extends AirportFeature {
     if (fromAirport.countryCode == "CN") { //otherwise demand gets too big...
       0
     } else if (affinity >= 5) { //domestic
-      (DemandGenerator.launchDemandFactor * rawDemand / 3).toInt
+      (DemandGenerator.launchDemandFactor * rawDemand / 2.5).toInt
     } else {
        (-1 * rawDemand / 2).toInt
     }
@@ -196,15 +196,14 @@ sealed case class GatewayAirportFeature() extends AirportFeature {
     if (airportId != fromAirport.id) {
       0
     } else {
-      if (
-        fromAirport.hasFeature(AirportFeatureType.GATEWAY_AIRPORT) &&
-          toAirport.hasFeature(AirportFeatureType.GATEWAY_AIRPORT)
-      ) { //extra demand if both airports are gateway
-        val base = (fromAirport.power + toAirport.power) / 25000
+      if (fromAirport.hasFeature(AirportFeatureType.GATEWAY_AIRPORT) && toAirport.hasFeature(AirportFeatureType.GATEWAY_AIRPORT) ) { //extra demand if both airports are gateway
+        val base = (fromAirport.power + toAirport.power) / 25000 //todo change to popMiddleIncome
         if (base >= 1) {
           val distanceMultiplier = {
-            if (distance <= 2000) {
-              2.4
+            if (distance <= 1250) {
+              2.6
+            } else if (distance <= 2500) {
+              2.2
             } else if (distance <= 5000) {
               1.5
             } else {
@@ -216,6 +215,8 @@ sealed case class GatewayAirportFeature() extends AirportFeature {
         } else {
           0
         }
+      } else if (fromAirport.countryCode == toAirport.countryCode && fromAirport.baseIncome <= 25000 && toAirport.hasFeature(AirportFeatureType.GATEWAY_AIRPORT) && ! List("CN","IN","ZA","US").contains(fromAirport.countryCode)) {
+        Math.min(200, (rawDemand * 0.2).toInt) //add domestic demand to gateways, but not to rich / high-demand countries
       } else {
         0
       }
@@ -224,8 +225,7 @@ sealed case class GatewayAirportFeature() extends AirportFeature {
 }
 
 object IsolatedTownFeature {
-  val HUB_RANGE_BRACKETS = Array(300, 600, 1200, 2400) //if pop not within X km
-  val HUB_GRADIENT_EXTENDED_RANGE_MULTIPLIER = 1.2
+  val HUB_RANGE_BRACKETS = Array(800, 1200, 1600, 2200, 3000, 4000)
 }
 
 sealed case class IsolatedTownFeature(strength : Int) extends AirportFeature {
@@ -239,16 +239,16 @@ sealed case class IsolatedTownFeature(strength : Int) extends AirportFeature {
 
   import IsolatedTownFeature._
   override def demandAdjustment(rawDemand : Double, passengerType : PassengerType.Value, airportId : Int, fromAirport : Airport, toAirport : Airport, affinity : Int, distance : Int) : Int = {
-    val rangeBoost = HUB_GRADIENT_EXTENDED_RANGE_MULTIPLIER
-    if (passengerType == PassengerType.TRAVELER && affinity >= 2) {
+    if (passengerType == PassengerType.TRAVELER && fromAirport.hasFeature(AirportFeatureType.ISOLATED_TOWN) && affinity >= 2) {
       val affinityMod = if (affinity >= 5) 1.0 else affinity.toDouble / 10
+      val tempAdjustment = if (fromAirport.countryCode == "CA") 3 else 1 //todo: will degrade & remove this
 
-      val mod = if (distance <= boostRange * HUB_GRADIENT_EXTENDED_RANGE_MULTIPLIER) {
+      val mod = if (distance <= boostRange) {
         val basis = 150.0 + DemandGenerator.demandRandomizer * 5
         val distanceModifier = if (distance >= 1500 && toAirport.size <= 3) {
           0
-        } else if (distance >= boostRange * (rangeBoost / 2)) {
-          0.5 + (1 - distance / (boostRange * rangeBoost)) / 2
+        } else if (distance >= boostRange) {
+          0.5 + (1 - distance / boostRange) / 2
         } else {
           1.0
         }
@@ -273,7 +273,7 @@ sealed case class IsolatedTownFeature(strength : Int) extends AirportFeature {
       } else {
         0
       }
-      (affinityMod * mod).toInt
+      (affinityMod * mod * tempAdjustment).toInt
     } else {
       0
     }

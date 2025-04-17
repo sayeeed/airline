@@ -86,6 +86,18 @@ $(window).on('focus', function() {
 })
 
 function registerEscape() {
+    const modals = document.getElementsByClassName('modal')
+
+    for (let i = 0; i < modals.length; i++) {
+        const modal = modals[i];
+        modal.addEventListener('click', function(event) {
+            // 'event.target' is the specific element that was clicked; if the clicked element is the modal itself (and not a child element), hide the modal.
+            if (event.target === modal) {
+                closeModal($(modal));
+            }
+        });
+    }
+    
     $(document).keyup(function(e) {
          if (e.key === "Escape") { // escape key maps to keycode `27`
             var $topModal = $(".modal:visible").last()
@@ -105,8 +117,6 @@ function mobileCheck() {
 
 		//turn off animation by default
 		currentAnimationStatus = false
-
-		//registerSwipe()
 	}
 }
 
@@ -187,18 +197,10 @@ function loadUser(isLogin) {
 			  }
               refreshWallpaper()
     		  refreshLoginBar()
-//			  printConsole('') //clear console
 			  getAirports()
 			  showUserSpecificElements();
 			  updateChatTabs()
 			  initAdminActions()
-			  
-//			  if (window.location.hostname != 'localhost') {
-//				  FS.identify(user.id, {
-//					  displayName: user.userName,
-//					  email: user.email
-//					 });
-//		      }
 		  }
 		  if (user.airlineIds.length > 0) {
 			  selectAirline(user.airlineIds[0])
@@ -726,7 +728,7 @@ function updateAirlineLabelColors(callback) {
             dataType: 'json',
             success: function(result) {
                 $.each(result, function(index, entry) {
-                    airlineLabelColors[entry[0]] = entry[1]
+                    airlineLabelColors[index] = entry
                 })
                 if (callback) {
                     callback()
@@ -737,7 +739,6 @@ function updateAirlineLabelColors(callback) {
                     console.log("AJAX error: " + textStatus + ' : ' + errorThrown);
             }
     });
-
 }
 
 function assignAirlineColors(dataSet, colorProperty) {

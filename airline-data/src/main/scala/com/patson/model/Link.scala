@@ -198,7 +198,7 @@ object Link {
     } else {
       Math.pow(distance + 600, 0.15) - 2
     }
-    val base = if (flightCategory == FlightCategory.INTERNATIONAL) 4.75 * multiplier - 5.75 else 3.5 * multiplier - 1.75
+    val base = if (flightCategory == FlightCategory.INTERNATIONAL) 4.75 * multiplier - 5.5 else 3.5 * multiplier - 1.5
     val staffPerFrequency =
       if (airlineType == AirlineType.REGIONAL) {
         0.1 * multiplier
