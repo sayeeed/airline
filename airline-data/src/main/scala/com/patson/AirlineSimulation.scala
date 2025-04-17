@@ -545,7 +545,7 @@ object AirlineSimulation {
 
 
     cashFlows.foreach { //for balance it's safer to use adjust instead of setting it directly
-      case(airline, cashFlow) => AirlineSource.adjustAirlineBalance(airline.id, cashFlow)
+      case(airline, cashFlow) => AirlineSource.adjustAirlineBalance(airline.id, cashFlow * 6)
     }
     IncomeSource.saveIncomes(allIncomes.toList)
 

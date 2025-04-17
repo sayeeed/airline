@@ -14,7 +14,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 
 object MainSimulation extends App {
-  val CYCLE_DURATION : Int = 60 * 19
+  val CYCLE_DURATION : Int = 60 * 5
   var currentWeek: Int = 0
 
 //  implicit val actorSystem = ActorSystem("rabbit-akka-stream")
@@ -124,25 +124,17 @@ object MainSimulation extends App {
     currentWeek = CycleSource.loadCycle()
     def receive = {
       case Start =>
-        var counter: Int = 0
-        var weeksPerCycle: Int = 6
+        status = SimulationStatus.IN_PROGRESS
+        val endTime = startCycle(currentWeek)
 
-        while (counter < weeksPerCycle) {
-          println("MULTIPLE WEEKS PER CYCLE: " + counter + " out of " + weeksPerCycle)
-          status = SimulationStatus.IN_PROGRESS
-          val endTime = startCycle(currentWeek)
+        currentWeek += 1
+        CycleSource.setCycle(currentWeek)
+        status = SimulationStatus.WAITING_CYCLE_START
+        postCycle(currentWeek) //post cycle do some quick updates, no long simulation
 
-          currentWeek += 1
-          CycleSource.setCycle(currentWeek)
-          status = SimulationStatus.WAITING_CYCLE_START
-          postCycle(currentWeek) //post cycle do some quick updates, no long simulation
-
-          //notify the websockets via EventStream
-          println("Publish Cycle Complete message")
-          SimulationEventStream.publish(CycleCompleted(currentWeek - 1, endTime), None)
-
-          counter += 1
-        }
+        //notify the websockets via EventStream
+        println("Publish Cycle Complete message")
+        SimulationEventStream.publish(CycleCompleted(currentWeek - 1, endTime), None)
     }
   }
    

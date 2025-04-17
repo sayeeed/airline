@@ -82,7 +82,7 @@ case class LinkNegotiationDelegateTask(startCycle : Int, fromAirport : Airport, 
 }
 
 object LinkNegotiationDelegateTask {
-  val COOL_DOWN = 12
+  val COOL_DOWN = 2
 }
 
 object DelegateTaskType extends Enumeration {
