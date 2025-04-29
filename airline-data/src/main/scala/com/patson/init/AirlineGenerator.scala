@@ -38,6 +38,11 @@ object AirlineGenerator extends App {
   def mainFlow() = {
     deleteAirlines()
     
+    // Generate AI Airlines
+    generateDelta()
+
+
+    /*
     // North America
     generateDeltaAirLines(List("US"))
     generateAmericanAirlines(List("US"))
@@ -90,7 +95,8 @@ object AirlineGenerator extends App {
     generateArabiaAirline()
     generateCaribbeanAirline()
     generatePacificAirline()
-    
+    */
+
     resizeBases()
 
     println("DONE Creating airlines")
@@ -104,7 +110,22 @@ object AirlineGenerator extends App {
     AirlineCache.invalidateAll()
     AirlineSource.deleteAirlinesByCriteria(List(("airline_type", AirlineType.NON_PLAYER.id)))
     AirplaneOwnershipCache.invalidateAll()
-  }  
+  }
+
+  // Generate AI Airlines that will make moves
+  def generateDelta(): Unit = {
+    val bases = airports.filter(airport => airport.iata == "ATL")
+    val HQ = airports.find(_.iata == "ATL").getOrElse(bases.head)
+    generateAIAirline(
+      s"Delta Air Lines",
+      s"deltaairlines",
+      HQ,
+      AirlineType.LEGACY
+    )
+  }
+
+
+  // old
   
   def generateDeltaAirLines(countryCodes : List[String]): Unit = {
     countryCodes.foreach(countryCode => {
@@ -820,6 +841,20 @@ object AirlineGenerator extends App {
     })
   }
 
+  def generateAIAirline(name: String, username: String, hqAirport: Airport, airlineType: AirlineType.Value): Airline = {
+    val user = createUser(username)
+    val airline = createAIAirline(name, hqAirport, airlineType)
+    println(s"generating $name at ${hqAirport.iata} with $airlineType profile")
+
+    AirlineSource.saveAirlines(List(airline))
+    UserSource.setUserAirline(user, airline)
+    AirlineSource.saveAirlineInfo(airline, false)
+    AirlineSource.saveAirplaneRenewal(airline.id, 60)
+
+    makeBase(airline, hqAirport, true)
+    airline
+  }
+
   def generateAirline(name: String, username: String, hqAirport: Airport, bases: List[Airport], toAirports: List[Airport], modelFamily: List[String], linkMaxDistance: Int, targetServiceQuality: Int, initialBalance: Long = 1000000000, currentServiceQuality: Int = 70, reputation: Int = 80): Airline = {
     val user = createUser(username)
     val airline = createAirline(name, hqAirport, targetServiceQuality, currentServiceQuality, reputation, initialBalance)
@@ -860,6 +895,18 @@ object AirlineGenerator extends App {
     airline.setTargetServiceQuality(targetServiceQuality)
     airline.setCurrentServiceQuality(currentServiceQuality)
     airline.setReputation(reputation)
+    airline.setSkipTutorial(true)
+    airline.setCountryCode(hqAirport.countryCode)
+    airline.setAirlineCode(airline.getDefaultAirlineCode())
+    airline
+  }
+
+  private def createAIAirline(name: String, hqAirport: Airport, airlineType: AirlineType.Value): Airline = {
+    val airline = Airline(name, airlineType)
+    airline.setBalance(150000000)
+    airline.setTargetServiceQuality(35)
+    airline.setCurrentServiceQuality(35)
+    airline.setReputation(30)
     airline.setSkipTutorial(true)
     airline.setCountryCode(hqAirport.countryCode)
     airline.setAirlineCode(airline.getDefaultAirlineCode())

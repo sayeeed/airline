@@ -33,6 +33,10 @@ object AirlineSource {
       loadAirlinesByQueryString(queryString.toString(), ids, fullLoad)
     }
   }
+
+  def loadAIAirlines(fullLoad : Boolean = false) = {
+    loadAirlinesByQueryString("SELECT id FROM " + AIRLINE_TABLE + " WHERE id < 10", List.empty, fullLoad)
+  }
   
   def loadAirlinesByCriteria(criteria : List[(String, Any)], fullLoad : Boolean = false) = {
       var queryString = BASE_QUERY

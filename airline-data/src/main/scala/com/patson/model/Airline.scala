@@ -185,7 +185,7 @@ case class Airline(name: String, var airlineType: AirlineType.AirlineType = Airl
 
 object AirlineType extends Enumeration {
   type AirlineType = Value
-  val LEGACY, BEGINNER, NON_PLAYER, DISCOUNT, LUXURY, REGIONAL, MEGA_HQ, NOSTALGIA = Value
+  val LEGACY, BEGINNER, NON_PLAYER, DISCOUNT, LUXURY, REGIONAL, MEGA_HQ, NOSTALGIA, AI = Value
   val label: AirlineType => String = {
     case LEGACY => "Legacy"
     case NON_PLAYER => "Non-Player"
