@@ -7,7 +7,7 @@ import java.util.{Calendar, Date}
 import scala.collection.mutable.ListBuffer
 import scala.collection.immutable.ListMap
 
-case class Airline(name: String, var airlineType: AirlineType.AirlineType = AirlineType.LEGACY, var id : Int = 0) extends IdObject {
+case class Airline(name: String, var airlineType: AirlineType.AirlineType = AirlineType.LEGACY, var aiType: AIType.AIType = AIType.PLAYER, var id : Int = 0) extends IdObject {
   val airlineInfo = AirlineInfo(0, 0, 0, 0, 0, 0)
   var allianceId : Option[Int] = None
   var bases : List[AirlineBase] = List.empty
@@ -185,7 +185,7 @@ case class Airline(name: String, var airlineType: AirlineType.AirlineType = Airl
 
 object AirlineType extends Enumeration {
   type AirlineType = Value
-  val LEGACY, BEGINNER, NON_PLAYER, DISCOUNT, LUXURY, REGIONAL, MEGA_HQ, NOSTALGIA, AI = Value
+  val LEGACY, BEGINNER, NON_PLAYER, DISCOUNT, LUXURY, REGIONAL, MEGA_HQ, NOSTALGIA = Value
   val label: AirlineType => String = {
     case LEGACY => "Legacy"
     case NON_PLAYER => "Non-Player"
@@ -210,6 +210,23 @@ object AirlineType extends Enumeration {
   val REGIONAL_EXTRA_SHARED_BASE_LIMIT = 1
   val REGIONAL_MODEL_MAX_SIZE = 0.1 //used in web app to set allowed planes
   val LUXURY_EXTRA_LOYALTY = 8
+}
+
+// SP CODE
+object AIType extends Enumeration {
+  type AIType = Value
+  val PLAYER, AGGRESSIVE, PASSIVE = Value
+  val label: AIType => String = {
+    case PLAYER => "Player"
+    case AGGRESSIVE => "Aggressive"
+    case PASSIVE => "Passive"
+  }
+  def fromId(id: Int): AIType = id match {
+    case 0 => PLAYER
+    case 1 => AGGRESSIVE
+    case 2 => PASSIVE
+    case _ => throw new IllegalArgumentException("Invalid AIType ID: " + id)
+  }
 }
 
 case class DelegateInfo(availableCount : Int, boosts : List[DelegateBoostAirlineModifier], busyDelegates: List[BusyDelegate]) {
@@ -384,7 +401,7 @@ object Airline {
         }
         //remove all oil contract
         OilSource.deleteOilContractByCriteria(List(("airline", airlineId)))
-        //remove any temp delegates
+        //remove any temp delegatesF
         AirlineSource.deleteAirlineModifier(airline.id, AirlineModifierType.DELEGATE_BOOST)
 
         airline.getAllianceId().foreach { allianceId =>

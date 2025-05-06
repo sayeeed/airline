@@ -120,7 +120,8 @@ object AirlineGenerator extends App {
       s"Delta Air Lines",
       s"deltaairlines",
       HQ,
-      AirlineType.LEGACY
+      AirlineType.LEGACY,
+      AIType.AGGRESSIVE
     )
   }
 
@@ -841,9 +842,9 @@ object AirlineGenerator extends App {
     })
   }
 
-  def generateAIAirline(name: String, username: String, hqAirport: Airport, airlineType: AirlineType.Value): Airline = {
+  def generateAIAirline(name: String, username: String, hqAirport: Airport, airlineType: AirlineType.Value, aiType: AIType.Value): Airline = {
     val user = createUser(username)
-    val airline = createAIAirline(name, hqAirport, airlineType)
+    val airline = createAIAirline(name, hqAirport, airlineType, aiType)
     println(s"generating $name at ${hqAirport.iata} with $airlineType profile")
 
     AirlineSource.saveAirlines(List(airline))
@@ -901,8 +902,8 @@ object AirlineGenerator extends App {
     airline
   }
 
-  private def createAIAirline(name: String, hqAirport: Airport, airlineType: AirlineType.Value): Airline = {
-    val airline = Airline(name, airlineType)
+  private def createAIAirline(name: String, hqAirport: Airport, airlineType: AirlineType.Value, aiType: AIType.Value): Airline = {
+    val airline = Airline(name, airlineType, aiType)
     airline.setBalance(150000000)
     airline.setTargetServiceQuality(35)
     airline.setCurrentServiceQuality(35)

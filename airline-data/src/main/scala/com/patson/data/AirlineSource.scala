@@ -15,7 +15,7 @@ import java.util.Date
 
 
 object AirlineSource {
-  private[this] val BASE_QUERY = "SELECT a.id AS id, a.name AS name, a.airline_type AS airline_type, ai.* FROM " + AIRLINE_TABLE + " a JOIN " + AIRLINE_INFO_TABLE + " ai ON a.id = ai.airline "
+  private[this] val BASE_QUERY = "SELECT a.id AS id, a.name AS name, a.airline_type AS airline_type, a.ai_type AS ai_type, ai.* FROM " + AIRLINE_TABLE + " a JOIN " + AIRLINE_INFO_TABLE + " ai ON a.id = ai.airline "
   def loadAllAirlines(fullLoad : Boolean = false) = {
       loadAirlinesByCriteria(List.empty, fullLoad)
   }
@@ -32,10 +32,6 @@ object AirlineSource {
       queryString.append("?)")
       loadAirlinesByQueryString(queryString.toString(), ids, fullLoad)
     }
-  }
-
-  def loadAIAirlines(fullLoad : Boolean = false) = {
-    loadAirlinesByQueryString("SELECT id FROM " + AIRLINE_TABLE + " WHERE id < 10", List.empty, fullLoad)
   }
   
   def loadAirlinesByCriteria(criteria : List[(String, Any)], fullLoad : Boolean = false) = {
@@ -67,7 +63,8 @@ object AirlineSource {
         
         while (resultSet.next()) {
           val airlineType = AirlineType.fromId(resultSet.getInt("airline_type"))
-          val airline = Airline(resultSet.getString("name"), airlineType)
+          val aiType = AIType.fromId(resultSet.getInt("ai_type"))
+          val airline = Airline(resultSet.getString("name"), airlineType, aiType)
           airline.id = resultSet.getInt("id")
           airline.setBalance(resultSet.getLong("balance"))
           airline.setReputation(resultSet.getDouble("reputation"))
@@ -134,12 +131,13 @@ object AirlineSource {
     val connection = Meta.getConnection()
     try {
       connection.setAutoCommit(false)
-      val preparedStatement = connection.prepareStatement("INSERT INTO " + AIRLINE_TABLE + "(name, airline_type) VALUES(?,?)", Statement.RETURN_GENERATED_KEYS)
+      val preparedStatement = connection.prepareStatement("INSERT INTO " + AIRLINE_TABLE + "(name, airline_type, ai_type) VALUES(?,?,?)", Statement.RETURN_GENERATED_KEYS)
           
       airlines.foreach { 
         airline =>
           preparedStatement.setString(1, airline.name)
           preparedStatement.setInt(2, airline.airlineType.id)
+          preparedStatement.setInt(3, airline.aiType.id)
           preparedStatement.executeUpdate()
           val generatedKeys = preparedStatement.getGeneratedKeys
           if (generatedKeys.next()) {

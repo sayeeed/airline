@@ -66,7 +66,7 @@ object MainSimulation extends App {
       AirlineSimulation.airlineSimulation(cycle, flightLinkResult, loungeResult, airplanes, airlineStats)
 
       println("AI simulation")
-      AISimulation.simulateAIAirlines()
+      AISimulation.simulateAIAirlines(cycle)
 
       println("Country simulation")
       val countryChampionInfo = CountrySimulation.simulate(cycle)
