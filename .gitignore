@@ -9,3 +9,5 @@
 /.bash_history
 /airline-data/.bsp
 *.sql
+/.bloop
+/airline-data/.bloop

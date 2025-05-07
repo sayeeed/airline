@@ -138,10 +138,11 @@ object AirlineGenerator extends App {
       bases,
       toAirports,
       List("Boeing 737-800", "Boeing 737-900ER", "Boeing 767-300", "Airbus A350-900"),
-      8000,
+      12000,
       60,
       24,
-      8
+      8,
+      60
     )
   }
 
@@ -862,7 +863,7 @@ object AirlineGenerator extends App {
     })
   }
 
-  def generateAIAirline(name: String, username: String, airlineType: AirlineType.Value, aiType: AIType.Value, hqAirport: Airport, bases: List[Airport], toAirports: List[Airport], modelFamily: List[String], linkMaxDistance: Int, targetServiceQuality: Int, maxLinksPerBase: Int, maxLongLinksPerBase: Int): Airline = {
+  def generateAIAirline(name: String, username: String, airlineType: AirlineType.Value, aiType: AIType.Value, hqAirport: Airport, bases: List[Airport], toAirports: List[Airport], modelFamily: List[String], linkMaxDistance: Int, targetServiceQuality: Int, maxLinksPerBase: Int, maxLongLinksPerBase: Int, standardRouteQuality: Int): Airline = {
     val user = createUser(username)
     val airline = createAIAirline(name, hqAirport, airlineType, aiType, targetServiceQuality)
     println(s"generating $name at ${hqAirport.iata} with $airlineType profile")
@@ -873,9 +874,9 @@ object AirlineGenerator extends App {
     AirlineSource.saveAirplaneRenewal(airline.id, 60)
 
     makeBase(airline, hqAirport, true)
-    generateLinksForAirline(airline, hqAirport, toAirports, modelFamily, linkMaxDistance + 1000, maxLinksPerBase, maxLongLinksPerBase)
+    generateLinksForAirline(airline, hqAirport, toAirports, modelFamily, linkMaxDistance + 1000, maxLinksPerBase, maxLongLinksPerBase, standardRouteQuality)
     bases.zipWithIndex.foreach { case (baseAirport, index) => makeBase(airline, baseAirport) }
-    bases.foreach( airport => generateLinksForAirline(airline, airport, toAirports, modelFamily, linkMaxDistance, maxLinksPerBase, maxLongLinksPerBase))
+    bases.foreach( airport => generateLinksForAirline(airline, airport, toAirports, modelFamily, linkMaxDistance, maxLinksPerBase, maxLongLinksPerBase, standardRouteQuality))
     airline
   }
 
@@ -906,7 +907,8 @@ object AirlineGenerator extends App {
     val user = User(userName = userName, email = "bot", Calendar.getInstance, Calendar.getInstance, UserStatus.ACTIVE, level = 0, None, List.empty)
 
     val devMode = if (configFactory.hasPath("dev")) configFactory.getBoolean("dev") else false
-    val password = if (devMode) "12345" else Random.nextInt(5000).toString
+    //val password = if (devMode) "12345" else Random.nextInt(5000).toString
+    val password = userName
     UserSource.saveUser(user)
     Authentication.createUserSecret(userName, password)
 
@@ -937,9 +939,9 @@ object AirlineGenerator extends App {
     airline
   }
 
-  private def generateLinksForAirline(airline: Airline, baseAirport: Airport, toAirports: List[Airport], modelNames: List[String], maxDistance: Int, maxLinksPerBase: Int, maxLongLinksPerBase: Int): Unit = {
+  private def generateLinksForAirline(airline: Airline, baseAirport: Airport, toAirports: List[Airport], modelNames: List[String], maxDistance: Int, maxLinksPerBase: Int, maxLongLinksPerBase: Int, standardRouteQuality: Int): Unit = {
     val models = allModels.filter(model => modelNames.contains(model.name))
-    val nearbyFocusAirports = findAirports(toAirports, baseAirport, maxDistance / 4)
+    val nearbyFocusAirports = findAirports(toAirports, baseAirport, maxDistance / 2)
     val farAirports = findAirports(airports, baseAirport, maxDistance, maxDistance / 4).filterNot(airport => nearbyFocusAirports.contains(airport))
     bufferOfAirplanes.clear()
 
@@ -949,7 +951,7 @@ object AirlineGenerator extends App {
         toAirports = nearbyFocusAirports,
         models = models,
         airline = airline,
-        config = LinkConfig("near", nearbyFocusAirports.size, Math.min(maxLinksPerBase, nearbyFocusAirports.size), 40)
+        config = LinkConfig("near", nearbyFocusAirports.size, Math.min(maxLinksPerBase, nearbyFocusAirports.size), standardRouteQuality)
       )
     )
 
@@ -959,7 +961,7 @@ object AirlineGenerator extends App {
         toAirports = farAirports,
         models = models,
         airline = airline,
-        config = LinkConfig("far", farAirports.size, maxLongLinksPerBase, 60)
+        config = LinkConfig("far", farAirports.size, maxLongLinksPerBase, Math.min(100, standardRouteQuality + 20))
       )
     )
   }
@@ -983,7 +985,6 @@ object AirlineGenerator extends App {
 
   private def generateLinks(config: LinkGeneration): List[Link] = {
     val airports = config.toAirports.takeRight(config.config.poolSize + 1)
-    val pickedToAirports = drawFromPool(airports, config.config.poolSize)
 
     val airplaneModelsLarge = config.models.sortBy(_.capacity).reverse
     val airplaneModelsSmall = config.models.sortBy(_.capacity)
@@ -991,8 +992,8 @@ object AirlineGenerator extends App {
 
     var i = 0
     while (newLinks.length < config.config.linkCount && i < config.config.poolSize) {
+      val pickedToAirports = drawFromPool(airports, config.config.poolSize)
       val toAirport = pickedToAirports(i)
-      i += 1
 
       val distance = Computation.calculateDistance(config.fromAirport, toAirport)
       val relationship = countryRelationships.getOrElse((config.fromAirport.countryCode, toAirport.countryCode), 0)
@@ -1002,7 +1003,7 @@ object AirlineGenerator extends App {
       val demand = DemandGenerator.computeBaseDemandBetweenAirports(config.fromAirport, toAirport, affinity, distance)
       val targetSeats = (demand.travelerDemand.total + demand.businessDemand.total) * 2
 
-      if (targetSeats > 0) {
+      if (targetSeats > 0 && (demand.businessDemand.total + demand.touristDemand.total + demand.travelerDemand.total) > 200) {
         createLink(
           fromAirport = config.fromAirport,
           toAirport = toAirport,
@@ -1014,6 +1015,8 @@ object AirlineGenerator extends App {
           rawQuality = config.config.rawQuality
         ).foreach(newLinks += _)
       }
+
+      i += 1
     }
 
     if (newLinks.nonEmpty) {
