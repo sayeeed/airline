@@ -2,13 +2,25 @@ package com.patson
 
 import com.patson.data._
 import com.patson.model._
+import com.patson.model.airplane.Model
+
+/* AI Design
+
+- Route Management
+- Pricing
+- Finances
+- Fleet Management
+
+ */
 
 object AISimulation {
   def simulateAIAirlines(cycle: Int) = {
-    //val aiAirlines = AirlineSource.loadAllAirlines(true).filter(_.id < 50)
-    //val allLinks = LinkSource.loadAllLinks(LinkSource.FULL_LOAD)
+    val aiAirlines = AirlineSource.loadAllAirlines(true).filterNot(_.aiType == AIType.PLAYER)
+    val allLinks = LinkSource.loadAllLinks(LinkSource.FULL_LOAD)
 
-    //println(aiAirlines)
+
+
+    println(aiAirlines)
   }
 
   // route management
@@ -24,5 +36,11 @@ object AISimulation {
     //)
   }
 
-  // financial management
+  // pricing
+
+  
+  // finances
+
+
+  // fleet management
 }

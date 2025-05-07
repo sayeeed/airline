@@ -11,3 +11,5 @@
 .vscode/
 .bsp/
 .scala-build/
+/airline-data/.bloop
+/airline-web/.bloop
