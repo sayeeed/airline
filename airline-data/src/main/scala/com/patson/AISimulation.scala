@@ -4,6 +4,7 @@ import com.patson.data._
 import com.patson.model._
 import com.patson.model.airplane.Model
 import com.patson.model.airplane.AirplaneConfiguration.first
+import scala.util.Random
 
 /* AI Design
 
@@ -16,37 +17,43 @@ import com.patson.model.airplane.AirplaneConfiguration.first
 
 object AISimulation {
   def simulateAIAirlines(cycle: Int) = {
-    val aiAirlines = AirlineSource.loadAllAirlines(true).filterNot(_.aiType == AIType.PLAYER)
-    val allFlightLinks = LinkSource.loadAllFlightLinks()
-    val flightLinksByAirline = allFlightLinks.groupBy(_.airline.id)
+    if (cycle % 1 == 0) {
+      val aiAirlines = AirlineSource.loadAllAirlines(true).filterNot(_.aiType == AIType.PLAYER)
+      val allFlightLinks = LinkSource.loadAllFlightLinks()
+      val flightLinksByAirline = allFlightLinks.groupBy(_.airline.id)
 
-    aiAirlines.foreach {
-      case airline : Airline =>
-        val airlineFlightLinks = flightLinksByAirline.getOrElse(airline.id, Nil)
-        updatePricing(airline, airlineFlightLinks, cycle)
-    }
-
-    println(aiAirlines)
+      aiAirlines.foreach {
+        case airline : Airline =>
+          if (Random.nextDouble() < 1) {
+            val airlineFlightLinks = flightLinksByAirline.getOrElse(airline.id, Nil)
+            routeManagement(airline, airlineFlightLinks, cycle)
+          }
+      }
+    } 
   }
 
   // route management
   // - update pricing on unprofitable/low load factor routes
   // - increase pricing on full load factor routes
-  private def updatePricing(airline: Airline, flightLinks: List[Link], cycle: Int) = {
+  private def routeManagement(airline: Airline, flightLinks: List[Link], cycle: Int) = {
     flightLinks.foreach {
       case flightLink : Link =>
         //println("Updating pricing for Airline: " + flightLink.airline.name + " Link: " + flightLink.from.iata + "-" + flightLink.to.iata)
         val linkConsumptions = LinkSource.loadLinkConsumptionsByLinkId(flightLink.id, cycle).headOption
         val rivalFlightLinks = LinkSource.loadFlightLinksByAirports(flightLink.from.id, flightLink.to.id).filterNot(_.airline.id == flightLink.airline.id)
 
-        linkConsumptions.foreach {
-          linkConsumption =>
-            // if load factor is below a certain percentage, adjust price
-            val loadFactor = ((linkConsumption.link.getTotalSoldSeats.toDouble / linkConsumption.link.getTotalCapacity.toDouble) * 100).toInt
+        linkConsumptions.foreach { linkConsumption =>
+          // all 10-week averages
+          val (economyLF, businessLF, firstLF, totalLF) = computeAverageLoadFactor(flightLink, cycle)
             
-            if (loadFactor < 90 && linkConsumption.link.majorDelayCount == 0 && linkConsumption.link.cancellationCount == 0) {
-              adjustPrices(flightLink, linkConsumption)
-            }
+          // adjusts prices down if total load factor is below 90% and no major delays or cancellations occurred
+          if (totalLF < 90 && linkConsumption.link.majorDelayCount == 0 && linkConsumption.link.cancellationCount == 0) {
+            adjustPrices(flightLink, linkConsumption)
+          }
+          // adjusts price up if one of the seat classes has 100% LF
+          if (economyLF == 100 || businessLF == 100 || firstLF == 100) {
+            adjustPrices(flightLink, linkConsumption)
+          }
         }
     }
   }
@@ -90,7 +97,60 @@ object AISimulation {
     LinkSource.updateLink(newLink)
   }
 
-  
+  private def adjustFrequency(flightLink: Link, linkConsumption: LinkConsumptionDetails, rivalFlightLinks: List[Link]) = {
+    //lazy val countryRelationships = CountrySource.getCountryMutualRelationships()
+    //val relationship = countryRelationships.getOrElse((flightLink.from.countryCode, flightLink.to.countryCode), 0)
+    //val affinity = Computation.calculateAffinityValue(flightLink.from.zone, flightLink.to.zone, relationship)
+    //val demand = DemandGenerator.computeBaseDemandBetweenAirports(flightLink.from, flightLink.to, affinity, flightLink.distance)
+    var linkTotalCapacity = flightLink.getTotalCapacity
+    var linkTotalSoldSeats = flightLink.getTotalSoldSeats
+
+    rivalFlightLinks.foreach {
+      rivalFlightLink =>
+        linkTotalCapacity += rivalFlightLink.getTotalCapacity
+        linkTotalSoldSeats += rivalFlightLink.getTotalSoldSeats
+    }
+
+    if (linkTotalSoldSeats.toDouble / linkTotalCapacity >= 0.90) {
+
+    }
+  }
+
+  private def computeAverageLoadFactor(link: Link, cycle: Int) : (Int, Int, Int, Int) = {
+    var cycleCount = 10
+    // if current cycle is less than cycleCount, only check back the amount of current cycles
+    if(cycle < cycleCount) { cycleCount = cycle }
+    
+    var totalEconomySold = 0
+    var totalEconomyCapacity = 0
+    var totalBusinessSold = 0
+    var totalBusinessCapacity = 0
+    var totalFirstSold = 0
+    var totalFirstCapacity = 0
+
+    val linkConsumptions = LinkSource.loadLinkConsumptionsByLinkId(link.id, cycleCount)
+    linkConsumptions.foreach { linkConsumption =>
+      totalEconomySold += linkConsumption.link.soldSeats.economyVal
+      totalEconomyCapacity += linkConsumption.link.capacity.economyVal
+
+      totalBusinessSold += linkConsumption.link.soldSeats.businessVal
+      totalBusinessCapacity += linkConsumption.link.capacity.businessVal
+
+      totalFirstSold += linkConsumption.link.soldSeats.firstVal
+      totalFirstCapacity += linkConsumption.link.capacity.firstVal        
+    }
+
+    val economyLoadFactor = if (totalEconomyCapacity > 0) totalEconomySold.toDouble / totalEconomyCapacity else 0.0
+    val businessLoadFactor = if (totalBusinessCapacity > 0) totalBusinessSold.toDouble / totalBusinessCapacity else 0.0
+    val firstLoadFactor = if (totalFirstCapacity > 0) totalFirstSold.toDouble / totalFirstCapacity else 0.0
+
+    val totalSold = totalEconomySold + totalBusinessSold + totalFirstSold
+    val totalCapacity = totalEconomyCapacity + totalBusinessCapacity + totalFirstCapacity
+    val totalLoadFactor = if (totalCapacity > 0) totalSold.toDouble / totalCapacity else 0.0
+
+    (economyLoadFactor.toInt, businessLoadFactor.toInt, firstLoadFactor.toInt, totalLoadFactor.toInt)
+  }
+
   // finances
 
 
