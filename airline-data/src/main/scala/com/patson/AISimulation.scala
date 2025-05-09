@@ -5,6 +5,7 @@ import com.patson.model._
 import com.patson.model.airplane.Model
 import com.patson.model.airplane.AirplaneConfiguration.first
 import scala.util.Random
+import com.patson.DemandGenerator.Demand
 
 /* AI Design
 
@@ -43,17 +44,14 @@ object AISimulation {
         val rivalFlightLinks = LinkSource.loadFlightLinksByAirports(flightLink.from.id, flightLink.to.id).filterNot(_.airline.id == flightLink.airline.id)
 
         linkConsumptions.foreach { linkConsumption =>
+          val basePrice = LinkClassValues(linkConsumption.link.price.economyVal, linkConsumption.link.price.businessVal, linkConsumption.link.price.firstVal)
           // all 10-week averages
           val (economyLF, businessLF, firstLF, totalLF) = computeAverageLoadFactor(flightLink, cycle)
+          val (avgEconomyPrice, avgBusinessPrice, avgFirstPrice) = getAverageRivalPrice(flightLink, rivalFlightLinks)
             
           // adjusts prices down if total load factor is below 90% and no major delays or cancellations occurred
-          if (totalLF < 90 && linkConsumption.link.majorDelayCount == 0 && linkConsumption.link.cancellationCount == 0) {
-            adjustPrices(flightLink, linkConsumption)
-          }
-          // adjusts price up if one of the seat classes has 100% LF
-          if (economyLF == 100 || businessLF == 100 || firstLF == 100) {
-            adjustPrices(flightLink, linkConsumption)
-          }
+          adjustPrices(flightLink, linkConsumption, basePrice)
+          adjustFrequency(flightLink, linkConsumption, rivalFlightLinks, totalLF, basePrice)
         }
     }
   }
@@ -64,7 +62,7 @@ object AISimulation {
    *    percentage off base price is no less than 75% (to prevent prices spiraling down)
    *  - Up if the respective load factor is equal to 100%
    */
-  private def adjustPrices(flightLink: Link, linkConsumption: LinkConsumptionDetails) = {
+  private def adjustPrices(flightLink: Link, linkConsumption: LinkConsumptionDetails, basePrice: LinkClassValues) = {
     val basePrice = LinkClassValues(linkConsumption.link.price.economyVal, linkConsumption.link.price.businessVal, linkConsumption.link.price.firstVal)
     var newEconomyPrice = flightLink.price.economyVal.toDouble
     var newBusinessPrice = flightLink.price.businessVal.toDouble
@@ -91,28 +89,42 @@ object AISimulation {
       if (firstLoadFactor == 100) { newFirstPrice = (basePrice.firstVal * (firstPercentage + 0.05)).toInt }
     }
 
-    val newPrices = LinkClassValues(newEconomyPrice.toInt, newBusinessPrice.toInt, newFirstPrice.toInt)
-    val newLink = flightLink.copy(price = newPrices)
-    println("Updated the above link to new prices: " + newLink)
-    LinkSource.updateLink(newLink)
+    if (newEconomyPrice != flightLink.price.economyVal || newBusinessPrice != flightLink.price.businessVal || newFirstPrice != flightLink.price.firstVal) {
+      val newPrices = LinkClassValues(newEconomyPrice.toInt, newBusinessPrice.toInt, newFirstPrice.toInt)
+      val newLink = flightLink.copy(price = newPrices)
+      println("Updated the above link to new prices: " + newLink)
+      LinkSource.updateLink(newLink)
+    }
   }
 
-  private def adjustFrequency(flightLink: Link, linkConsumption: LinkConsumptionDetails, rivalFlightLinks: List[Link]) = {
-    //lazy val countryRelationships = CountrySource.getCountryMutualRelationships()
-    //val relationship = countryRelationships.getOrElse((flightLink.from.countryCode, flightLink.to.countryCode), 0)
-    //val affinity = Computation.calculateAffinityValue(flightLink.from.zone, flightLink.to.zone, relationship)
-    //val demand = DemandGenerator.computeBaseDemandBetweenAirports(flightLink.from, flightLink.to, affinity, flightLink.distance)
+  private def adjustFrequency(flightLink: Link, linkConsumption: LinkConsumptionDetails, rivalFlightLinks: List[Link], totalLF: Int, basePrice: LinkClassValues) = {
+    lazy val countryRelationships = CountrySource.getCountryMutualRelationships()
+    val relationship = countryRelationships.getOrElse((flightLink.from.countryCode, flightLink.to.countryCode), 0)
+    val affinity = Computation.calculateAffinityValue(flightLink.from.zone, flightLink.to.zone, relationship)
+    val demand = DemandGenerator.computeBaseDemandBetweenAirports(flightLink.from, flightLink.to, affinity, flightLink.distance)
     var linkTotalCapacity = flightLink.getTotalCapacity
     var linkTotalSoldSeats = flightLink.getTotalSoldSeats
 
-    rivalFlightLinks.foreach {
-      rivalFlightLink =>
+    if (rivalFlightLinks.size > 0) {
+      rivalFlightLinks.foreach { rivalFlightLink =>
         linkTotalCapacity += rivalFlightLink.getTotalCapacity
         linkTotalSoldSeats += rivalFlightLink.getTotalSoldSeats
+      }
     }
 
-    if (linkTotalSoldSeats.toDouble / linkTotalCapacity >= 0.90) {
+    if (totalLF >= 98 && (linkTotalSoldSeats.toDouble / linkTotalCapacity >= 0.90 || DemandGenerator.addUpDemands(demand) > linkTotalCapacity)) {
+      // try increase freq
 
+    } else if (totalLF < 90 && flightLink.price.economyVal <= (basePrice.economyVal * 0.75)) {
+      // decrease freq
+      if (flightLink.frequency <= 7) {
+        // try and downsize plane? or delete route
+      } else {
+        // reduce frequency to next multiple of 3
+        val newFrequency = Math.max(3, (flightLink.frequency / 3) * 3)
+        val newLink = flightLink.copy(frequency = newFrequency)
+        LinkSource.updateLink(newLink)
+      }
     }
   }
 
@@ -149,6 +161,49 @@ object AISimulation {
     val totalLoadFactor = if (totalCapacity > 0) totalSold.toDouble / totalCapacity else 0.0
 
     (economyLoadFactor.toInt, businessLoadFactor.toInt, firstLoadFactor.toInt, totalLoadFactor.toInt)
+  }
+
+  private def getAverageRivalPrice(link: Link, rivalLinks: List[Link]) : (Int, Int, Int) = {
+    var economyPrice = 0
+    var businessPrice = 0
+    var firstPrice = 0
+    var avgEconomyPrice = 0
+    var avgBusinessPrice = 0
+    var avgFirstPrice = 0
+
+    if (rivalLinks.size > 0) {
+      rivalLinks.foreach { rivalLink =>
+        economyPrice += rivalLink.price.economyVal
+        businessPrice += rivalLink.price.businessVal
+        firstPrice += rivalLink.price.firstVal
+      }
+
+      avgEconomyPrice = economyPrice / rivalLinks.size
+      avgBusinessPrice = businessPrice / rivalLinks.size
+      avgFirstPrice = firstPrice / rivalLinks.size
+    }
+
+    (avgEconomyPrice, avgBusinessPrice, avgFirstPrice)
+  }
+
+  private def getTotalRivalCapacity(link: Link, rivalLinks: List[Link]) : (Int, Int, Int) = {
+    var totalEconomyCapacity = 0
+    var totalBusinessCapacity = 0
+    var totalFirstCapacity = 0
+
+    if (rivalLinks.size > 0) {
+      rivalLinks.foreach { rivalLink =>
+        totalEconomyCapacity += rivalLink.capacity.economyVal
+        totalBusinessCapacity += rivalLink.capacity.businessVal
+        totalFirstCapacity += rivalLink.capacity.firstVal
+      }
+    }
+
+    (totalEconomyCapacity, totalBusinessCapacity, totalFirstCapacity)
+  }
+
+  private def isCompetition(link: Link, rivalLinks: List[Link]) : Boolean = {
+    if (rivalLinks.isEmpty) { return false } else return true
   }
 
   // finances
