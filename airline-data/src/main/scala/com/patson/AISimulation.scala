@@ -5,7 +5,11 @@ import com.patson.model._
 import com.patson.model.airplane.Model
 import com.patson.model.airplane.AirplaneConfiguration.first
 import scala.util.Random
+import scala.collection.mutable
 import com.patson.DemandGenerator.Demand
+import com.patson.model.airplane.Airplane
+import com.patson.model.airplane.LinkAssignment
+import com.patson.model.airplane.AirplaneConfiguration
 
 /* AI Design
 
@@ -122,8 +126,15 @@ object AISimulation {
       } else {
         // reduce frequency to next multiple of 3
         val newFrequency = Math.max(3, (flightLink.frequency / 3) * 3)
+        val maxFrequencyPerAirplane = Computation.calculateMaxFrequency(flightLink.getAssignedModel().get, flightLink.distance)
+        val airplanesRequired = Math.max(1, newFrequency / maxFrequencyPerAirplane)
+        val assignedAirplanes = updateAssignedPlanes(flightLink.getAssignedModel().get, flightLink.airline, flightLink.from, newFrequency, flightLink.distance, airplanesRequired, maxFrequencyPerAirplane)
         val newLink = flightLink.copy(frequency = newFrequency)
+
+        newLink.setAssignedAirplanes(assignedAirplanes)
+
         LinkSource.updateLink(newLink)
+        LinkSource.updateAssignedPlanes(newLink.id, assignedAirplanes)
       }
     }
   }
@@ -210,4 +221,55 @@ object AISimulation {
 
 
   // fleet management
+
+  private def updateAssignedPlanes(model: Model, airline: Airline, homeAirport: Airport, frequency: Int, distance: Int, airplanesRequired: Int, maxFrequencyPerAirplane: Int) : Map[Airplane, LinkAssignment] = {
+    val assignedAirplanes = mutable.Map[Airplane, LinkAssignment]()
+    val flightMinutesRequired = Computation.calculateFlightMinutesRequired(model, distance)
+    var remainingFrequency = frequency
+    val allAirplanes = AirplaneSource.loadAirplanesByOwner(airline.id)
+    val availablePlanesOfModel = allAirplanes.filter(_.model == model).toBuffer
+    // Map to track each plane's remaining minutes
+    val airplaneRemainingMinutes = availablePlanesOfModel.map { airplane =>
+      airplane -> (airplane.availableFlightMinutes)
+    }.filter(_._2 >= flightMinutesRequired) // Only keep usable planes
+
+    val sortedPlanes = airplaneRemainingMinutes.sortBy(-_._2).toBuffer // Prefer planes with most free time
+
+    for (_ <- 0 until airplanesRequired if remainingFrequency > 0) {
+      val (selectedPlane, availableMinutes) = if (sortedPlanes.nonEmpty) {
+        sortedPlanes.remove(0)
+      } else {
+        // No existing plane available — buy new
+        val newAirplane = createAirplane(model, airline, homeAirport)
+        (newAirplane, Airplane.MAX_FLIGHT_MINUTES)
+      }
+
+      val frequencyForThis = math.min(remainingFrequency, Math.floor(availableMinutes / flightMinutesRequired).toInt)
+      val flightMinutesForThis = frequencyForThis * flightMinutesRequired
+
+      assignedAirplanes.put(selectedPlane, LinkAssignment(frequencyForThis, flightMinutesForThis))
+
+      remainingFrequency -= frequencyForThis
+    }
+
+    assignedAirplanes.toMap
+  }
+
+  private def createAirplane(model: Model, airline: Airline, homeAirport: Airport): Airplane = {
+    val airplane = Airplane(
+      model = model,
+      owner = airline,
+      constructedCycle = 1,
+      purchasedCycle = 1,
+      condition = Airplane.MAX_CONDITION,
+      depreciationRate = 0,
+      value = model.price,
+      home = homeAirport,
+      configuration = AirplaneConfiguration.empty
+    )
+
+    airplane.assignDefaultConfiguration()
+    AirplaneSource.saveAirplanes(List(airplane))
+    airplane
+  }
 }
