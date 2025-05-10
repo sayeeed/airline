@@ -69,7 +69,6 @@ object AISimulation {
     }
   }
 
-  private def addNewRoute()
 
   /* 
    * Adjusts the price (economy, business, first all separated) of the specified flight link by 5%:
@@ -431,6 +430,9 @@ object AISimulation {
 
     return bases.head
   }
+
+
+  // decision tree logic
 
   private def scoreAirportAsBase(airline: Airline, airport: Airport, airlineProfile: AirlineStrategyProfile) : Double = {
     val isDomestic = airline.getCountryCode().get == airport.countryCode
