@@ -121,8 +121,9 @@ object AISimulation {
 
     } else if (totalLF < 90 && flightLink.price.economyVal <= (basePrice.economyVal * 0.75)) {
       // decrease freq
-      if (flightLink.frequency <= 7) {
+      if (flightLink.frequency <= 3) {
         // try and downsize plane? or delete route
+        LinkSource.deleteLink(flightLink.id)
       } else {
         // reduce frequency to next multiple of 3
         val newFrequency = Math.max(3, (flightLink.frequency / 3) * 3)
@@ -133,6 +134,7 @@ object AISimulation {
 
         newLink.setAssignedAirplanes(assignedAirplanes)
 
+        println("Updating link with new frequency")
         LinkSource.updateLink(newLink)
         LinkSource.updateAssignedPlanes(newLink.id, assignedAirplanes)
       }
