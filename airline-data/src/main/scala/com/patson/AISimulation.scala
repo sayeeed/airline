@@ -69,6 +69,8 @@ object AISimulation {
     }
   }
 
+  private def addNewRoute()
+
   /* 
    * Adjusts the price (economy, business, first all separated) of the specified flight link by 5%:
    *  - Down if the respective load factor is below a certain percentage (e.g. 90) and the current 
@@ -438,15 +440,42 @@ object AISimulation {
       if (airport.zone.contains(affinity)) isRegional = true
     }
 
-    val marketScore = airport.population * 0.5 + airport.income * 0.5
+    val baseWeight = 100
+    val populationScore = airport.population / 100_000_000.0
+    val incomeScore = airport.income / 100_000.0
     val competitionScore = 1.0 - (AirportRating.rateAirport(airport).competitionRating.toDouble / 100)
+    val relationshipScore = 1.0
 
     val geoWeight = 
       if (isDomestic) airlineProfile.domesticBasePriority
       else if (isRegional) airlineProfile.regionBasePriority
       else airlineProfile.globalBasePriority
 
-    marketScore * geoWeight * competitionScore
+    baseWeight * populationScore * incomeScore * geoWeight * competitionScore * relationshipScore
+  }
+
+  private def scoreNewLink(airline: Airline, airlineProfile: AirlineStrategyProfile, fromAirport: Airport, toAirport: Airport, rivalLinks: List[Link]) : Double = {
+    val relationship = countryRelationships.getOrElse((fromAirport.countryCode, toAirport.countryCode), 0)
+    val affinity = Computation.calculateAffinityValue(fromAirport.zone, toAirport.zone, relationship)
+    val distance = Computation.calculateDistance(fromAirport, toAirport)
+    val demand = DemandGenerator.computeBaseDemandBetweenAirports(fromAirport, toAirport, affinity, distance)
+    val rivalLinksOnLink = rivalLinks.filter { link =>
+      link.from == fromAirport && link.to == toAirport && link.airline.id != airline.id
+    }
+    var totalExistingCapacity = 0
+    rivalLinksOnLink.foreach { link => 
+      totalExistingCapacity += link.getTotalCapacity
+    }
+
+    val baseWeight = 100
+    val populationScore = fromAirport.population / 100_000_000.0
+    val incomeScore = fromAirport.income / 100_000.0
+    val competitionScore =
+      if (totalExistingCapacity > DemandGenerator.addUpDemands(demand)) 0.0
+      else totalExistingCapacity.toDouble / DemandGenerator.addUpDemands(demand)
+    val relationshipScore = 1.0
+
+    baseWeight * populationScore * incomeScore * competitionScore * relationshipScore
   }
 
   case class AirlineStrategyProfile(
