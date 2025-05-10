@@ -21,17 +21,19 @@ import com.patson.model.airplane.AirplaneConfiguration
  */
 
 object AISimulation {
+  private lazy val countryRelationships = CountrySource.getCountryMutualRelationships()
+
   def simulateAIAirlines(cycle: Int) = {
     if (cycle % 1 == 0) {
       val aiAirlines = AirlineSource.loadAllAirlines(true).filterNot(_.aiType == AIType.PLAYER)
       val allFlightLinks = LinkSource.loadAllFlightLinks()
       val flightLinksByAirline = allFlightLinks.groupBy(_.airline.id)
-
+      
       aiAirlines.foreach {
         case airline : Airline =>
           if (Random.nextDouble() < 1) {
             val airlineFlightLinks = flightLinksByAirline.getOrElse(airline.id, Nil)
-            routeManagement(airline, airlineFlightLinks, cycle)
+            routeManagement(airline, airlineFlightLinks, flightLinksByAirline, cycle)
           }
       }
     } 
@@ -40,7 +42,7 @@ object AISimulation {
   // route management
   // - update pricing on unprofitable/low load factor routes
   // - increase pricing on full load factor routes
-  private def routeManagement(airline: Airline, flightLinks: List[Link], cycle: Int) = {
+  private def routeManagement(airline: Airline, flightLinks: List[Link], flightLinksByAirline: Map[Int, List[Link]], cycle: Int) = {
     flightLinks.foreach {
       case flightLink : Link =>
         //println("Updating pricing for Airline: " + flightLink.airline.name + " Link: " + flightLink.from.iata + "-" + flightLink.to.iata)
@@ -55,7 +57,7 @@ object AISimulation {
             
           // adjusts prices down if total load factor is below 90% and no major delays or cancellations occurred
           adjustPrices(flightLink, linkConsumption, basePrice)
-          adjustFrequency(flightLink, linkConsumption, rivalFlightLinks, totalLF, basePrice)
+          adjustFrequency(airline, flightLink, linkConsumption, rivalFlightLinks, flightLinksByAirline, totalLF, basePrice)
         }
     }
   }
@@ -101,8 +103,7 @@ object AISimulation {
     }
   }
 
-  private def adjustFrequency(flightLink: Link, linkConsumption: LinkConsumptionDetails, rivalFlightLinks: List[Link], totalLF: Int, basePrice: LinkClassValues) = {
-    lazy val countryRelationships = CountrySource.getCountryMutualRelationships()
+  private def adjustFrequency(airline: Airline, flightLink: Link, linkConsumption: LinkConsumptionDetails, rivalFlightLinks: List[Link], flightLinksByAirline: Map[Int,List[Link]], totalLF: Int, basePrice: LinkClassValues) = {
     val relationship = countryRelationships.getOrElse((flightLink.from.countryCode, flightLink.to.countryCode), 0)
     val affinity = Computation.calculateAffinityValue(flightLink.from.zone, flightLink.to.zone, relationship)
     val demand = DemandGenerator.computeBaseDemandBetweenAirports(flightLink.from, flightLink.to, affinity, flightLink.distance)
@@ -121,26 +122,8 @@ object AISimulation {
       var newFrequency = ((flightLink.frequency / 3) + 1) * 3
       if (newFrequency % 7 == 6) { newFrequency += 1 }
       else if (newFrequency % 7 == 1) { newFrequency -= 1 }
-      val maxFrequencyPerAirplane = Computation.calculateMaxFrequency(flightLink.getAssignedModel().get, flightLink.distance)
-      val airplanesRequired = Math.max(1, newFrequency / maxFrequencyPerAirplane)
-      val assignedAirplanes = updateAssignedPlanes(flightLink.getAssignedModel().get, flightLink.airline, flightLink.from, newFrequency, flightLink.distance, airplanesRequired, maxFrequencyPerAirplane)
-      val newLink = flightLink.copy(frequency = newFrequency)
-
-      newLink.setAssignedAirplanes(assignedAirplanes)
-
-      println("Updating link with new frequency")
-      LinkSource.updateLink(newLink)
-      LinkSource.updateAssignedPlanes(newLink.id, assignedAirplanes)
-    } else if (totalLF < 90 && flightLink.price.economyVal <= (basePrice.economyVal * 0.75)) {
-      // decrease freq
-      if (flightLink.frequency <= 3) {
-        // try and downsize plane? or delete route
-        LinkSource.deleteLink(flightLink.id)
-      } else {
-        // reduce frequency to next multiple of 3
-        var newFrequency = Math.max(3, (flightLink.frequency / 3) * 3)
-        if (newFrequency % 7 == 6) { newFrequency += 1 }
-        else if (newFrequency % 7 == 1) { newFrequency -= 1 }
+      
+      if (canBaseSupportLink(airline, flightLink.copy(frequency = newFrequency), flightLinksByAirline, flightLink.from) && canAffordAirplane(airline, flightLink.getAssignedModel().get)) {
         val maxFrequencyPerAirplane = Computation.calculateMaxFrequency(flightLink.getAssignedModel().get, flightLink.distance)
         val airplanesRequired = Math.max(1, newFrequency / maxFrequencyPerAirplane)
         val assignedAirplanes = updateAssignedPlanes(flightLink.getAssignedModel().get, flightLink.airline, flightLink.from, newFrequency, flightLink.distance, airplanesRequired, maxFrequencyPerAirplane)
@@ -150,7 +133,29 @@ object AISimulation {
 
         println("Updating link with new reduced frequency")
         LinkSource.updateLink(newLink)
-        LinkSource.updateAssignedPlanes(newLink.id, assignedAirplanes)
+        LinkSource.updateAssignedPlanes(newLink.id, assignedAirplanes) 
+      } else if (totalLF < 90 && flightLink.price.economyVal <= (basePrice.economyVal * 0.75)) {
+        // decrease freq
+        if (flightLink.frequency <= 3) {
+          // try and downsize plane? or delete route
+          LinkSource.deleteLink(flightLink.id)
+        } else {
+          // reduce frequency to next multiple of 3
+          var newFrequency = Math.max(3, (flightLink.frequency / 3) * 3)
+          if (newFrequency % 7 == 6) { newFrequency += 1 }
+          else if (newFrequency % 7 == 1) { newFrequency -= 1 }
+
+          val maxFrequencyPerAirplane = Computation.calculateMaxFrequency(flightLink.getAssignedModel().get, flightLink.distance)
+          val airplanesRequired = Math.max(1, newFrequency / maxFrequencyPerAirplane)
+          val assignedAirplanes = updateAssignedPlanes(flightLink.getAssignedModel().get, flightLink.airline, flightLink.from, newFrequency, flightLink.distance, airplanesRequired, maxFrequencyPerAirplane)
+          val newLink = flightLink.copy(frequency = newFrequency)
+
+          newLink.setAssignedAirplanes(assignedAirplanes)
+
+          println("Updating link with new reduced frequency")
+          LinkSource.updateLink(newLink)
+          LinkSource.updateAssignedPlanes(newLink.id, assignedAirplanes)
+        }
       }
     }
   }
@@ -287,5 +292,29 @@ object AISimulation {
     airplane.assignDefaultConfiguration()
     AirplaneSource.saveAirplanes(List(airplane))
     airplane
+  }
+
+  private def canAffordAirplane(airline: Airline, model: Model) : Boolean = {
+    if (airline.airlineInfo.balance - model.price > 1000000) {
+      return true
+    }
+    else return false
+  }
+
+  // base management
+  
+  private def canBaseSupportLink(airline: Airline, link: Link, flightLinksByAirline: Map[Int, List[Link]], homeAirport: Airport) : Boolean = {
+    val base = airline.getBases().find(_.airport == homeAirport).get
+    val linksByFromAirport = flightLinksByAirline.get(airline.id).getOrElse(List.empty).groupBy(_.from.id)
+    val currentBaseStaff = linksByFromAirport.get(base.airport.id) match {
+      case Some(links) => links.map(_.getCurrentOfficeStaffRequired).sum
+      case None => 0
+    }
+
+    if (base.airport == homeAirport && (link.getCurrentOfficeStaffRequired + currentBaseStaff) <= base.getOfficeStaffCapacity) {
+      return true
+    }
+
+    return false
   }
 }
