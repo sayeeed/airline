@@ -40,6 +40,8 @@ object AirlineGenerator extends App {
     
     // Generate AI Airlines
     generateDelta()
+    generateAmerican()
+    generateUnited()
 
 
     /*
@@ -125,6 +127,28 @@ object AirlineGenerator extends App {
   // max links per base to generate
   // max long distance links per base to generate
 
+  def generateTestAirlines(number: Int): Unit = {
+    val bases = airports.filterNot(_.isDomesticAirport()).filter(_.countryCode == "US").takeRight(8).reverse
+    val HQ = bases.head
+    val toAirports = airports.filter(_.countryCode == "US")
+    generateAIAirline(
+      s"Rats ${number}",
+      s"rats${number}",
+      AirlineType.LEGACY,
+      AIType.AGGRESSIVE,
+      HQ,
+      bases.tail,
+      toAirports,
+      List("Boeing 737-800", "Boeing 737-900ER", "Boeing 767-300", "Airbus A350-900"),
+      12000,
+      60,
+      24,
+      8,
+      60
+    )
+  }
+  
+  
   def generateDelta(): Unit = {
     val bases = airports.filter(airport => airport.iata == "JFK" || airport.iata == "BOS" || airport.iata == "DTW" || airport.iata == "LAX" || airport.iata == "MSP" || airport.iata == "LGA" || airport.iata == "SLC" || airport.iata == "SEA")
     val HQ = airports.find(_.iata == "ATL").getOrElse(bases.head)
@@ -146,26 +170,50 @@ object AirlineGenerator extends App {
     )
   }
 
+  def generateUnited(): Unit = {
+    val bases = airports.filter(airport => airport.iata == "DEN" || airport.iata == "GUM" || airport.iata == "IAH" || airport.iata == "LAX" || airport.iata == "EWR" || airport.iata == "SFO" || airport.iata == "IAD")    
+    val HQ = airports.find(_.iata == "ORD").getOrElse(bases.head)
+    val toAirports = airports.filter(_.countryCode == "US")
+    generateAIAirline(
+      s"United Airlines",
+      s"unitedairlines",
+      AirlineType.LEGACY,
+      AIType.AGGRESSIVE,
+      HQ,
+      bases,
+      toAirports,
+      List("Boeing 737-800", "Boeing 737-900ER", "Boeing 737 MAX 8", "Boeing 767-300", "Boeing 787-9 Dreamliner"),
+      12000,
+      60,
+      24,
+      8,
+      60
+    )
+  }
+
+  def generateAmerican(): Unit = {
+    val bases = airports.filter(airport => airport.iata == "ORD" || airport.iata == "CLT" || airport.iata == "LAX" || airport.iata == "MIA" || airport.iata == "JFK" || airport.iata == "LGA" || airport.iata == "PHL" || airport.iata == "PHX" || airport.iata == "DCA")
+    val HQ = airports.find(_.iata == "DFW").getOrElse(bases.head)
+    val toAirports = airports.filter(_.countryCode == "US")
+    generateAIAirline(
+      s"American Airlines",
+      s"americanairlines",
+      AirlineType.LEGACY,
+      AIType.AGGRESSIVE,
+      HQ,
+      bases,
+      toAirports,
+      List("Boeing 737-800", "Boeing 737 MAX 8", "Boeing 777-200", "Boeing 787-9 Dreamliner"),
+      12000,
+      60,
+      24,
+      8,
+      60
+    )
+  }
+
 
   // old
-  
-  def generateDeltaAirLines(countryCodes : List[String]): Unit = {
-    countryCodes.foreach(countryCode => {
-      val bases = airports.filter(airport => airport.iata == "JFK" || airport.iata == "BOS" || airport.iata == "DTW" || airport.iata == "LAX" || airport.iata == "MSP" || airport.iata == "LGA" || airport.iata == "SLC" || airport.iata == "SEA")
-      val HQ = airports.find(_.iata == "ATL").getOrElse(bases.head)
-      val toAirports = airports.filter(_.countryCode == countryCode)
-      generateAirline(
-        s"Delta Air Lines",
-        s"deltaairlines",
-        HQ,
-        bases,
-        toAirports,
-        List("Boeing 717-200", "Boeing 737-800", "Boeing 737-900ER", "Boeing 757-200", "Boeing 767-300", "Airbus A220-300", "Airbus A321", "Airbus A330-300", "Airbus A350-900"),
-        8000,
-        60
-      )
-    })
-  }
 
   def generateAmericanAirlines(countryCodes : List[String]): Unit = {
     countryCodes.foreach(countryCode => {

@@ -51,12 +51,16 @@ object AISimulation {
 
         linkConsumptions.foreach { linkConsumption =>
           val basePrice = LinkClassValues(linkConsumption.link.price.economyVal, linkConsumption.link.price.businessVal, linkConsumption.link.price.firstVal)
+            
           // all 10-week averages
           val (economyLF, businessLF, firstLF, totalLF) = computeAverageLoadFactor(flightLink, cycle)
           val (avgEconomyPrice, avgBusinessPrice, avgFirstPrice) = getAverageRivalPrice(flightLink, rivalFlightLinks)
-            
+
+          println("Link: " + flightLink.from.iata + "-" + flightLink.to.iata)
+          println("Avg Load Factors: " + economyLF + "% / " + businessLF + "% / " + firstLF + "%")
+
           // adjusts prices down if total load factor is below 90% and no major delays or cancellations occurred
-          adjustPrices(flightLink, linkConsumption, basePrice)
+          adjustPrices(flightLink, linkConsumption, basePrice, economyLF, businessLF, firstLF)
           adjustFrequency(airline, flightLink, linkConsumption, rivalFlightLinks, flightLinksByAirline, totalLF, basePrice, cycle)
         }
     }
@@ -68,35 +72,33 @@ object AISimulation {
    *    percentage off base price is no less than 75% (to prevent prices spiraling down)
    *  - Up if the respective load factor is equal to 100%
    */
-  private def adjustPrices(flightLink: Link, linkConsumption: LinkConsumptionDetails, basePrice: LinkClassValues) = {
+  private def adjustPrices(flightLink: Link, linkConsumption: LinkConsumptionDetails, basePrice: LinkClassValues, economyLF: Int, businessLF: Int, firstLF: Int) = {
     val basePrice = LinkClassValues(linkConsumption.link.price.economyVal, linkConsumption.link.price.businessVal, linkConsumption.link.price.firstVal)
-    var newEconomyPrice = flightLink.price.economyVal.toDouble
-    var newBusinessPrice = flightLink.price.businessVal.toDouble
-    var newFirstPrice = flightLink.price.firstVal.toDouble
-              
+    
+    var newEconomyPrice = flightLink.price.economyVal
+    var newBusinessPrice = flightLink.price.businessVal
+    var newFirstPrice = flightLink.price.firstVal
+      
     if (linkConsumption.link.capacity.economyVal > 0) {
-      val economyLoadFactor = ((linkConsumption.link.soldSeats.economyVal.toDouble / linkConsumption.link.capacity.economyVal.toDouble) * 100).toInt
       val economyPercentage = (flightLink.price.economyVal.toDouble / basePrice.economyVal.toDouble)
-      if (economyLoadFactor < 90 && economyPercentage > 0.75) { newEconomyPrice = (basePrice.economyVal * (economyPercentage - 0.05)).toInt }
-      if (economyLoadFactor == 100) { newEconomyPrice = (basePrice.economyVal * (economyPercentage + 0.05)).toInt }
+      if (economyLF < 60 && economyPercentage > 0.75) { newEconomyPrice = (basePrice.economyVal * (economyPercentage - 0.05)).toInt }
+      if (economyLF == 100) { newEconomyPrice = (basePrice.economyVal * (economyPercentage + 0.05)).toInt }
     }
 
     if (linkConsumption.link.capacity.businessVal > 0) {
-      val businessLoadFactor = ((linkConsumption.link.soldSeats.businessVal.toDouble / linkConsumption.link.capacity.businessVal.toDouble) * 100).toInt
       val businessPercentage = (flightLink.price.businessVal.toDouble / basePrice.businessVal.toDouble)
-      if (businessLoadFactor < 90 && businessPercentage > 0.75) { newBusinessPrice = (basePrice.businessVal * (businessPercentage - 0.05)).toInt }
-      if (businessLoadFactor == 100) { newBusinessPrice = (basePrice.businessVal * (businessPercentage + 0.05)).toInt }
+      if (businessLF < 60 && businessPercentage > 0.75) { newBusinessPrice = (basePrice.businessVal * (businessPercentage - 0.05)).toInt }
+      if (businessLF == 100) { newBusinessPrice = (basePrice.businessVal * (businessPercentage + 0.05)).toInt }
     }
               
     if (linkConsumption.link.capacity.firstVal > 0) {
-      val firstLoadFactor = ((linkConsumption.link.soldSeats.firstVal.toDouble / linkConsumption.link.capacity.firstVal.toDouble) * 100).toInt
       val firstPercentage = (flightLink.price.firstVal.toDouble / basePrice.firstVal.toDouble)
-      if (firstLoadFactor < 90 && firstPercentage > 0.75) { newFirstPrice = (basePrice.firstVal * (firstPercentage - 0.05)).toInt }
-      if (firstLoadFactor == 100) { newFirstPrice = (basePrice.firstVal * (firstPercentage + 0.05)).toInt }
+      if (firstLF < 60 && firstPercentage > 0.75) { newFirstPrice = (basePrice.firstVal * (firstPercentage - 0.05)).toInt }
+      if (firstLF == 100) { newFirstPrice = (basePrice.firstVal * (firstPercentage + 0.05)).toInt }
     }
 
     if (newEconomyPrice != flightLink.price.economyVal || newBusinessPrice != flightLink.price.businessVal || newFirstPrice != flightLink.price.firstVal) {
-      val newPrices = LinkClassValues(newEconomyPrice.toInt, newBusinessPrice.toInt, newFirstPrice.toInt)
+      val newPrices = LinkClassValues(newEconomyPrice, newBusinessPrice, newFirstPrice)
       val newLink = flightLink.copy(price = newPrices)
       println("Updated the above link to new prices: " + newLink)
       LinkSource.updateLink(newLink)
@@ -184,15 +186,15 @@ object AISimulation {
       totalFirstCapacity += linkConsumption.link.capacity.firstVal        
     }
 
-    val economyLoadFactor = if (totalEconomyCapacity > 0) totalEconomySold.toDouble / totalEconomyCapacity else 0.0
-    val businessLoadFactor = if (totalBusinessCapacity > 0) totalBusinessSold.toDouble / totalBusinessCapacity else 0.0
-    val firstLoadFactor = if (totalFirstCapacity > 0) totalFirstSold.toDouble / totalFirstCapacity else 0.0
+    val economyLoadFactor = if (totalEconomyCapacity > 0) ((totalEconomySold.toDouble / totalEconomyCapacity) * 100).toInt else 0
+    val businessLoadFactor = if (totalBusinessCapacity > 0) ((totalBusinessSold.toDouble / totalBusinessCapacity) * 100).toInt else 0
+    val firstLoadFactor = if (totalFirstCapacity > 0) ((totalFirstSold.toDouble / totalFirstCapacity) * 100).toInt else 0
 
     val totalSold = totalEconomySold + totalBusinessSold + totalFirstSold
     val totalCapacity = totalEconomyCapacity + totalBusinessCapacity + totalFirstCapacity
-    val totalLoadFactor = if (totalCapacity > 0) totalSold.toDouble / totalCapacity else 0.0
+    val totalLoadFactor = if (totalCapacity > 0) ((totalSold.toDouble / totalCapacity) * 100).toInt else 0
 
-    (economyLoadFactor.toInt, businessLoadFactor.toInt, firstLoadFactor.toInt, totalLoadFactor.toInt)
+    (economyLoadFactor, businessLoadFactor, firstLoadFactor, totalLoadFactor)
   }
 
   private def getAverageRivalPrice(link: Link, rivalLinks: List[Link]) : (Int, Int, Int) = {
