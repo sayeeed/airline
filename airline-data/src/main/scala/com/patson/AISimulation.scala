@@ -33,6 +33,7 @@ object AISimulation {
         case airline : Airline =>
           if (Random.nextDouble() < 1) {
             val airlineFlightLinks = flightLinksByAirline.getOrElse(airline.id, Nil)
+            val linksByFromAirport = flightLinksByAirline.get(airline.id).getOrElse(List.empty).groupBy(_.from.id)
             routeManagement(airline, airlineFlightLinks, flightLinksByAirline, cycle)
           }
       }
@@ -309,18 +310,99 @@ object AISimulation {
 
   // base management
   
+  private def baseManagement(airline: Airline, linksByFromAirport: Map[Int, List[Link]], cycle: Int) = {
+    val bases = airline.getBases()
+
+    if (allBasesAtCapacity(bases, airline, linksByFromAirport)) {
+      // upgrade bases or expand to a new base
+      val airlineCashFlow = CashFlowSource.loadCashFlowByAirline(airline.id, cycle, Period.WEEKLY)
+      val cashFlow = if (airlineCashFlow.isDefined) airlineCashFlow.get.cashFlow else 0
+
+      val baseToUpgrade = getLowestScaleBase(bases)
+      if (canUpgradeBase(airline, baseToUpgrade, cashFlow)) {
+        val upgradeCost = baseToUpgrade.calculateUpgradeCost(baseToUpgrade.scale + 1)
+        AirlineSource.saveCashFlowItem(AirlineCashFlowItem(airline.id, CashFlowType.BASE_CONSTRUCTION, upgradeCost * -1))
+        AirlineSource.saveAirlineBase(baseToUpgrade.copy(scale = (baseToUpgrade.scale + 1)))
+      } else {
+        // expand new base
+        
+      }
+    }
+  }
+
+  private def canUpgradeBase(airline: Airline, base: AirlineBase, cashFlow: Long) : Boolean = {
+    val multiplier = base.scale match {
+      case 1 | 2 => 1
+      case 3 | 4 => 2
+      case 5 | 6 => 3
+      case 7 | 8 => 5
+      case 9 | 10 => 8
+      case 11 | 12 => 12
+      case _ => 14
+    }
+
+    val safeSpendingLimit = cashFlow * 6 * multiplier
+    val upgradeCost = base.calculateUpgradeCost(base.scale + 1)
+
+    if ((airline.getBalance() - upgradeCost > 1000000) && safeSpendingLimit > upgradeCost) return true
+    return false
+  }
+
+  private def getLowestScaleBase(bases: List[AirlineBase]) : AirlineBase = {
+    var lowestScaleBase = getHeadquarter(bases)
+    bases.foreach { base =>
+      if (base.scale < lowestScaleBase.scale) lowestScaleBase = base
+    }
+
+    lowestScaleBase
+  }
+
+  private def isBaseMaxCapacity(airline: Airline, base: AirlineBase, linksByFromAirport: Map[Int, List[Link]]) : Boolean = {
+    val linksFromBase = linksByFromAirport.get(base.airport.id)
+    val currentBaseStaff = getCurrentBaseStaffRequired(airline, base, linksByFromAirport)
+    if (linksFromBase.nonEmpty && currentBaseStaff > (base.getOfficeStaffCapacity - 15)) {
+      return true
+    }
+
+    return false
+  }
+
+  private def allBasesAtCapacity(bases: List[AirlineBase], airline: Airline, linksByFromAirport: Map[Int, List[Link]]) : Boolean = {
+    bases.foreach { base =>
+      if (!isBaseMaxCapacity(airline, base, linksByFromAirport)) {
+        return false
+      }
+    }
+
+    return true
+  }
+  
   private def canBaseSupportLink(airline: Airline, link: Link, flightLinksByAirline: Map[Int, List[Link]], homeAirport: Airport) : Boolean = {
     val base = airline.getBases().find(_.airport == homeAirport).get
     val linksByFromAirport = flightLinksByAirline.get(airline.id).getOrElse(List.empty).groupBy(_.from.id)
-    val currentBaseStaff = linksByFromAirport.get(base.airport.id) match {
-      case Some(links) => links.map(_.getCurrentOfficeStaffRequired).sum
-      case None => 0
-    }
+    val currentBaseStaff = getCurrentBaseStaffRequired(airline, base, linksByFromAirport)
 
     if (base.airport == homeAirport && (link.getCurrentOfficeStaffRequired + currentBaseStaff) <= base.getOfficeStaffCapacity) {
       return true
     }
 
     return false
+  }
+
+  private def getCurrentBaseStaffRequired(airline: Airline, base: AirlineBase, linksByFromAirport: Map[Int, List[Link]]) : Int = {
+    val currentBaseStaff = linksByFromAirport.get(base.airport.id) match {
+      case Some(links) => links.map(_.getCurrentOfficeStaffRequired).sum
+      case None => 0
+    }
+
+    currentBaseStaff
+  }
+
+  private def getHeadquarter(bases: List[AirlineBase]) : AirlineBase = {
+    bases.foreach { base =>
+      if (base.headquarter) return base
+    }
+
+    return bases.head
   }
 }
