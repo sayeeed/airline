@@ -57,7 +57,7 @@ object AISimulation {
             
           // adjusts prices down if total load factor is below 90% and no major delays or cancellations occurred
           adjustPrices(flightLink, linkConsumption, basePrice)
-          adjustFrequency(airline, flightLink, linkConsumption, rivalFlightLinks, flightLinksByAirline, totalLF, basePrice)
+          adjustFrequency(airline, flightLink, linkConsumption, rivalFlightLinks, flightLinksByAirline, totalLF, basePrice, cycle)
         }
     }
   }
@@ -103,7 +103,7 @@ object AISimulation {
     }
   }
 
-  private def adjustFrequency(airline: Airline, flightLink: Link, linkConsumption: LinkConsumptionDetails, rivalFlightLinks: List[Link], flightLinksByAirline: Map[Int,List[Link]], totalLF: Int, basePrice: LinkClassValues) = {
+  private def adjustFrequency(airline: Airline, flightLink: Link, linkConsumption: LinkConsumptionDetails, rivalFlightLinks: List[Link], flightLinksByAirline: Map[Int,List[Link]], totalLF: Int, basePrice: LinkClassValues, cycle: Int) = {
     val relationship = countryRelationships.getOrElse((flightLink.from.countryCode, flightLink.to.countryCode), 0)
     val affinity = Computation.calculateAffinityValue(flightLink.from.zone, flightLink.to.zone, relationship)
     val demand = DemandGenerator.computeBaseDemandBetweenAirports(flightLink.from, flightLink.to, affinity, flightLink.distance)
@@ -126,7 +126,7 @@ object AISimulation {
       if (canBaseSupportLink(airline, flightLink.copy(frequency = newFrequency), flightLinksByAirline, flightLink.from) && canAffordAirplane(airline, flightLink.getAssignedModel().get)) {
         val maxFrequencyPerAirplane = Computation.calculateMaxFrequency(flightLink.getAssignedModel().get, flightLink.distance)
         val airplanesRequired = Math.max(1, newFrequency / maxFrequencyPerAirplane)
-        val assignedAirplanes = updateAssignedPlanes(flightLink.getAssignedModel().get, flightLink.airline, flightLink.from, newFrequency, flightLink.distance, airplanesRequired, maxFrequencyPerAirplane)
+        val assignedAirplanes = updateAssignedPlanes(flightLink.getAssignedModel().get, flightLink.airline, flightLink.from, newFrequency, flightLink.distance, airplanesRequired, maxFrequencyPerAirplane, cycle)
         val newLink = flightLink.copy(frequency = newFrequency)
 
         newLink.setAssignedAirplanes(assignedAirplanes)
@@ -147,7 +147,7 @@ object AISimulation {
 
           val maxFrequencyPerAirplane = Computation.calculateMaxFrequency(flightLink.getAssignedModel().get, flightLink.distance)
           val airplanesRequired = Math.max(1, newFrequency / maxFrequencyPerAirplane)
-          val assignedAirplanes = updateAssignedPlanes(flightLink.getAssignedModel().get, flightLink.airline, flightLink.from, newFrequency, flightLink.distance, airplanesRequired, maxFrequencyPerAirplane)
+          val assignedAirplanes = updateAssignedPlanes(flightLink.getAssignedModel().get, flightLink.airline, flightLink.from, newFrequency, flightLink.distance, airplanesRequired, maxFrequencyPerAirplane, cycle)
           val newLink = flightLink.copy(frequency = newFrequency)
 
           newLink.setAssignedAirplanes(assignedAirplanes)
@@ -243,7 +243,7 @@ object AISimulation {
 
   // fleet management
 
-  private def updateAssignedPlanes(model: Model, airline: Airline, homeAirport: Airport, frequency: Int, distance: Int, airplanesRequired: Int, maxFrequencyPerAirplane: Int) : Map[Airplane, LinkAssignment] = {
+  private def updateAssignedPlanes(model: Model, airline: Airline, homeAirport: Airport, frequency: Int, distance: Int, airplanesRequired: Int, maxFrequencyPerAirplane: Int, cycle: Int) : Map[Airplane, LinkAssignment] = {
     val assignedAirplanes = mutable.Map[Airplane, LinkAssignment]()
     val flightMinutesRequired = Computation.calculateFlightMinutesRequired(model, distance)
     var remainingFrequency = frequency
@@ -261,7 +261,7 @@ object AISimulation {
         sortedPlanes.remove(0)
       } else {
         // No existing plane available — buy new
-        val newAirplane = createAirplane(model, airline, homeAirport)
+        val newAirplane = createAirplane(model, airline, homeAirport, cycle)
         (newAirplane, Airplane.MAX_FLIGHT_MINUTES)
       }
 
@@ -276,18 +276,22 @@ object AISimulation {
     assignedAirplanes.toMap
   }
 
-  private def createAirplane(model: Model, airline: Airline, homeAirport: Airport): Airplane = {
+  private def createAirplane(model: Model, airline: Airline, homeAirport: Airport, cycle: Int): Airplane = {
     val airplane = Airplane(
       model = model,
       owner = airline,
-      constructedCycle = 1,
-      purchasedCycle = 1,
+      constructedCycle = cycle,
+      purchasedCycle = cycle,
       condition = Airplane.MAX_CONDITION,
       depreciationRate = 0,
       value = model.price,
       home = homeAirport,
       configuration = AirplaneConfiguration.empty
     )
+
+    val cost = airplane.model.price
+    AirlineSource.adjustAirlineBalance(airline.id, cost * -1)
+    AirlineSource.saveCashFlowItem(AirlineCashFlowItem(airline.id, CashFlowType.BUY_AIRPLANE, cost * -1))
 
     airplane.assignDefaultConfiguration()
     AirplaneSource.saveAirplanes(List(airplane))
