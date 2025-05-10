@@ -323,18 +323,36 @@ object AISimulation {
         AirlineSource.saveCashFlowItem(AirlineCashFlowItem(airline.id, CashFlowType.BASE_CONSTRUCTION, upgradeCost * -1))
         AirlineSource.saveAirlineBase(baseToUpgrade.copy(scale = (baseToUpgrade.scale + 1)))
       } else {
-        // expand new base
-        //val baseExpansionOptions = allAirports.filter(_.countryCode == airline.getCountryCode())
+        // expand new base; shouldn't expand to new bases if less than 12 current bases
+        if (bases.size < 12) {
+          val newAirportBase = getNewExpansionBase(airline, getAirlineStrategyProfile(airline), allAirports)
+          val base = AirlineBase(airline, newAirportBase, newAirportBase.countryCode, 1, cycle, false)
+          val upgradeCost = base.calculateUpgradeCost(1)
+          AirlineSource.saveCashFlowItem(AirlineCashFlowItem(airline.id, CashFlowType.BASE_CONSTRUCTION, upgradeCost * -1))
+          AirlineSource.saveAirlineBase(base)
+        }
       }
     }
   }
 
-  /*private def getBaseExpansionOptions(airline: Airline, allAirports: List[Airport]) : List[Airport] = {
-    // large countries
-    if (Set("US", "CN", "RU", "IN", "ID", "BR").contains(airline.getCountryCode())) {
+  private def getNewExpansionBase(airline: Airline, airlineProfile: AirlineStrategyProfile, allAirports: List[Airport]) : Airport = {
+    val airportsFiltered = allAirports.filter { airport =>
+      airport.population > 500000 &&
+      (airlineProfile.preferredCountries.contains(airport.countryCode) || airlineProfile.preferredAffinities.contains(airport.zone))  
+    }
 
-    } else if (Set("JP", "CA", "TR", "MX"))
-  }*/
+    var newAirportBase = airportsFiltered.head
+    var newAirportBaseScore = 0.0
+
+    airportsFiltered.foreach { airport => 
+      if (scoreAirportAsBase(airline, airport, airlineProfile) > newAirportBaseScore) {
+        newAirportBase = airport
+        newAirportBaseScore = scoreAirportAsBase(airline, airport, airlineProfile)
+      }
+    }
+
+    newAirportBase
+  }
 
   private def canUpgradeBase(airline: Airline, base: AirlineBase, cashFlow: Long) : Boolean = {
     val multiplier = base.scale match {
@@ -410,5 +428,44 @@ object AISimulation {
     }
 
     return bases.head
+  }
+
+  private def scoreAirportAsBase(airline: Airline, airport: Airport, airlineProfile: AirlineStrategyProfile) : Double = {
+    val isDomestic = airline.getCountryCode().get == airport.countryCode
+    var isRegional = false
+
+    airlineProfile.preferredAffinities.foreach { affinity =>
+      if (airport.zone.contains(affinity)) isRegional = true
+    }
+
+    val marketScore = airport.population * 0.5 + airport.income * 0.5
+    val competitionScore = 1.0 - (AirportRating.rateAirport(airport).competitionRating.toDouble / 100)
+
+    val geoWeight = 
+      if (isDomestic) airlineProfile.domesticBasePriority
+      else if (isRegional) airlineProfile.regionBasePriority
+      else airlineProfile.globalBasePriority
+
+    marketScore * geoWeight * competitionScore
+  }
+
+  case class AirlineStrategyProfile(
+    preferredDomestic: Boolean,
+    preferredCountries: List[String],
+    preferredAffinities: List[String],
+    domesticBasePriority: Double,
+    regionBasePriority: Double,
+    globalBasePriority: Double
+  )
+
+  private def getAirlineStrategyProfile(airline: Airline) : AirlineStrategyProfile = {
+    val airlineProfile = airline.name match {
+      case "Delta Air Lines" => AirlineStrategyProfile(true, List("US"), List("Anglophone"), 1.0, 0.0, 0.0)
+      case "United Airlines" => AirlineStrategyProfile(true, List("US"), List("Anglophone"), 1.0, 0.0, 0.0)
+      case "American Airlines" => AirlineStrategyProfile(true, List("US"), List("Anglophone"), 1.0, 0.0, 0.0)
+      case "British Airways" => AirlineStrategyProfile(true, List("UK"), List("EU"), 0.7, 0.3, 0.0)
+      case "All Nippon Airways" => AirlineStrategyProfile(true, List("JP"), List("ASEAN"), 0.7, 0.3, 0.0)
+    }
+    airlineProfile
   }
 }
