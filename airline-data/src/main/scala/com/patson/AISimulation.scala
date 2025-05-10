@@ -118,7 +118,19 @@ object AISimulation {
 
     if (totalLF >= 98 && (linkTotalSoldSeats.toDouble / linkTotalCapacity >= 0.90 || DemandGenerator.addUpDemands(demand) > linkTotalCapacity)) {
       // try increase freq
+      var newFrequency = ((flightLink.frequency / 3) + 1) * 3
+      if (newFrequency % 7 == 6) { newFrequency += 1 }
+      else if (newFrequency % 7 == 1) { newFrequency -= 1 }
+      val maxFrequencyPerAirplane = Computation.calculateMaxFrequency(flightLink.getAssignedModel().get, flightLink.distance)
+      val airplanesRequired = Math.max(1, newFrequency / maxFrequencyPerAirplane)
+      val assignedAirplanes = updateAssignedPlanes(flightLink.getAssignedModel().get, flightLink.airline, flightLink.from, newFrequency, flightLink.distance, airplanesRequired, maxFrequencyPerAirplane)
+      val newLink = flightLink.copy(frequency = newFrequency)
 
+      newLink.setAssignedAirplanes(assignedAirplanes)
+
+      println("Updating link with new frequency")
+      LinkSource.updateLink(newLink)
+      LinkSource.updateAssignedPlanes(newLink.id, assignedAirplanes)
     } else if (totalLF < 90 && flightLink.price.economyVal <= (basePrice.economyVal * 0.75)) {
       // decrease freq
       if (flightLink.frequency <= 3) {
@@ -126,7 +138,9 @@ object AISimulation {
         LinkSource.deleteLink(flightLink.id)
       } else {
         // reduce frequency to next multiple of 3
-        val newFrequency = Math.max(3, (flightLink.frequency / 3) * 3)
+        var newFrequency = Math.max(3, (flightLink.frequency / 3) * 3)
+        if (newFrequency % 7 == 6) { newFrequency += 1 }
+        else if (newFrequency % 7 == 1) { newFrequency -= 1 }
         val maxFrequencyPerAirplane = Computation.calculateMaxFrequency(flightLink.getAssignedModel().get, flightLink.distance)
         val airplanesRequired = Math.max(1, newFrequency / maxFrequencyPerAirplane)
         val assignedAirplanes = updateAssignedPlanes(flightLink.getAssignedModel().get, flightLink.airline, flightLink.from, newFrequency, flightLink.distance, airplanesRequired, maxFrequencyPerAirplane)
@@ -134,7 +148,7 @@ object AISimulation {
 
         newLink.setAssignedAirplanes(assignedAirplanes)
 
-        println("Updating link with new frequency")
+        println("Updating link with new reduced frequency")
         LinkSource.updateLink(newLink)
         LinkSource.updateAssignedPlanes(newLink.id, assignedAirplanes)
       }
