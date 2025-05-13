@@ -1228,5 +1228,4 @@ object AirlineGenerator extends App {
       }
     })
   }
-
 }
