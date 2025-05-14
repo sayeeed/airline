@@ -503,7 +503,7 @@ object LinkSource {
       preparedStatement.setInt(13, link.id)
       
       val updateCount = preparedStatement.executeUpdate()
-      println("Updated " + updateCount + " link!")
+      //println("Updated " + updateCount + " link!")
 
       if (link.isInstanceOf[Link]) {
         if (hasChange(existingLink.get, link)) {

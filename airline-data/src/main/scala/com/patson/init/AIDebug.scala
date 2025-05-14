@@ -9,7 +9,7 @@ object AIDebug extends App {
   mainFlow
   
   def mainFlow() = {
-    AISimulation.simulateAIAirlines(10)
+    AISimulation.simulateAIAirlines(2)
 
     Await.result(actorSystem.terminate(), Duration.Inf)
   }
