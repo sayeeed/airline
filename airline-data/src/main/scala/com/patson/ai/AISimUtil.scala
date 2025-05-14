@@ -12,6 +12,13 @@ import com.patson.model.airplane.Airplane
 import com.patson.data.CountrySource
 import com.patson.model.Link
 import com.patson.model.AirlineBase
+import com.patson.data.AirlineSource
+import com.patson.model.AirlineCashFlowItem
+import com.patson.model.CashFlowType
+import com.patson.data.CycleSource
+import com.patson.model.DelegateTask
+import com.patson.model.BusyDelegate
+import com.patson.data.DelegateSource
 
 object AISimUtil {
   private lazy val countryRelationships = CountrySource.getCountryMutualRelationships()
@@ -21,6 +28,51 @@ object AISimUtil {
     Route Management
 
    */
+
+  def negotiateLink(airline: Airline, link: Link) : Option[Link] = {
+    // start negotiation process
+    val linkCost = Computation.getLinkCreationCost(link.from, link.to)
+    val existingLink : Option[Link] = LinkSource.loadFlightLinkByAirportsAndAirline(link.from.id, link.to.id, airline.id)
+    val negotiationInfo = NegotiationUtil.getLinkNegotiationInfo(airline, link, existingLink)
+    val delegateCount = Math.ceil(negotiationInfo.finalRequirementValue).toInt
+    // if the airline has enough delegates to negotiate, negotiate link
+    if (delegateCount <= airline.getDelegateInfo().availableCount && delegateCount <= NegotiationUtil.MAX_ASSIGNED_DELEGATE) {
+      val negotiationResultOption =
+        if(negotiationInfo.finalRequirementValue > 0) {
+          Some(NegotiationUtil.negotiate(negotiationInfo, delegateCount))
+        } else {
+          None
+        }
+
+      // if negotiation is successful, return the link and deduct cash for link creation
+      if (negotiationResultOption.map(_.isSuccessful).getOrElse(true)) {
+        println(s"${airline.name} added a new link (${link.from.iata}-${link.to.iata}) with ${link.capacity} total capacity.")
+
+        AirlineSource.saveCashFlowItem(AirlineCashFlowItem(airline.id, CashFlowType.CREATE_LINK, linkCost * -1))
+        AirlineSource.adjustAirlineBalance(airline.id, linkCost * -1)
+
+        Some(link)
+      }
+
+      // regardless of the negotiation is successful or a failure, we'll need to update delegates
+      negotiationResultOption.foreach { negotiationResult =>
+        //update delegate status
+        val cycle = CycleSource.loadCycle()
+        val task = DelegateTask.linkNegotiation(cycle, link.from, link.to)
+        val coolDown = if (negotiationResult.isSuccessful) task.coolDown else task.coolDown / 2 //half cooldown if it was unsuccessful
+        val availableCycle = cycle + coolDown
+  
+        val busyDelegates = (0 until delegateCount).toList.map { _ =>
+          BusyDelegate(airline, task, Some(availableCycle))
+        }
+  
+        DelegateSource.saveBusyDelegates(busyDelegates)
+        LinkSource.saveNegotiationCoolDown(airline, link.from, link.to, cycle + Link.LINK_NEGOTIATION_COOL_DOWN)
+      }
+      None
+    }
+    None
+  }
 
   def isLinkSaturated(airline: Airline, fromAirport: Airport, toAirport: Airport) : Boolean = {
     val linksByAirport = LinkSource.loadFlightLinksByAirports(fromAirport.id, toAirport.id)

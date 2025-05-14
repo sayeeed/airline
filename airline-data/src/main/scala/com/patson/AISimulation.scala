@@ -220,47 +220,8 @@ object AISimulation extends App {
         )
         link.setAssignedAirplanes(assignedAirplanes)
 
-        // start negotiation process
-        val existingLink : Option[Link] = LinkSource.loadFlightLinkByAirportsAndAirline(fromAirport.id, toAirport.id, airline.id)
-        val negotiationInfo = NegotiationUtil.getLinkNegotiationInfo(airline, link, existingLink)
-        val delegateCount = Math.ceil(negotiationInfo.finalRequirementValue).toInt
-        // if the airline has enough delegates to negotiate, negotiate link
-        if (delegateCount <= airline.getDelegateInfo().availableCount && delegateCount <= NegotiationUtil.MAX_ASSIGNED_DELEGATE) {
-          val negotiationResultOption =
-            if(negotiationInfo.finalRequirementValue > 0) {
-              Some(NegotiationUtil.negotiate(negotiationInfo, delegateCount))
-            } else {
-              None
-            }
-
-          // if negotiation is successful, return the link and deduct cash for link creation
-          if (negotiationResultOption.map(_.isSuccessful).getOrElse(true)) {
-            println(s"4 ${airline.name} added a new link (${link.from.iata}-${link.to.iata}) with ${capacity} total capacity.")
-
-            AirlineSource.saveCashFlowItem(AirlineCashFlowItem(airline.id, CashFlowType.CREATE_LINK, linkCost * -1))
-            AirlineSource.adjustAirlineBalance(airline.id, linkCost * -1)
-
-            Some(link)
-          }
-
-          // regardless of the negotiation is successful or a failure, we'll need to update delegates
-          negotiationResultOption.foreach { negotiationResult =>
-            //update delegate status
-            val cycle = CycleSource.loadCycle()
-            val task = DelegateTask.linkNegotiation(cycle, fromAirport, toAirport)
-            val coolDown = if (negotiationResult.isSuccessful) task.coolDown else task.coolDown / 2 //half cooldown if it was unsuccessful
-            val availableCycle = cycle + coolDown
-      
-            val busyDelegates = (0 until delegateCount).toList.map { _ =>
-              BusyDelegate(airline, task, Some(availableCycle))
-            }
-      
-            DelegateSource.saveBusyDelegates(busyDelegates)
-            LinkSource.saveNegotiationCoolDown(airline, link.from, link.to, cycle + Link.LINK_NEGOTIATION_COOL_DOWN)
-          }
-          None
-        }
-        None
+        // negotiation
+        Some(AISimUtil.negotiateLink(airline, link))
       }
       None
     }
@@ -331,9 +292,14 @@ object AISimulation extends App {
 
         newLink.setAssignedAirplanes(assignedAirplanes)
 
-        println(s"Updating link ${newLink.from.iata}-${newLink.to.iata} with new increased frequency")
-        LinkSource.updateLink(newLink)
-        LinkSource.updateAssignedPlanes(newLink.id, assignedAirplanes) 
+        val negotiatedLink = AISimUtil.negotiateLink(airline, newLink) match {
+          case Some(value) =>
+            println(s"Updating link ${newLink.from.iata}-${newLink.to.iata} with new increased frequency")
+            LinkSource.updateLink(newLink)
+            LinkSource.updateAssignedPlanes(newLink.id, assignedAirplanes)
+          case None =>
+            println(s"Negotiating increased frequency failed for link ${newLink.to.iata}-${newLink.from.iata}")
+        }
       }
     } else if (totalLF < 90 && flightLink.price.economyVal <= (basePrice.economyVal * 0.75)) {
       // decrease freq
