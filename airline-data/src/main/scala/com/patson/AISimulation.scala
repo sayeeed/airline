@@ -91,7 +91,8 @@ object AISimulation extends App {
 
     // TODO: implement delegates when placing a new route or upgrading frequency
     var attempts = 0
-    while (airline.getDelegateInfo().availableCount > 1 && airline.airlineInfo.balance > 100_000_000 && attempts < 20) {
+    while (airline.getDelegateInfo().availableCount > 1 && airline.airlineInfo.balance > 50_000_000 && attempts < 20) {
+      // Try and generate close/local routes before trying long-range routes.
       if (Random.nextDouble() < 0.8) {
         generateLinks(
           LinkGeneration(
@@ -162,53 +163,11 @@ object AISimulation extends App {
     }
 
     newLinks
-    
-
-    /*var i = 0
-    while (newLinks.length < config.config.linkCount && i < config.config.poolSize) {
-      
-      val pickedToAirports = drawFromPool(config.toAirports, config.config.poolSize)
-      val toAirport = pickedToAirports(i)
-      val existingLinks = LinkSource.loadFlightLinkByAirportsAndAirline(config.fromAirport.id, toAirport.id, airline.id)
-
-      if (existingLinks.isEmpty && !isLinkSaturated(airline, config.fromAirport, toAirport)) {
-        
-        
-        
-        val demand = getLinkDemand(config.fromAirport, toAirport)
-        val distance = Computation.calculateDistance(config.fromAirport, toAirport)
-        val targetSeats = (demand.travelerDemand.total + demand.businessDemand.total) * 2
-
-        if (targetSeats > 0 && (demand.businessDemand.total + demand.touristDemand.total + demand.travelerDemand.total) > airlineProfile.minimumRouteDemand) {
-          createLink(
-            fromAirport = config.fromAirport,
-            toAirport = toAirport,
-            airline = config.airline,
-            distance = distance,
-            targetSeats = targetSeats,
-            modelsSmall = airplaneModelsSmall,
-            modelsLarge = airplaneModelsLarge,
-            rawQuality = config.config.rawQuality,
-            cycle = cycle
-          ).foreach(newLinks += _)
-        }
-      }
-
-      i += 1
-    }
-
-    if (newLinks.nonEmpty) {
-      LinkSource.saveLinks(newLinks.filter(_.frequency > 0).toList)
-    } else {
-      println(
-        s"No links on ${config.config.description} from ${config.fromAirport.iata} !!!"
-      )
-    }
-
-    newLinks.toList*/
   }
 
   private def createLink(fromAirport: Airport, toAirport: Airport, airline: Airline, distance: Int, targetSeats: Int, modelsSmall: List[Model], modelsLarge: List[Model], rawQuality: Int, cycle: Int): Option[Link] = {
+    // selects the model to fly the link
+    val linkCost = Computation.getLinkCreationCost(fromAirport, toAirport)
     val pickedModel = modelsSmall.find(model =>
         model.capacity * Computation.calculateMaxFrequency(
           model,
@@ -221,11 +180,13 @@ object AISimulation extends App {
         (targetSeats.toDouble / model.capacity).toInt,
         35
       )
-
-      if (frequency > 0 && canAffordAirplane(airline, pickedModel.get)) {
+    
+      // If there is frequency and the airline can afford buying airplanes and the link creation cost, go forward with creating the link
+      if (frequency > 0 && canAffordAirplane(airline, pickedModel.get) && linkCost <= airline.airlineInfo.balance) {
         val maxFrequencyPerAirplane = Computation.calculateMaxFrequency(model, distance)
         val airplanesRequired = math.max(1, frequency / maxFrequencyPerAirplane)
 
+        // add planes to the route. This will also buy planes if needed.
         val assignedAirplanes = updateAssignedPlanes(
           model = model,
           airline = airline,
@@ -237,6 +198,7 @@ object AISimulation extends App {
           cycle = cycle
         )
 
+        // set prices
         val econPrice = (Pricing.computeStandardPrice(distance, Computation.getFlightCategory(fromAirport, toAirport), ECONOMY, PassengerType.BUSINESS, fromAirport.baseIncome)).toInt
         val bizPrice = (Pricing.computeStandardPrice(distance, Computation.getFlightCategory(fromAirport, toAirport), BUSINESS, PassengerType.BUSINESS, fromAirport.baseIncome)).toInt
         val firstPrice = (Pricing.computeStandardPrice(distance, Computation.getFlightCategory(fromAirport, toAirport), FIRST, PassengerType.BUSINESS, fromAirport.baseIncome)).toInt
@@ -244,6 +206,7 @@ object AISimulation extends App {
         val duration = Computation.calculateDuration(model, distance)
         val capacity = AISimUtil.calculateTotalCapacity(assignedAirplanes)
 
+        // create the link
         val link = Link(
           fromAirport,
           toAirport,
@@ -257,13 +220,12 @@ object AISimulation extends App {
         )
         link.setAssignedAirplanes(assignedAirplanes)
 
+        // start negotiation process
         val existingLink : Option[Link] = LinkSource.loadFlightLinkByAirportsAndAirline(fromAirport.id, toAirport.id, airline.id)
         val negotiationInfo = NegotiationUtil.getLinkNegotiationInfo(airline, link, existingLink)
         val delegateCount = Math.ceil(negotiationInfo.finalRequirementValue).toInt
-        println(s"1 delegate count required: ${delegateCount}")
-        println(s"2 delegates available now: ${airline.getDelegateInfo().availableCount}")
+        // if the airline has enough delegates to negotiate, negotiate link
         if (delegateCount <= airline.getDelegateInfo().availableCount && delegateCount <= NegotiationUtil.MAX_ASSIGNED_DELEGATE) {
-          println("3 Starting negotiation")
           val negotiationResultOption =
             if(negotiationInfo.finalRequirementValue > 0) {
               Some(NegotiationUtil.negotiate(negotiationInfo, delegateCount))
@@ -271,20 +233,18 @@ object AISimulation extends App {
               None
             }
 
+          // if negotiation is successful, return the link and deduct cash for link creation
           if (negotiationResultOption.map(_.isSuccessful).getOrElse(true)) {
             println(s"4 ${airline.name} added a new link (${link.from.iata}-${link.to.iata}) with ${capacity} total capacity.")
 
-            val linkCost = Computation.getLinkCreationCost(fromAirport, toAirport)
             AirlineSource.saveCashFlowItem(AirlineCashFlowItem(airline.id, CashFlowType.CREATE_LINK, linkCost * -1))
             AirlineSource.adjustAirlineBalance(airline.id, linkCost * -1)
 
             Some(link)
           }
 
+          // regardless of the negotiation is successful or a failure, we'll need to update delegates
           negotiationResultOption.foreach { negotiationResult =>
-            println(s"4.5 Negotiation successful?: ${negotiationResult.isSuccessful}")
-            println(s"5 Delegates available before negotiation: ${airline.getDelegateInfo().availableCount}")
-            
             //update delegate status
             val cycle = CycleSource.loadCycle()
             val task = DelegateTask.linkNegotiation(cycle, fromAirport, toAirport)
@@ -296,10 +256,7 @@ object AISimulation extends App {
             }
       
             DelegateSource.saveBusyDelegates(busyDelegates)
-      
             LinkSource.saveNegotiationCoolDown(airline, link.from, link.to, cycle + Link.LINK_NEGOTIATION_COOL_DOWN)
-
-            println(s"6 Delegates available after negotiation: ${airline.getDelegateInfo().availableCount}")
           }
           None
         }
