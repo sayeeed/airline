@@ -45,6 +45,14 @@ object AIAirlines {
       // Mexico
       case "Aeromexico" => AirlineStrategyProfile(AirlineType.LEGACY, AIType.PASSIVE, "MEX", List("GDL","MTY"), false, true, List("US","CA","MX","CO","AR","BR","ES","FR","GB","JP","KR"), List("Hispanic"), 0.8, 0.2, 0.0, 500, 60, 14_000, 24, 8, 60, List("Boeing 787-9 Dreamliner", "Boeing 777-300ER", "Airbus A320-200", "Airbus A321neo", "Boeing 737 MAX 8"))
       */
+
+      // Middle East
+      case "Emirates" => AirlineStrategyProfile(AirlineType.MEGA_HQ, AIType.PASSIVE, AirlineFocusStrategy.GLOBAL_PRESTIGE_CARRIER,
+        "DXB", List(),
+        List("IN","CN","JP","KR","AU","BR","AG","US","GB"), List("EU","ASEAN"), List(), List("Sunni"),
+        List(), List(),
+        0.9, 0.1, 500, 16_000, 80, 70,
+        List("Boeing 777-300ER","Airbus A380-800"))
     }
     airlineProfile
   }

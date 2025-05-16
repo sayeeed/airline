@@ -53,6 +53,8 @@ object AirlineGenerator extends App {
     generateAIAirline("Hawaiian Airlines", "hawaiian")
     generateAIAirline("Allegiant Air", "allegiant")*/
 
+    generateAIAirline("Emirates", "emirates")
+
     resizeBases()
 
     println("DONE Creating airlines")
@@ -90,7 +92,6 @@ object AirlineGenerator extends App {
       notSmallAirport && (isSecondaryCountry || isSecondaryAffinity) && isNotPrimaryAirport
     }.distinct
 
-
     val user = createUser(username)
     val airline = createAIAirline(name, hq, profile.airlineType, profile.aiType, profile.targetServiceQuality)
     
@@ -101,10 +102,18 @@ object AirlineGenerator extends App {
     AirlineSource.saveAirlineInfo(airline, false)
     AirlineSource.saveAirplaneRenewal(airline.id, 50)
 
+    var maxLinksPerBase = 24
+    var maxLongLinksPerBase = 8
+
+    if (profile.airlineType == AirlineType.MEGA_HQ) {
+      maxLinksPerBase = 48
+      maxLongLinksPerBase = 24
+    }
+
     makeBase(airline, hq, true)
-    generateLinksForAirline(airline, hq, primaryToAirports, secondaryToAirports, profile.modelNames, profile.linkMaxDistance + 1000, 24, 8, profile.routeServiceLevel)
+    generateLinksForAirline(airline, hq, primaryToAirports, secondaryToAirports, profile.modelNames, profile.linkMaxDistance + 1000, maxLinksPerBase, maxLongLinksPerBase, profile.routeServiceLevel)
     bases.zipWithIndex.foreach { case (baseAirport, index) => makeBase(airline, baseAirport) }
-    bases.foreach( airport => generateLinksForAirline(airline, airport, primaryToAirports, secondaryToAirports, profile.modelNames, profile.linkMaxDistance + 1000, 24, 8, profile.routeServiceLevel))
+    bases.foreach( airport => generateLinksForAirline(airline, airport, primaryToAirports, secondaryToAirports, profile.modelNames, profile.linkMaxDistance + 1000, maxLinksPerBase, maxLongLinksPerBase, profile.routeServiceLevel))
     airline
   }
 
@@ -260,7 +269,7 @@ object AirlineGenerator extends App {
 
     pickedModel.flatMap { model =>
       val rawFrequency = targetSeats.toDouble / model.capacity
-      val closestMultipleOf7 = (Math.round(rawFrequency / 7.0) * 7).toInt
+      val closestMultipleOf7 = (Math.ceil(rawFrequency / 7.0) * 7).toInt
       val frequency = Math.min(closestMultipleOf7, 35)
 
       println(s"Generating link ${fromAirport.iata}-${toAirport.iata} with ${frequency} frequency")

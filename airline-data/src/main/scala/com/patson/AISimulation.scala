@@ -465,28 +465,30 @@ object AISimulation extends App {
         // expand new base; shouldn't expand to new bases if less than 12 current bases
         if (bases.size < 12) {
           val newAirportBase = getNewExpansionBase(airline, AIAirlines.getAirlineStrategyProfile(airline.name), allAirports)
-          val base = AirlineBase(airline, newAirportBase, newAirportBase.countryCode, 1, cycle, false)
-          val upgradeCost = base.calculateUpgradeCost(1)
-          AirlineSource.saveCashFlowItem(AirlineCashFlowItem(airline.id, CashFlowType.BASE_CONSTRUCTION, upgradeCost * -1))
-          AirlineSource.saveAirlineBase(base)
-          println(s"New base opened at ${base.airport.iata}")
+          if (newAirportBase.isDefined) {
+            val base = AirlineBase(airline, newAirportBase.get, newAirportBase.get.countryCode, 1, cycle, false)
+            val upgradeCost = base.calculateUpgradeCost(1)
+            AirlineSource.saveCashFlowItem(AirlineCashFlowItem(airline.id, CashFlowType.BASE_CONSTRUCTION, upgradeCost * -1))
+            AirlineSource.saveAirlineBase(base)
+            println(s"New base opened at ${base.airport.iata}")
+          }
         }
       }
     }
   }
 
-  private def getNewExpansionBase(airline: Airline, airlineProfile: AIAirlines.AirlineStrategyProfile, allAirports: List[Airport]) : Airport = {
+  private def getNewExpansionBase(airline: Airline, airlineProfile: AIAirlines.AirlineStrategyProfile, allAirports: List[Airport]) : Option[Airport] = {
     val airportsFiltered = allAirports.filter { airport =>
       airport.population > 500000 &&
       (airlineProfile.primaryBaseCountries.contains(airport.countryCode) || airlineProfile.primaryBaseAffinities.contains(airport.zone))  
     }
 
-    var newAirportBase = airportsFiltered.head
+    var newAirportBase : Option[Airport] = None
     var newAirportBaseScore = 0.0
 
     airportsFiltered.foreach { airport => 
       if (scoreAirportAsBase(airline, airport, airlineProfile) > newAirportBaseScore) {
-        newAirportBase = airport
+        newAirportBase = Some(airport)
         newAirportBaseScore = scoreAirportAsBase(airline, airport, airlineProfile)
       }
     }
