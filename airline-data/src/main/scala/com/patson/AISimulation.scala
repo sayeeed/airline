@@ -90,6 +90,7 @@ object AISimulation extends App {
     while (airline.getDelegateInfo().availableCount > 1 && airline.airlineInfo.balance > 50_000_000 && attempts < 20) {
       val base = AISimUtil.getLowestCapacityBase(bases, airline, linksByFromAirport)
 
+      // PRIMARY AIRPORTS
       val primaryToAirports = allAirports.filter { airport => 
         val notSmallAirport = airport.size > 3
         val isPrimaryCountry = airlineProfile.primaryCountriesServed.contains(airport.countryCode)
@@ -97,6 +98,7 @@ object AISimulation extends App {
         notSmallAirport && (isPrimaryCountry || isPrimaryAffinity)
       }.distinct
       val primaryAirportIDs = primaryToAirports.map(_.id).toSet
+      // SECONDARY AIRPORTS
       val secondaryToAirports = allAirports.filter { airport => 
         val notSmallAirport = airport.size > 3
         val isSecondaryCountry = airlineProfile.secondaryCountriesServed.contains(airport.countryCode)
@@ -104,7 +106,19 @@ object AISimulation extends App {
         val isNotPrimaryAirport = !primaryAirportIDs.contains(airport.id)
         notSmallAirport && (isSecondaryCountry || isSecondaryAffinity) && isNotPrimaryAirport
       }.distinct
-      
+      val secondaryAirportIDs = secondaryToAirports.map(_.id).toSet
+      // TERTIARY AIRPORTS (base specific airports with high affinity matches)
+      val baseSpecificAirports = allAirports.filter { airport =>
+        val notSmallAirport = airport.size > 3
+        val relationship = CountrySource.getCountryMutualRelationship(base.airport.countryCode, airport.countryCode)
+        val affinity = Computation.calculateAffinityValue(base.airport.zone, airport.zone, relationship)
+        val isNotPrimaryAirport = !primaryAirportIDs.contains(airport.id)
+        val isNotSecondaryAirport = !secondaryAirportIDs.contains(airport.id)
+        notSmallAirport && affinity > 1 && isNotPrimaryAirport && isNotSecondaryAirport
+      }.distinct
+
+      // secondary plus tertiary airports
+      val modifiedSecondaryToAirports = (secondaryToAirports ++ baseSpecificAirports).distinct
 
       // Try and generate close/local routes before trying long-range routes.
       if (Random.nextDouble() < airlineProfile.primaryServedRatio) {
@@ -121,10 +135,10 @@ object AISimulation extends App {
         generateLinks(
           LinkGeneration(
             fromAirport = base.airport,
-            toAirports = secondaryToAirports,
+            toAirports = modifiedSecondaryToAirports,
             models = models,
             airline = airline,
-            config = LinkConfig("far", secondaryToAirports.size, 1, airlineProfile.routeServiceLevel)
+            config = LinkConfig("far", modifiedSecondaryToAirports.size, 1, airlineProfile.routeServiceLevel)
           ), airline, rivalLinks, flightLinksByAirline, cycle
         )
       }
@@ -142,11 +156,12 @@ object AISimulation extends App {
       .filterNot(link => LinkSource.loadFlightLinkByAirportsAndAirline(config.fromAirport.id, link.id, airline.id).nonEmpty)
       .flatMap { toAirport =>
         val demand = AISimUtil.getLinkDemand(config.fromAirport, toAirport)
+        val totalDemand = DemandGenerator.addUpDemands(demand)
         val distance = Computation.calculateDistance(config.fromAirport, toAirport)
         val targetSeats = (demand.travelerDemand.total + demand.businessDemand.total) * 2
         val linkCost = Computation.getLinkCreationCost(config.fromAirport, toAirport)
 
-        if (!AISimUtil.isLinkSaturated(airline, config.fromAirport, toAirport) && targetSeats > 0 && (demand.businessDemand.total + demand.touristDemand.total + demand.travelerDemand.total) > airlineProfile.minimumRouteDemand && linkCost < airline.airlineInfo.balance) {
+        if (!AISimUtil.isLinkSaturated(airline, config.fromAirport, toAirport) && targetSeats > 0 && totalDemand > airlineProfile.minimumRouteDemand && linkCost < airline.airlineInfo.balance) {
           val score = scoreNewLink(airline, airlineProfile, config.fromAirport, toAirport, rivalLinks)
           Some(ScoredRoute(toAirport, score, distance, targetSeats))
         } else {
