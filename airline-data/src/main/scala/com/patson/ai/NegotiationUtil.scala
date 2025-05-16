@@ -21,8 +21,8 @@ object NegotiationUtil {
   val STARTUP_MAX_REPUTATION = 50
 
   def negotiate(info: NegotiationInfo, delegateCount: Int): NegotiationResult = {
-    println(s"final requirement: ${info.finalRequirementValue} and delegate count: ${delegateCount}")
-    println(s"ODDS: ${info.odds}")
+    //println(s"final requirement: ${info.finalRequirementValue} and delegate count: ${delegateCount}")
+    //println(s"ODDS: ${info.odds}")
     val odds = info.odds.get(delegateCount) match {
       case Some(value) => value
       case None => 1.0
@@ -481,7 +481,7 @@ case class PreviousNegotiationDiscount(override val value : Double, duration: In
 case class NegotiationResult(threshold : Double, result : Double) {
   val isSuccessful = result >= threshold
   val isGreatSuccess = isSuccessful && result >= NegotiationUtil.GREAT_SUCCESS_THRESHOLD
-  println(s"negotiation result: threshold $threshold vs result $result. Great success ? $isGreatSuccess")
+  //println(s"negotiation result: threshold $threshold vs result $result. Great success ? $isGreatSuccess")
 
   val SESSION_COUNT = 5
   def getNegotiationSessions() : NegotiationSession = {

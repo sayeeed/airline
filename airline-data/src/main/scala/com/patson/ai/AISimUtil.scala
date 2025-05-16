@@ -46,7 +46,7 @@ object AISimUtil {
 
       // if negotiation is successful, return the link and deduct cash for link creation
       if (negotiationResultOption.map(_.isSuccessful).getOrElse(true)) {
-        println(s"${airline.name} added a new link (${link.from.iata}-${link.to.iata}) with ${link.capacity} total capacity.")
+        println(s"${airline.name} added/updated a link (${link.from.iata}-${link.to.iata}) with ${link.capacity} total capacity.")
 
         AirlineSource.saveCashFlowItem(AirlineCashFlowItem(airline.id, CashFlowType.CREATE_LINK, linkCost * -1))
         AirlineSource.adjustAirlineBalance(airline.id, linkCost * -1)
