@@ -19,6 +19,7 @@ import com.patson.data.CycleSource
 import com.patson.model.DelegateTask
 import com.patson.model.BusyDelegate
 import com.patson.data.DelegateSource
+import com.patson.model.LinkConsumptionDetails
 
 object AISimUtil {
   private lazy val countryRelationships = CountrySource.getCountryMutualRelationships()
@@ -29,11 +30,13 @@ object AISimUtil {
 
    */
 
-  def negotiateLink(airline: Airline, link: Link) : Option[Link] = {
+  def negotiateLink(airline: Airline, link: Link, linksByAirlineAndAirportPair: Map[(Int,Int), List[Link]], cycle: Int) : Option[Link] = {
     // start negotiation process
     val linkCost = Computation.getLinkCreationCost(link.from, link.to)
-    val existingLink : Option[Link] = LinkSource.loadFlightLinkByAirportsAndAirline(link.from.id, link.to.id, airline.id)
-    val negotiationInfo = NegotiationUtil.getLinkNegotiationInfo(airline, link, existingLink)
+    //val existingLink : Option[Link] = LinkSource.loadFlightLinkByAirportsAndAirline(link.from.id, link.to.id, airline.id)
+    val key = airportPairKey(link.from.id, link.to.id)
+    val existingLink : List[Link] = linksByAirlineAndAirportPair.getOrElse(key, List.empty)
+    val negotiationInfo = NegotiationUtil.getLinkNegotiationInfo(airline, link, existingLink.headOption)
     val delegateCount = Math.ceil(negotiationInfo.finalRequirementValue).toInt
     // if the airline has enough delegates to negotiate, negotiate link
     if (delegateCount <= airline.getDelegateInfo().availableCount && delegateCount <= NegotiationUtil.MAX_ASSIGNED_DELEGATE) {
@@ -57,7 +60,6 @@ object AISimUtil {
       // regardless of the negotiation is successful or a failure, we'll need to update delegates
       negotiationResultOption.foreach { negotiationResult =>
         //update delegate status
-        val cycle = CycleSource.loadCycle()
         val task = DelegateTask.linkNegotiation(cycle, link.from, link.to)
         val coolDown = if (negotiationResult.isSuccessful) task.coolDown else task.coolDown / 2 //half cooldown if it was unsuccessful
         val availableCycle = cycle + coolDown
@@ -74,13 +76,28 @@ object AISimUtil {
     None
   }
 
-  def isLinkSaturated(airline: Airline, fromAirport: Airport, toAirport: Airport) : Boolean = {
-    val linksByAirport = LinkSource.loadFlightLinksByAirports(fromAirport.id, toAirport.id)
-    val rivalLinksByAirport = linksByAirport.filterNot(_.airline.id == airline.id)
-    val airlineLinksByAirport = linksByAirport.filter(_.airline.id == airline.id)
-    val demand = getLinkDemand(fromAirport, toAirport)
+  def isLinkSaturated(airline: Airline, fromAirport: Airport, toAirport: Airport, linksByAirportPair: Map[(Int,Int), List[Link]]) : Boolean = {
+    val key = airportPairKey(fromAirport.id, toAirport.id)
+    val links = linksByAirportPair.getOrElse(key, List.empty)
 
-    var totalCapacity = 0
+    val demand = getLinkDemand(fromAirport, toAirport)
+    val demandTotal = DemandGenerator.addUpDemands(demand)
+
+    val (totalCapacity, totalSoldSeats) = links.foldLeft((0, 0)) {
+      case ((capacityAcc, soldAcc), link) =>
+      val cap = link.getTotalCapacity
+      val sold = link.getTotalSoldSeats
+      (capacityAcc + cap, soldAcc + sold)
+    }
+
+    if (totalCapacity < demandTotal) {
+      false
+    } else {
+      val loadFactor = if (totalCapacity > 0) totalSoldSeats.toDouble / totalCapacity else 0.0
+      loadFactor > 0.85
+    }
+    
+    /*var totalCapacity = 0
     var totalSoldSeats = 0
 
     // if rival links is not empty, add up total capacity and sold seats
@@ -96,7 +113,11 @@ object AISimUtil {
 
     if (totalCapacity < DemandGenerator.addUpDemands(demand)) return false
     else if (totalCapacity > 0 && totalSoldSeats / totalCapacity > 0.85) return true
-    else return false
+    else return false*/
+  }
+
+  def airportPairKey(a1: Int, a2: Int): (Int, Int) = {
+    if (a1 < a2) (a1, a2) else (a2, a1)
   }
 
   /* 
@@ -124,11 +145,7 @@ object AISimUtil {
     }
   }
 
-  def computeAverageLoadFactor(link: Link, cycle: Int) : (Int, Int, Int, Int) = {
-    var cycleCount = 10
-    // if current cycle is less than cycleCount, only check back the amount of current cycles
-    if(cycle < cycleCount) { cycleCount = cycle }
-    
+  def computeAverageLoadFactor(link: Link, linkConsumptionsHistory: List[LinkConsumptionDetails], cycle: Int) : (Int, Int, Int, Int) = {
     var totalEconomySold = 0
     var totalEconomyCapacity = 0
     var totalBusinessSold = 0
@@ -136,8 +153,7 @@ object AISimUtil {
     var totalFirstSold = 0
     var totalFirstCapacity = 0
 
-    val linkConsumptions = LinkSource.loadLinkConsumptionsByLinkId(link.id, cycleCount)
-    linkConsumptions.foreach { linkConsumption =>
+    linkConsumptionsHistory.foreach { linkConsumption =>
       totalEconomySold += linkConsumption.link.soldSeats.economyVal
       totalEconomyCapacity += linkConsumption.link.capacity.economyVal
 
@@ -268,9 +284,9 @@ object AISimUtil {
     return true
   }
   
-  def canBaseSupportLink(airline: Airline, link: Link, flightLinksByAirline: Map[Int, List[Link]], homeAirport: Airport) : Boolean = {
+  def canBaseSupportLink(airline: Airline, link: Link, linksByAirline: List[Link], homeAirport: Airport) : Boolean = {
     val base = airline.getBases().find(_.airport == homeAirport).get
-    val linksByFromAirport = flightLinksByAirline.get(airline.id).getOrElse(List.empty).groupBy(_.from.id)
+    val linksByFromAirport = linksByAirline.groupBy(_.from.id)
     val currentBaseStaff = getCurrentBaseStaffRequired(airline, base, linksByFromAirport)
 
     if (base.airport == homeAirport && (link.getCurrentOfficeStaffRequired + currentBaseStaff) <= base.getOfficeStaffCapacity) {

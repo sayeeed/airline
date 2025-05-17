@@ -37,16 +37,32 @@ object AISimulation extends App {
       val allFlightLinks = LinkSource.loadAllFlightLinks()
       val flightLinksByAirline = allFlightLinks.groupBy(_.airline.id)
       val allAirports = AirportSource.loadAllAirports(true, true)
+      val allConsumptions = LinkSource.loadLinkConsumptions()
+      var cycleCount = 10
+      // if current cycle is less than cycleCount, only check back the amount of current cycles
+      if(cycle < cycleCount) { cycleCount = cycle }
+      val allConsumptionsHistory = LinkSource.loadLinkConsumptions(cycleCount)
+      val linksByAirportPair: Map[(Int,Int), List[Link]] = allFlightLinks.groupBy(link => AISimUtil.airportPairKey(link.from.id, link.to.id))
       
       aiAirlines.foreach { airline =>
         if (Random.nextDouble() < 1) {
           val airlineFlightLinks = flightLinksByAirline.getOrElse(airline.id, Nil)
           val rivalFlightLinks = allFlightLinks.filterNot(_.id == airline.id)
           val linksByFromAirport = flightLinksByAirline.get(airline.id).getOrElse(List.empty).groupBy(_.from.id)
-            
-          routeManagement(airline, airlineFlightLinks, flightLinksByAirline, cycle)
+          val airlineConsumptions = allConsumptions.filter(_.link.airline.id == airline.id).groupBy(_.link.id)
+          val airlineConsumptionsHistory = allConsumptionsHistory.filter(_.link.airline.id == airline.id).groupBy(_.link.id)
+          val linksByAirline = flightLinksByAirline.get(airline.id).getOrElse(List.empty)
+          val linksByAirlineAndAirportPair: Map[(Int,Int), List[Link]] = allFlightLinks.filter(_.airline.id == airline.id).groupBy(link => AISimUtil.airportPairKey(link.from.id, link.to.id))
+
+          val t1 = System.nanoTime()
+          routeManagement(airline, airlineFlightLinks, linksByAirline, airlineConsumptions, rivalFlightLinks, airlineConsumptionsHistory, linksByAirlineAndAirportPair, cycle)
+          val t2 = System.nanoTime()
           baseManagement(airline, allAirports, linksByFromAirport, cycle)
-          addNewRoutes(airline, AIAirlines.getAirlineStrategyProfile(airline.name), allAirports, rivalFlightLinks, linksByFromAirport, flightLinksByAirline, cycle)
+          val t3 = System.nanoTime()
+          addNewRoutes(airline, AIAirlines.getAirlineStrategyProfile(airline.name), allAirports, rivalFlightLinks, linksByFromAirport, flightLinksByAirline, linksByAirline, linksByAirportPair, linksByAirlineAndAirportPair, cycle)
+          val t4 = System.nanoTime()
+
+          println(s"[${airline.name}] route=${(t2-t1)/1e6}ms base=${(t3-t2)/1e6}ms newRoutes=${(t4-t3)/1e6}ms")
         }
       }
     } 
@@ -58,102 +74,127 @@ object AISimulation extends App {
 
    */
 
-  private def routeManagement(airline: Airline, flightLinks: List[Link], flightLinksByAirline: Map[Int, List[Link]], cycle: Int) = {
+  private def routeManagement(airline: Airline, flightLinks: List[Link], linksByAirline: List[Link], airlineConsumptions: Map[Int, List[LinkConsumptionDetails]], rivalFlightLinks: List[Link], airlineConsumptionsHistory: Map[Int, List[LinkConsumptionDetails]], linksByAirlineAndAirportPair: Map[(Int,Int), List[Link]], cycle: Int) = {
     println(s"Updated routes for ${airline.name}")
-    
+
+    val rivalFlightLinksByRoute = rivalFlightLinks.groupBy(link => (link.from.id, link.to.id))
+    val updatedLinks = mutable.ListBuffer[Link]()
+    val freqAdjustedLinks = mutable.ListBuffer[FrequencyAdjustment]()
+
     flightLinks.foreach {
-      case flightLink : Link =>
-        val linkConsumptions = LinkSource.loadLinkConsumptionsByLinkId(flightLink.id, cycle).headOption
-        val rivalFlightLinks = LinkSource.loadFlightLinksByAirports(flightLink.from.id, flightLink.to.id).filterNot(_.airline.id == flightLink.airline.id)
+      case link : Link =>
+        //val linkConsumptions = LinkSource.loadLinkConsumptionsByLinkId(flightLink.id, cycle).headOption
+        val linkConsumption = airlineConsumptions.get(link.id).flatMap(_.headOption)
+        val linkConsumptionsHistory = airlineConsumptionsHistory.getOrElse(link.id, Nil)
+        val rivalLinksOnLink = rivalFlightLinksByRoute.getOrElse((link.from.id, link.to.id), Nil)
 
-        linkConsumptions.foreach { linkConsumption =>
-          val basePrice = LinkClassValues(linkConsumption.link.price.economyVal, linkConsumption.link.price.businessVal, linkConsumption.link.price.firstVal)
-            
+        if (linkConsumption.isDefined) {
+          val basePrice = LinkClassValues(linkConsumption.get.link.price.economyVal, linkConsumption.get.link.price.businessVal, linkConsumption.get.link.price.firstVal)
+              
           // all 10-week averages
-          val (economyLF, businessLF, firstLF, totalLF) = AISimUtil.computeAverageLoadFactor(flightLink, cycle)
-          val (avgEconomyPrice, avgBusinessPrice, avgFirstPrice) = AISimUtil.getAverageRivalPrice(flightLink, rivalFlightLinks)
-
+          val (economyLF, businessLF, firstLF, totalLF) = AISimUtil.computeAverageLoadFactor(link, linkConsumptionsHistory, cycle)
+          val (avgEconomyPrice, avgBusinessPrice, avgFirstPrice) = AISimUtil.getAverageRivalPrice(link, rivalLinksOnLink)
+  
           // adjusts prices down if total load factor is below 90% and no major delays or cancellations occurred
-          adjustPrices(flightLink, linkConsumption, basePrice, economyLF, businessLF, firstLF)
-          adjustFrequency(airline, flightLink, linkConsumption, rivalFlightLinks, flightLinksByAirline, totalLF, basePrice, cycle)
+          updatedLinks ++= adjustPrices(link, linkConsumption.get, basePrice, economyLF, businessLF, firstLF).toList
+          adjustFrequency(airline, link, linkConsumption.get, rivalLinksOnLink, linksByAirline, totalLF, basePrice, linksByAirlineAndAirportPair, cycle).foreach(freqAdjustedLinks += _)
         }
+    }
+
+    if (updatedLinks.nonEmpty) {
+      LinkSource.updateLinks(updatedLinks.result())
+    }
+    if (freqAdjustedLinks.nonEmpty) {
+      LinkSource.updateLinks(freqAdjustedLinks.map(_.link).toList)
+      freqAdjustedLinks.foreach(adj => LinkSource.updateAssignedPlanes(adj.link.id, adj.assignedAirplanes))
     }
   }
 
-  private def addNewRoutes(airline: Airline, airlineProfile: AIAirlines.AirlineStrategyProfile, allAirports: List[Airport], rivalLinks: List[Link], linksByFromAirport: Map[Int, List[Link]], flightLinksByAirline: Map[Int, List[Link]], cycle: Int) = {
+  private def addNewRoutes(airline: Airline, airlineProfile: AIAirlines.AirlineStrategyProfile, allAirports: List[Airport], rivalLinks: List[Link], linksByFromAirport: Map[Int, List[Link]], flightLinksByAirline: Map[Int, List[Link]], linksByAirline: List[Link], linksByAirportPair: Map[(Int,Int), List[Link]], linksByAirlineAndAirportPair: Map[(Int,Int), List[Link]], cycle: Int): Unit = {
     println(s"Adding new routes for ${airline.name}")
     
     val models = allModels.filter(model => airlineProfile.modelNames.contains(model.name))
     val bases = airline.getBases()
 
+    val base = AISimUtil.getLowestCapacityBase(bases, airline, linksByFromAirport)
+
+    val airportZonesMap: Map[Int, Set[String]] = allAirports.map(a => a.id -> a.zone.split("\\|").map(_.trim).toSet).toMap
+
+    // PRIMARY AIRPORTS
+    val primaryToAirports = allAirports.filter { airport => 
+      val notSmallAirport = airport.size > 3
+      val isPrimaryCountry = airlineProfile.primaryCountriesServed.contains(airport.countryCode)
+      val isPrimaryAffinity = airportZonesMap(airport.id).exists(airlineProfile.primaryAffinitiesServed.contains)
+      notSmallAirport && (isPrimaryCountry || isPrimaryAffinity)
+    }
+    val primaryAirportIDs = primaryToAirports.map(_.id).toSet
+    // SECONDARY AIRPORTS
+    val secondaryToAirports = allAirports.filter { airport => 
+      val notSmallAirport = airport.size > 3
+      val isSecondaryCountry = airlineProfile.secondaryCountriesServed.contains(airport.countryCode)
+      val isSecondaryAffinity = airportZonesMap(airport.id).exists(airlineProfile.secondaryAffinitiesServed.contains)
+      val isNotPrimaryAirport = !primaryAirportIDs.contains(airport.id)
+      notSmallAirport && (isSecondaryCountry || isSecondaryAffinity) && isNotPrimaryAirport
+    }
+    val secondaryAirportIDs = secondaryToAirports.map(_.id).toSet
+    // TERTIARY AIRPORTS (base specific airports with high affinity matches)
+    val baseSpecificAirports = allAirports.filter { airport =>
+      val notSmallAirport = airport.size > 3
+      val relationship = CountrySource.getCountryMutualRelationship(base.airport.countryCode, airport.countryCode)
+      val affinity = Computation.calculateAffinityValue(base.airport.zone, airport.zone, relationship)
+      val isNotPrimaryAirport = !primaryAirportIDs.contains(airport.id)
+      val isNotSecondaryAirport = !secondaryAirportIDs.contains(airport.id)
+       notSmallAirport && affinity > 1 && isNotPrimaryAirport && isNotSecondaryAirport
+    }
+
+    // secondary plus tertiary airports
+    val modifiedSecondaryToAirports = (secondaryToAirports ++ baseSpecificAirports)
+
+    val existingRoutes = flightLinksByAirline.getOrElse(airline.id, Nil).map(link => (link.from.id, link.to.id)).toSet
+
+    val primaryLinkGeneration = LinkGeneration(
+      fromAirport = base.airport,
+      toAirports = primaryToAirports,
+      models = models,
+      airline = airline,
+      config = LinkConfig("near", primaryToAirports.size, 1, airlineProfile.routeServiceLevel)
+    )
+    val secondaryLinkGeneration = LinkGeneration(
+      fromAirport = base.airport,
+      toAirports = modifiedSecondaryToAirports,
+      models = models,
+      airline = airline,
+      config = LinkConfig("far", modifiedSecondaryToAirports.size, 1, airlineProfile.routeServiceLevel)
+    )
+
     var attempts = 0
-    while (airline.getDelegateInfo().availableCount > 1 && airline.airlineInfo.balance > 50_000_000 && attempts < 20) {
-      val base = AISimUtil.getLowestCapacityBase(bases, airline, linksByFromAirport)
+    var delegateAvailable = airline.getDelegateInfo().availableCount > 1
+    var hasSufficientFunds = airline.airlineInfo.balance > 50_000_000
+    if (!delegateAvailable || !hasSufficientFunds) return
 
-      // PRIMARY AIRPORTS
-      val primaryToAirports = allAirports.filter { airport => 
-        val notSmallAirport = airport.size > 3
-        val isPrimaryCountry = airlineProfile.primaryCountriesServed.contains(airport.countryCode)
-        val isPrimaryAffinity = airport.zone.split("\\|").map(_.trim).exists(affinity => airlineProfile.primaryAffinitiesServed.contains(affinity))
-        notSmallAirport && (isPrimaryCountry || isPrimaryAffinity)
-      }.distinct
-      val primaryAirportIDs = primaryToAirports.map(_.id).toSet
-      // SECONDARY AIRPORTS
-      val secondaryToAirports = allAirports.filter { airport => 
-        val notSmallAirport = airport.size > 3
-        val isSecondaryCountry = airlineProfile.secondaryCountriesServed.contains(airport.countryCode)
-        val isSecondaryAffinity = airport.zone.split("\\|").map(_.trim).exists(affinity => airlineProfile.secondaryAffinitiesServed.contains(affinity))
-        val isNotPrimaryAirport = !primaryAirportIDs.contains(airport.id)
-        notSmallAirport && (isSecondaryCountry || isSecondaryAffinity) && isNotPrimaryAirport
-      }.distinct
-      val secondaryAirportIDs = secondaryToAirports.map(_.id).toSet
-      // TERTIARY AIRPORTS (base specific airports with high affinity matches)
-      val baseSpecificAirports = allAirports.filter { airport =>
-        val notSmallAirport = airport.size > 3
-        val relationship = CountrySource.getCountryMutualRelationship(base.airport.countryCode, airport.countryCode)
-        val affinity = Computation.calculateAffinityValue(base.airport.zone, airport.zone, relationship)
-        val isNotPrimaryAirport = !primaryAirportIDs.contains(airport.id)
-        val isNotSecondaryAirport = !secondaryAirportIDs.contains(airport.id)
-        notSmallAirport && affinity > 1 && isNotPrimaryAirport && isNotSecondaryAirport
-      }.distinct
-
-      // secondary plus tertiary airports
-      val modifiedSecondaryToAirports = (secondaryToAirports ++ baseSpecificAirports).distinct
-
+    while (delegateAvailable && hasSufficientFunds && attempts < 6) {
       // Try and generate close/local routes before trying long-range routes.
-      if (Random.nextDouble() < airlineProfile.primaryServedRatio) {
-        generateLinks(
-          LinkGeneration(
-            fromAirport = base.airport,
-            toAirports = primaryToAirports,
-            models = models,
-            airline = airline,
-            config = LinkConfig("near", primaryToAirports.size, 1, airlineProfile.routeServiceLevel)
-          ), airline, rivalLinks, flightLinksByAirline, cycle
-        )
+      val newLinks = if (Random.nextDouble() < airlineProfile.primaryServedRatio) {
+        generateLinks(primaryLinkGeneration, airline, rivalLinks, linksByAirline, existingRoutes, linksByAirportPair, linksByAirlineAndAirportPair, cycle)
       } else {
-        generateLinks(
-          LinkGeneration(
-            fromAirport = base.airport,
-            toAirports = modifiedSecondaryToAirports,
-            models = models,
-            airline = airline,
-            config = LinkConfig("far", modifiedSecondaryToAirports.size, 1, airlineProfile.routeServiceLevel)
-          ), airline, rivalLinks, flightLinksByAirline, cycle
-        )
+        generateLinks(secondaryLinkGeneration, airline, rivalLinks, linksByAirline, existingRoutes, linksByAirportPair, linksByAirlineAndAirportPair, cycle)
       }
       attempts += 1
+
+      delegateAvailable = airline.getDelegateInfo().availableCount > 1
+      hasSufficientFunds = airline.airlineInfo.balance > 50_000_000
     }
   }
 
-  private def generateLinks(config: LinkGeneration, airline: Airline, rivalLinks: List[Link], flightLinksByAirline: Map[Int, List[Link]], cycle: Int) : List[Link] = {
+  private def generateLinks(config: LinkGeneration, airline: Airline, rivalLinks: List[Link], linksByAirline: List[Link], existingRoutes: Set[(Int, Int)], linksByAirportPair: Map[(Int,Int), List[Link]], linksByAirlineAndAirportPair: Map[(Int,Int), List[Link]], cycle: Int) : List[Link] = {
     val airlineProfile = AIAirlines.getAirlineStrategyProfile(airline.name)
-    val airplaneModelsLarge = config.models.sortBy(_.capacity).reverse
-    val airplaneModelsSmall = config.models.sortBy(_.capacity)
+    val sortedModels = config.models.sortBy(_.capacity)
+    val airplaneModelsLarge = sortedModels.reverse
+    val airplaneModelsSmall = sortedModels
 
     val scoredRoutes = config.toAirports
       .filter(_.id != config.fromAirport.id)
-      .filterNot(link => LinkSource.loadFlightLinkByAirportsAndAirline(config.fromAirport.id, link.id, airline.id).nonEmpty)
+      .filterNot(to => existingRoutes.contains((config.fromAirport.id, to.id)))
       .flatMap { toAirport =>
         val demand = AISimUtil.getLinkDemand(config.fromAirport, toAirport)
         val totalDemand = DemandGenerator.addUpDemands(demand)
@@ -161,7 +202,7 @@ object AISimulation extends App {
         val targetSeats = (demand.travelerDemand.total + demand.businessDemand.total) * 2
         val linkCost = Computation.getLinkCreationCost(config.fromAirport, toAirport)
 
-        if (!AISimUtil.isLinkSaturated(airline, config.fromAirport, toAirport) && targetSeats > 0 && totalDemand > airlineProfile.minimumRouteDemand && linkCost < airline.airlineInfo.balance) {
+        if (!AISimUtil.isLinkSaturated(airline, config.fromAirport, toAirport, linksByAirportPair) && targetSeats > 0 && totalDemand > airlineProfile.minimumRouteDemand && linkCost < airline.airlineInfo.balance) {
           val score = scoreNewLink(airline, airlineProfile, config.fromAirport, toAirport, rivalLinks)
           Some(ScoredRoute(toAirport, score, distance, targetSeats))
         } else {
@@ -173,7 +214,7 @@ object AISimulation extends App {
     var newLinks = List[Link]()
     var tryNegotiateLink = true
     var attempts = 0
-    println(s"Trying to generate links with top routes: ${topRoutes}")
+    println(s"Trying to generate links with top routes: ${topRoutes.size}")
     
     while (tryNegotiateLink && attempts <= 12) {
       newLinks = topRoutes.flatMap { route => 
@@ -187,7 +228,8 @@ object AISimulation extends App {
           modelsLarge = airplaneModelsLarge,
           rawQuality = config.config.rawQuality,
           cycle = cycle,
-          flightLinksByAirline = flightLinksByAirline
+          linksByAirline = linksByAirline,
+          linksByAirlineAndAirportPair = linksByAirlineAndAirportPair
         )
       }
 
@@ -204,21 +246,27 @@ object AISimulation extends App {
     newLinks
   }
 
-  private def createLink(fromAirport: Airport, toAirport: Airport, airline: Airline, distance: Int, targetSeats: Int, modelsSmall: List[Model], modelsLarge: List[Model], rawQuality: Int, cycle: Int, flightLinksByAirline: Map[Int, List[Link]]): Option[Link] = {
+  private def createLink(fromAirport: Airport, toAirport: Airport, airline: Airline, distance: Int, targetSeats: Int, modelsSmall: List[Model], modelsLarge: List[Model], rawQuality: Int, cycle: Int, linksByAirline: List[Link], linksByAirlineAndAirportPair: Map[(Int,Int), List[Link]]): Option[Link] = {
     // selects the model to fly the link
     val linkCost = Computation.getLinkCreationCost(fromAirport, toAirport)
-    val pickedModel = modelsSmall.find(model =>
+    /*val pickedModel = modelsSmall.find(model =>
         model.capacity * Computation.calculateMaxFrequency(
           model,
           distance
         ) >= targetSeats && model.range >= distance && toAirport.runwayLength >= model.runwayRequirement
-      ).orElse(modelsLarge.find(model => model.range >= distance && model.runwayRequirement <= toAirport.runwayLength))
+      ).orElse(modelsLarge.find(model => model.range >= distance && model.runwayRequirement <= toAirport.runwayLength))*/
+
+    val pickedModel = (modelsSmall ++ modelsLarge)
+      .find(model =>
+        model.range >= distance &&
+        model.runwayRequirement <= toAirport.runwayLength &&
+        (model.capacity * Computation.calculateMaxFrequency(model, distance) >= targetSeats || modelsSmall.contains(model))
+      )
 
     pickedModel.flatMap { model =>
-      val frequency = math.min(
-        (targetSeats.toDouble / model.capacity).toInt,
-        35
-      )
+      val rawFrequency = targetSeats.toDouble / model.capacity
+      val closestMultipleOf7 = (Math.ceil(rawFrequency / 7.0) * 7).toInt
+      val frequency = Math.min(closestMultipleOf7, 35)
     
       // If there is frequency and the airline can afford buying airplanes and the link creation cost, go forward with creating the link
       if (frequency > 0 && canAffordAirplane(airline, pickedModel.get) && linkCost <= airline.airlineInfo.balance) {
@@ -238,9 +286,11 @@ object AISimulation extends App {
         )
 
         // set prices
-        val econPrice = (Pricing.computeStandardPrice(distance, Computation.getFlightCategory(fromAirport, toAirport), ECONOMY, PassengerType.BUSINESS, fromAirport.baseIncome)).toInt
-        val bizPrice = (Pricing.computeStandardPrice(distance, Computation.getFlightCategory(fromAirport, toAirport), BUSINESS, PassengerType.BUSINESS, fromAirport.baseIncome)).toInt
-        val firstPrice = (Pricing.computeStandardPrice(distance, Computation.getFlightCategory(fromAirport, toAirport), FIRST, PassengerType.BUSINESS, fromAirport.baseIncome)).toInt
+        val flightCategory = Computation.getFlightCategory(fromAirport, toAirport)
+        val baseIncome = fromAirport.baseIncome
+        val econPrice = (Pricing.computeStandardPrice(distance, flightCategory, ECONOMY, PassengerType.BUSINESS, baseIncome)).toInt
+        val bizPrice = (Pricing.computeStandardPrice(distance, flightCategory, BUSINESS, PassengerType.BUSINESS, baseIncome)).toInt
+        val firstPrice = (Pricing.computeStandardPrice(distance, flightCategory, FIRST, PassengerType.BUSINESS, baseIncome)).toInt
 
         val duration = Computation.calculateDuration(model, distance)
         val capacity = AISimUtil.calculateTotalCapacity(assignedAirplanes)
@@ -260,9 +310,9 @@ object AISimulation extends App {
         
         link.setAssignedAirplanes(assignedAirplanes)
 
-        if (AISimUtil.canBaseSupportLink(airline, link, flightLinksByAirline, fromAirport)) {
+        if (AISimUtil.canBaseSupportLink(airline, link, linksByAirline, fromAirport)) {
           // negotiation
-          Some(AISimUtil.negotiateLink(airline, link))
+          Some(AISimUtil.negotiateLink(airline, link, linksByAirlineAndAirportPair, cycle))
         } else {
           None
         }
@@ -277,40 +327,47 @@ object AISimulation extends App {
    *    percentage off base price is no less than 75% (to prevent prices spiraling down)
    *  - Up if the respective load factor is equal to 100%
    */
-  private def adjustPrices(flightLink: Link, linkConsumption: LinkConsumptionDetails, basePrice: LinkClassValues, economyLF: Int, businessLF: Int, firstLF: Int) = {
-    val basePrice = LinkClassValues(linkConsumption.link.price.economyVal, linkConsumption.link.price.businessVal, linkConsumption.link.price.firstVal)
-    
-    var newEconomyPrice = flightLink.price.economyVal
-    var newBusinessPrice = flightLink.price.businessVal
-    var newFirstPrice = flightLink.price.firstVal
+  private def adjustPrices(link: Link, linkConsumption: LinkConsumptionDetails, basePrice: LinkClassValues, economyLF: Int, businessLF: Int, firstLF: Int): mutable.ListBuffer[Link] = {    
+    var newEconomyPrice = link.price.economyVal
+    var newBusinessPrice = link.price.businessVal
+    var newFirstPrice = link.price.firstVal
+    val newLinks = mutable.ListBuffer[Link]()
       
     if (linkConsumption.link.capacity.economyVal > 0) {
-      val economyPercentage = (flightLink.price.economyVal.toDouble / basePrice.economyVal.toDouble)
+      val economyPercentage = (link.price.economyVal.toDouble / basePrice.economyVal.toDouble)
       if (economyLF < 60 && economyPercentage > 0.75) { newEconomyPrice = (basePrice.economyVal * (economyPercentage - 0.05)).toInt }
       if (economyLF == 100) { newEconomyPrice = (basePrice.economyVal * (economyPercentage + 0.05)).toInt }
     }
 
     if (linkConsumption.link.capacity.businessVal > 0) {
-      val businessPercentage = (flightLink.price.businessVal.toDouble / basePrice.businessVal.toDouble)
+      val businessPercentage = (link.price.businessVal.toDouble / basePrice.businessVal.toDouble)
       if (businessLF < 60 && businessPercentage > 0.75) { newBusinessPrice = (basePrice.businessVal * (businessPercentage - 0.05)).toInt }
       if (businessLF == 100) { newBusinessPrice = (basePrice.businessVal * (businessPercentage + 0.05)).toInt }
     }
               
     if (linkConsumption.link.capacity.firstVal > 0) {
-      val firstPercentage = (flightLink.price.firstVal.toDouble / basePrice.firstVal.toDouble)
+      val firstPercentage = (link.price.firstVal.toDouble / basePrice.firstVal.toDouble)
       if (firstLF < 60 && firstPercentage > 0.75) { newFirstPrice = (basePrice.firstVal * (firstPercentage - 0.05)).toInt }
       if (firstLF == 100) { newFirstPrice = (basePrice.firstVal * (firstPercentage + 0.05)).toInt }
     }
 
-    if (newEconomyPrice != flightLink.price.economyVal || newBusinessPrice != flightLink.price.businessVal || newFirstPrice != flightLink.price.firstVal) {
+    if (significantChange(link.price.economyVal, newEconomyPrice) || significantChange(link.price.businessVal, newBusinessPrice) || significantChange(link.price.firstVal, newFirstPrice)) { 
       val newPrices = LinkClassValues(newEconomyPrice, newBusinessPrice, newFirstPrice)
-      val newLink = flightLink.copy(price = newPrices)
+      val newLink = link.copy(price = newPrices)
       //println(s"Updated link ${newLink.from.iata}-${newLink.to.iata} to new prices")
-      LinkSource.updateLink(newLink)
+      newLinks += newLink
     }
+
+    newLinks
   }
 
-  private def adjustFrequency(airline: Airline, flightLink: Link, linkConsumption: LinkConsumptionDetails, rivalFlightLinks: List[Link], flightLinksByAirline: Map[Int,List[Link]], totalLF: Int, basePrice: LinkClassValues, cycle: Int) = {
+  def significantChange(original: Int, updated: Int): Boolean = {
+    Math.abs(original - updated) > 2
+  }
+
+  case class FrequencyAdjustment(link: Link, assignedAirplanes: Map[Airplane, LinkAssignment])
+
+  private def adjustFrequency(airline: Airline, flightLink: Link, linkConsumption: LinkConsumptionDetails, rivalFlightLinks: List[Link], linksByAirline: List[Link], totalLF: Int, basePrice: LinkClassValues, linksByAirlineAndAirportPair: Map[(Int,Int), List[Link]], cycle: Int): Option[FrequencyAdjustment] = {
     val demand = AISimUtil.getLinkDemand(flightLink.from, flightLink.to)
     var linkTotalCapacity = flightLink.getTotalCapacity
     var linkTotalSoldSeats = flightLink.getTotalSoldSeats
@@ -328,7 +385,7 @@ object AISimulation extends App {
       if (newFrequency % 7 == 6) { newFrequency += 1 }
       else if (newFrequency % 7 == 1) { newFrequency -= 1 }
       
-      if (AISimUtil.canBaseSupportLink(airline, flightLink.copy(frequency = newFrequency), flightLinksByAirline, flightLink.from) && canAffordAirplane(airline, flightLink.getAssignedModel().get)) {
+      if (AISimUtil.canBaseSupportLink(airline, flightLink.copy(frequency = newFrequency), linksByAirline, flightLink.from) && canAffordAirplane(airline, flightLink.getAssignedModel().get)) {
         val maxFrequencyPerAirplane = Computation.calculateMaxFrequency(flightLink.getAssignedModel().get, flightLink.distance)
         val airplanesRequired = Math.max(1, newFrequency / maxFrequencyPerAirplane)
         val assignedAirplanes = updateAssignedPlanes(flightLink.getAssignedModel().get, flightLink.airline, flightLink.from, newFrequency, flightLink.distance, airplanesRequired, maxFrequencyPerAirplane, cycle)
@@ -336,21 +393,26 @@ object AISimulation extends App {
 
         newLink.setAssignedAirplanes(assignedAirplanes)
 
-        val negotiatedLink = AISimUtil.negotiateLink(airline, newLink) match {
+        val negotiatedLink = AISimUtil.negotiateLink(airline, newLink, linksByAirlineAndAirportPair, cycle) match {
           case Some(value) =>
             println(s"Updating link ${newLink.from.iata}-${newLink.to.iata} with new increased frequency")
-            LinkSource.updateLink(newLink)
-            LinkSource.updateAssignedPlanes(newLink.id, assignedAirplanes)
+            
+            Some(FrequencyAdjustment(newLink, assignedAirplanes))
+            //LinkSource.updateLink(newLink)
+            //LinkSource.updateAssignedPlanes(newLink.id, assignedAirplanes)
           case None =>
+            None
             println(s"Negotiating increased frequency failed for link ${newLink.from.iata}-${newLink.to.iata}")
         }
       }
+      None
     } else if (totalLF < 90 && flightLink.price.economyVal <= (basePrice.economyVal * 0.75)) {
       // decrease freq
       if (flightLink.frequency <= 3) {
         // try and downsize plane? or delete route
         println(s"Deleting route from ${flightLink.from.iata}-${flightLink.to.iata}")
         LinkSource.deleteLink(flightLink.id)
+        None
       } else {
         // reduce frequency to next multiple of 3
         var newFrequency = Math.max(3, (flightLink.frequency / 3) * 3)
@@ -365,10 +427,12 @@ object AISimulation extends App {
         newLink.setAssignedAirplanes(assignedAirplanes)
 
         println(s"Updating link ${newLink.from.iata}-${newLink.to.iata} with new reduced frequency")
-        LinkSource.updateLink(newLink)
-        LinkSource.updateAssignedPlanes(newLink.id, assignedAirplanes)
+        Some(FrequencyAdjustment(newLink, assignedAirplanes))
+        //LinkSource.updateLink(newLink)
+        //LinkSource.updateAssignedPlanes(newLink.id, assignedAirplanes)
       }
     }
+    None
   }  
 
   /* 

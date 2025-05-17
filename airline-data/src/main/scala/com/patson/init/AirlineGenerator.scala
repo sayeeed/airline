@@ -25,6 +25,7 @@ import scala.concurrent.duration.Duration
 import com.patson.AISimulation
 import com.patson.ai.AIAirlines
 import com.patson.ai.AISimUtil
+import com.patson.model.AllianceRole.MEMBER
 
 
 object AirlineGenerator extends App {
@@ -40,20 +41,74 @@ object AirlineGenerator extends App {
 
   def mainFlow() = {
     deleteAirlines()
+
+    //createAlliances()
     
     // Generate AI Airlines
+    // USA
     generateAIAirline("Delta Air Lines", "delta")
-    /*generateAIAirline("American Airlines", "american")
+    generateAIAirline("American Airlines", "american")
     generateAIAirline("United Airlines", "united")
     generateAIAirline("Southwest Airlines", "southwest")
     generateAIAirline("JetBlue Airways", "jetblue")
     generateAIAirline("Alaska Airlines", "alaska")
-    generateAIAirline("Spirit Airlines", "spirit")
-    generateAIAirline("Frontier Airlines", "frontier")
-    generateAIAirline("Hawaiian Airlines", "hawaiian")
-    generateAIAirline("Allegiant Air", "allegiant")*/
-
+    generateAIAirline("Delta Connection", "deltaconnection")
+    generateAIAirline("United Express", "unitedexpress")
+    generateAIAirline("American Eagle", "americaneagle")
+    // Canada
+    generateAIAirline("Air Canada", "aircanada")
+    generateAIAirline("WestJet", "westjet")
+    generateAIAirline("Porter Airlines", "porter")
+    // Mexico
+    generateAIAirline("Aeromexico", "aeromexico")
+    generateAIAirline("Volaris", "volaris")
+    // Central America
+    generateAIAirline("Copa Airlines", "copa")
+    generateAIAirline("Avianca El Salvador", "aviancaelsalvador")
+    // South America
+    generateAIAirline("LATAM Airlines", "latam")
+    generateAIAirline("Avianca", "avianca")
+    generateAIAirline("Azul Linhas Aereas", "azul")
+    generateAIAirline("Gol Linhas Aereas", "gol")
+    generateAIAirline("Aerolineas Argentinas", "aerolineas")
+    // Europe
+    generateAIAirline("Ryanair", "ryanair")
+    generateAIAirline("Lufthansa", "lufthansa")
+    generateAIAirline("Air France", "airfrance")
+    generateAIAirline("KLM", "klm")
+    generateAIAirline("British Airways", "british")
+    generateAIAirline("Turkish Airlines", "turkish")
+    generateAIAirline("easyJet", "easyjet")
+    // Middle East
     generateAIAirline("Emirates", "emirates")
+    generateAIAirline("Qatar Airways", "qatar")
+    generateAIAirline("Etihad Airways", "etihad")
+    generateAIAirline("Saudia", "saudia")
+    // India
+    generateAIAirline("IndiGo", "indigo")
+    generateAIAirline("Air India", "airindia")
+    // China
+    generateAIAirline("Air China", "airchina")
+    generateAIAirline("China Southern Airlines", "chinasouthern")
+    generateAIAirline("China Eastern Airlines", "chinaeastern")
+    // Asia
+    generateAIAirline("Cathay Pacific", "cathay")
+    generateAIAirline("Singapore Airlines", "singapore")
+    generateAIAirline("All Nippon Airways", "allnippon")
+    generateAIAirline("Japan Airlines", "japan")
+    generateAIAirline("Korean Air", "korean")
+    // Southeast Asia
+    generateAIAirline("Malaysia Airlines", "malaysia")
+    generateAIAirline("Garuda Indonesia", "garuda")
+    generateAIAirline("Phillipine Airlines", "phillipine")
+    generateAIAirline("Vietnam Airlines", "vietnam")
+    generateAIAirline("Thai Airways", "thai")
+    // Australia
+    generateAIAirline("Qantas", "qantas")
+    // Africa
+    generateAIAirline("Ethiopian Airlines", "ethiopian")
+    generateAIAirline("South African Airways", "southafrican")
+    generateAIAirline("Kenya Airways", "kenya")
 
     resizeBases()
 
@@ -114,6 +169,9 @@ object AirlineGenerator extends App {
     generateLinksForAirline(airline, hq, primaryToAirports, secondaryToAirports, profile.modelNames, profile.linkMaxDistance + 1000, maxLinksPerBase, maxLongLinksPerBase, profile.routeServiceLevel)
     bases.zipWithIndex.foreach { case (baseAirport, index) => makeBase(airline, baseAirport) }
     bases.foreach( airport => generateLinksForAirline(airline, airport, primaryToAirports, secondaryToAirports, profile.modelNames, profile.linkMaxDistance + 1000, maxLinksPerBase, maxLongLinksPerBase, profile.routeServiceLevel))
+    
+    //addToAlliance(airline)
+
     airline
   }
 
@@ -139,7 +197,7 @@ object AirlineGenerator extends App {
     airline.setBalance(2_000_000_000)
     airline.setTargetServiceQuality(targetServiceQuality)
     airline.setCurrentServiceQuality(35)
-    airline.setReputation(30)
+    airline.setReputation(60)
     airline.setSkipTutorial(true)
     airline.setCountryCode(hqAirport.countryCode)
     airline.setAirlineCode(airline.getDefaultAirlineCode())
@@ -219,7 +277,7 @@ object AirlineGenerator extends App {
       val demand = AISimUtil.getLinkDemand(config.fromAirport, toAirport)
       val totalDemand = DemandGenerator.addUpDemands(demand)
       val distance = Computation.calculateDistance(config.fromAirport, toAirport)
-      val targetSeats = totalDemand
+      val targetSeats = ((demand.travelerDemand.total + demand.businessDemand.total) * 3).toInt
 
       if (targetSeats > 0 && totalDemand > airlineProfile.minimumRouteDemand) {
         val score = scoreNewLink(config.airline, airlineProfile, config.fromAirport, toAirport, totalDemand)
@@ -229,9 +287,9 @@ object AirlineGenerator extends App {
       }
     }.sortBy(-_.score)
 
-    scoredRoutes.foreach { route =>
-      println(f"Scored routes: ${config.fromAirport.city}%-30s ${route.toAirport.city}%-30s ${route.score}%-5s")
-    }
+    //scoredRoutes.foreach { route =>
+      //println(f"Scored routes: ${config.fromAirport.city}%-30s ${route.toAirport.city}%-30s ${route.score}%-5s")
+    //}
 
     val topRoutes = scoredRoutes.sortBy(-_.score).take(config.config.linkCount)
 
@@ -272,7 +330,7 @@ object AirlineGenerator extends App {
       val closestMultipleOf7 = (Math.ceil(rawFrequency / 7.0) * 7).toInt
       val frequency = Math.min(closestMultipleOf7, 35)
 
-      println(s"Generating link ${fromAirport.iata}-${toAirport.iata} with ${frequency} frequency")
+      //println(s"Generating link ${fromAirport.iata}-${toAirport.iata} with ${frequency} frequency")
 
       if (frequency > 0) {
         val maxFrequencyPerAirplane = Computation.calculateMaxFrequency(model, distance)
@@ -419,5 +477,35 @@ object AirlineGenerator extends App {
     val relationshipScore = 1.0
 
     baseWeight * populationScore * incomeScore * demandScore * relationshipScore
+  }
+
+  private def createAlliances() = {
+    val skyTeam = Alliance("SkyTeam", 1, List(), AIAlliance.SKYTEAM.id)
+    AllianceSource.saveAlliance(skyTeam)
+  }
+
+  private def addToAlliance(airline: Airline) = {
+    val profile = AIAirlines.getAirlineStrategyProfile(airline.name)
+    val allianceMember = AllianceMember(profile.alliance.id + 1, airline, role = MEMBER, 1)
+    AllianceSource.saveAllianceMember(allianceMember)
+
+  }
+
+  object AIAlliance extends Enumeration {
+    type AIAlliance = Value
+    val SKYTEAM, ONEWORLD, STAR_ALLIANCE, PLACEHOLDER = Value
+    val label: AIAlliance => String = {
+      case SKYTEAM => "SkyTeam"
+      case ONEWORLD => "Oneworld"
+      case STAR_ALLIANCE => "Star Alliance"
+      case PLACEHOLDER => "Placeholder"
+    }
+    def fromId(id: Int): AIAlliance = id match {
+      case 0 => SKYTEAM
+      case 1 => ONEWORLD
+      case 2 => STAR_ALLIANCE
+      case 3 => PLACEHOLDER
+      case _ => throw new IllegalArgumentException("Invalid AIAlliance ID: " + id)
+    }
   }
 }
