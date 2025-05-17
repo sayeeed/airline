@@ -31,7 +31,7 @@ object AISimulation extends App {
   private lazy val allModels = ModelSource.loadAllModels()
 
   def simulateAIAirlines(cycle: Int) = {
-    if (cycle % 1 == 0) {
+    if (cycle % 6 == 0) {
       println("AI updating this cycle")
       val aiAirlines = AirlineSource.loadAllAirlines(true).filterNot(_.aiType == AIType.PLAYER)
       val allFlightLinks = LinkSource.loadAllFlightLinks()
