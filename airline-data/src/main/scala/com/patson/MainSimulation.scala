@@ -12,6 +12,7 @@ import com.patson.util.{AirlineCache, AirplaneOwnershipCache, AirplaneOwnershipI
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
+import org.apache.pekko.actor.ActorRef
 
 object MainSimulation extends App {
   val CYCLE_DURATION : Int = 60 * 5
@@ -26,9 +27,14 @@ object MainSimulation extends App {
   mainFlow
   
   def mainFlow() = {
-    val actor = actorSystem.actorOf(Props[MainSimulationActor])
-    actorSystem.scheduler.schedule(Duration.Zero, Duration(CYCLE_DURATION, TimeUnit.SECONDS), actor, Start)
-    Await.result(actorSystem.whenTerminated, Duration.Inf)
+    // multiplayer code
+    //val actor = actorSystem.actorOf(Props[MainSimulationActor])
+    //actorSystem.scheduler.schedule(Duration.Zero, Duration(CYCLE_DURATION, TimeUnit.SECONDS), actor, Start)
+    //Await.result(actorSystem.whenTerminated, Duration.Inf)
+    //println(">> [MainSimulation] Starting main flow...")
+    //val actor = actorSystem.actorOf(Props[MainSimulationActor], "main-simulation-actor")
+    //SimulationActorHolder.mainSimulationActor = Some(actor)
+    //println(actor)
   }
 
 
@@ -116,41 +122,11 @@ object MainSimulation extends App {
     println(s"Post cycle done $currentCycle")
   }
 
-
-  /**
-    * The simulation can be seen like this:
-    * On week(cycle) n. It starts the long simulation (pax simulation) at the "END of the week"
-    * when it finishes computing the pax of the past week. It sets the current week to next week (which indicates a beginning of week n + 1)
-    * It then runs some postCycle task (these tasks should be short and can be regarded as things to do at the Beginning of a week)
-    *
-    */
-  class MainSimulationActor extends Actor {
-    currentWeek = CycleSource.loadCycle()
-    def receive = {
-      case Start =>
-        status = SimulationStatus.IN_PROGRESS
-        val endTime = startCycle(currentWeek)
-
-        currentWeek += 1
-        CycleSource.setCycle(currentWeek)
-        status = SimulationStatus.WAITING_CYCLE_START
-        postCycle(currentWeek) //post cycle do some quick updates, no long simulation
-
-        //notify the websockets via EventStream
-        println("Publish Cycle Complete message")
-        SimulationEventStream.publish(CycleCompleted(currentWeek - 1, endTime), None)
-    }
-  }
-   
-  
-  case class Start()
-
   var status : SimulationStatus.Value = SimulationStatus.WAITING_CYCLE_START
   object SimulationStatus extends Enumeration {
     type DelegateTaskType = Value
     val IN_PROGRESS, WAITING_CYCLE_START = Value
   }
-
   
 }
 

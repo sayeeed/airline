@@ -191,6 +191,10 @@
 				<div class="button desktopOnly" onclick="logout()" style="width:90px">Logout</div>
 				<div class="mobileOnly" onclick="logout()"><img src='@routes.Assets.versioned("images/icons/24px/logout.png")' title="Login"></div>
 			</div>
+			<div id="simulateButton" class="topBarItem">
+				<span id="currentUserName" class="label desktopOnly"></span>
+				<div class="button desktopOnly" onclick="simulate()" style="width:90px">Simulate</div>
+			</div>
 <!--			<div class="button desktopOnly topBarItem">-->
 <!--				<a href="https://airlineclub.createaforum.com/" target="_blank">-->
 <!--					Forums-->
@@ -201,6 +205,7 @@
 <!--					<img src='@routes.Assets.versioned("images/icons/24px/forums.png")' style="vertical-align: middle;" title="Forums">-->
 <!--				</a>-->
 <!--			</div>-->
+
 			<div class="topBarItem no-highlight" id="discordDiv">
 				<a href="https://discord.gg/e6VgGswVep"  target="_blank">
 					<img src='@routes.Assets.versioned("images/buttons/Discord-Logo-Color.png")' style="max-height: 30px; vertical-align: middle;" title="Official Discord">

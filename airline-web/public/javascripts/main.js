@@ -260,6 +260,22 @@ function onGoogleLogin(googleUser) {
 	loginType='plain'
 }
 
+function simulate() {
+    $.ajax
+	({
+	  type: "POST",
+	  url: "simulate",
+	  success: function(message) {
+	    	console.log("Cycle simulating: ", message)
+            showFloatMessage("Cycle simulated")
+	    },
+	    error: function(jqXHR, textStatus, errorThrown) {
+            console.log("AJAX error: " + textStatus + ' : ' + errorThrown)
+            showFloatMessage("Error simulating cycle")
+	    }
+	});
+}
+
 function logout() {
 	$.ajax
 	({

@@ -12,6 +12,9 @@ import play.api.data.Form
 import play.api.data.Forms.{mapping, number}
 import play.api.libs.json.{Json, _}
 import play.api.mvc._
+import com.patson.MainSimulation
+import com.patson.MainSimulation.SimulationStatus
+import com.patson.stream.{CycleCompleted, CycleStart, SimulationEventStream}
 
 import java.util.Random
 import javax.inject.Inject
@@ -645,4 +648,17 @@ class Application @Inject()(cc: ControllerComponents, val configuration: play.ap
   }
 
   case class LinkInfo(fromId : Int, toId : Int, price : Double, capacity : Int)
+
+  def simulateCycle() = Action {
+    var currentWeek = CycleSource.loadCycle()
+    var status = SimulationStatus.IN_PROGRESS
+    println("Starting cycle...")
+    val endTime = MainSimulation.startCycle(currentWeek)
+    currentWeek += 1
+    CycleSource.setCycle(currentWeek)
+    status = SimulationStatus.WAITING_CYCLE_START
+    MainSimulation.postCycle(currentWeek)
+    SimulationEventStream.publish(CycleCompleted(currentWeek - 1, endTime), None)
+    Ok("Cycle simulated")
+  }
 }

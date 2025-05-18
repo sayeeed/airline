@@ -267,6 +267,9 @@ GET     /about      controllers.AboutApplication.about()
 
 OPTIONS    /*path     controllers.Application.options(path)
 
+#AI Simulating
+POST /simulate      controllers.Application.simulateCycle()
+
 #GET     /favicon.ico    controllers.Assets.at(path="/public/images/icon", file="globe-green.png")
 GET  /favicon.ico        controllers.Assets.at(path="/public/images/icons", file="globe-with-airplane.png")
 
